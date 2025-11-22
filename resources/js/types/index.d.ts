@@ -2,7 +2,7 @@ import { InertiaLinkProps } from '@inertiajs/react';
 import { LucideIcon } from 'lucide-react';
 
 export interface Auth {
-    user: User;
+    user: User | null;
 }
 
 export interface BreadcrumbItem {
@@ -26,6 +26,10 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    flash: {
+        success?: string;
+        error?: string;
+    };
     sidebarOpen: boolean;
     [key: string]: unknown;
 }
@@ -34,10 +38,33 @@ export interface User {
     id: number;
     name: string;
     email: string;
+    role: 'admin' | 'service_provider' | 'client';
+    timezone: string;
     avatar?: string;
     email_verified_at: string | null;
-    two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;
-    [key: string]: unknown; // This allows for additional properties...
+    timeslots_count?: number;
+    bookings_count?: number;
+    clients_count?: number | null;
+    providers_count?: number | null;
+    [key: string]: unknown;
 }
+
+export interface PaginatedResponse<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number;
+    to: number;
+    links: Array<{
+        url: string | null;
+        label: string;
+        active: boolean;
+    }>;
+}
+
+export * from './timeslot';
+export * from './booking';
