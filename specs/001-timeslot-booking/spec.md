@@ -9,18 +9,18 @@
 
 ### User Story 1 - Client Books Available Timeslot (Priority: P1)
 
-A client browses available timeslots offered by service providers and books a slot that fits their schedule. This is the core value proposition of the system.
+A client views available timeslots in the calendar and books a slot that fits their schedule. This is the core value proposition of the system.
 
 **Why this priority**: This is the primary use case that delivers immediate value - allowing clients to reserve service appointments without phone calls or emails.
 
-**Independent Test**: Can be fully tested by creating a service provider with available timeslots, logging in as a client, viewing the available slots, and successfully booking one. Delivers immediate value as a basic appointment booking system.
+**Independent Test**: Can be fully tested by creating a service provider with available timeslots, logging in as a client, viewing the calendar with available slots, and successfully booking one. Delivers immediate value as a basic appointment booking system.
 
 **Acceptance Scenarios**:
 
-1. **Given** a client is logged in and viewing available timeslots, **When** they select an available slot and click "Book", **Then** the system reserves that slot for them and shows a confirmation
+1. **Given** a client is logged in and viewing the calendar, **When** they select a day with available slots and click "Book", **Then** the system reserves that slot for them and shows a confirmation
 2. **Given** a client has booked a timeslot, **When** they view their bookings list, **Then** they see the booked slot with service provider details, date, and time
-3. **Given** a timeslot has been booked by one client, **When** another client views available slots, **Then** that slot no longer appears as available
-4. **Given** a client is viewing a fully booked service provider's schedule, **When** they load the page, **Then** they see a message indicating no slots are currently available
+3. **Given** a timeslot has been booked by one client, **When** another client views the calendar, **Then** that slot appears as booked
+4. **Given** a client is viewing a fully booked service provider's schedule in the calendar, **When** they load the page, **Then** they see all slots marked as booked
 
 ---
 
@@ -140,8 +140,8 @@ An admin can perform any service provider action on behalf of any provider, enab
 - **FR-012**: System MUST prevent ServiceProviders from creating timeslots in the past
 
 **Booking Management (Client):**
-- **FR-013**: Clients MUST be able to view all available (unbooked) timeslots across all service providers
-- **FR-014**: Clients MUST be able to book an available timeslot
+- **FR-013**: Clients MUST be able to view all timeslots (available and booked) in a calendar view across all service providers
+- **FR-014**: Clients MUST be able to book an available timeslot from the calendar view
 - **FR-015**: Clients MUST be able to view their own booked timeslots
 - **FR-016**: Clients MUST be able to cancel their own bookings
 - **FR-017**: System MUST prevent clients from booking timeslots that are already booked
@@ -214,9 +214,13 @@ An admin can perform any service provider action on behalf of any provider, enab
 - Group bookings or appointments
 - Self-service user registration (admin creates all accounts)
 
-## Calendar View
+## Calendar View (Primary Interface)
 
-- The application provides a `/calendar` route displaying a month calendar (React component).
-- The calendar shows all timeslots for the selected month.
-- Each timeslot is visually marked with its status: **Available**, **Booked**, or **Planned**.
-- Users can interact with timeslots directly from the calendar view according to their role and permissions.
+- The application provides a `/calendar` route displaying a monthly calendar grid as the primary interface for viewing timeslots.
+- The calendar shows all timeslots for the selected month across all service providers.
+- Users can navigate between months using previous/next controls.
+- Each day shows the number of timeslots and visual indicators for their status.
+- Clicking on a day with timeslots opens a dialog showing detailed information for all slots on that date.
+- Each timeslot is visually marked with its status: **Available** (green), **Booked** (blue), or **Cancelled** (not displayed by default).
+- Users can book available timeslots directly from the calendar dialog according to their role and permissions.
+- The calendar replaces the previous list-based browsing interface, providing a more intuitive date-based navigation.

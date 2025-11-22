@@ -13,13 +13,20 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Seed roles and users
+        $this->call([
+            RoleSeeder::class,
+            TimeslotBookingSeeder::class,
+        ]);
 
+        // Original test user (kept for backward compatibility)
         User::firstOrCreate(
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
                 'password' => 'password',
+                'role' => 'client',
+                'timezone' => 'UTC',
                 'email_verified_at' => now(),
             ]
         );
