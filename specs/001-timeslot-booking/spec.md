@@ -21,6 +21,9 @@ A client views available timeslots in the calendar and books a slot that fits th
 2. **Given** a client has booked a timeslot, **When** they view their bookings list, **Then** they see the booked slot with service provider details, date, and time
 3. **Given** a timeslot has been booked by one client, **When** another client views the calendar, **Then** that slot appears as booked
 4. **Given** a client is viewing a fully booked service provider's schedule in the calendar, **When** they load the page, **Then** they see all slots marked as booked
+5. **Given** a client has a confirmed booking within 3 days, **When** they visit the calendar page, **Then** they see a flash notification message with appointment details (provider name, date, time)
+6. **Given** a client views the calendar, **When** the page loads, **Then** they only see timeslots starting from the current time onwards (no past timeslots are displayed)
+7. **Given** a client has multiple upcoming bookings within 3 days, **When** they visit the calendar, **Then** they see separate notification messages for each upcoming appointment
 
 ---
 
@@ -160,6 +163,11 @@ An admin can perform any service provider action on behalf of any provider, enab
 - **FR-026**: System MUST prevent deletion of ServiceProvider accounts with future active bookings
 - **FR-027**: System MUST log all booking creations, modifications, and cancellations with timestamps and user identity
 
+**Booking Status & Calendar Features:**
+- **FR-028**: System MUST automatically mark bookings as 'completed' after their timeslot end time has passed (via hourly scheduled task)
+- **FR-029**: Clients MUST see only future-available timeslots (from current time onwards) in the calendar view to focus on bookable appointments
+- **FR-030**: Clients MUST receive visual flash notifications for confirmed bookings occurring within the next 3 days when viewing the calendar page
+
 ### Key Entities
 
 - **User**: Represents system users with name, email, password (hashed), and role (Admin/ServiceProvider/Client). Each user can have multiple bookings (as Client) or multiple timeslots (as ServiceProvider)
@@ -168,7 +176,7 @@ An admin can perform any service provider action on behalf of any provider, enab
 
 - **Timeslot**: Represents an available appointment slot with date, start time, duration (minutes), status (available/booked/planned), and associated ServiceProvider. Each timeslot can have zero or one booking
 
-- **Booking**: Represents a client's reservation of a timeslot, with references to Client (User), Timeslot, booking timestamp, status (active/cancelled), and cancellation timestamp if applicable
+- **Booking**: Represents a client's reservation of a timeslot, with references to Client (User), Timeslot, booking timestamp, and status. Status values: 'confirmed' (active upcoming booking), 'cancelled' (manually cancelled), 'completed' (automatically set after timeslot end time passes)
 
 ## Success Criteria *(mandatory)*
 
@@ -216,11 +224,26 @@ An admin can perform any service provider action on behalf of any provider, enab
 
 ## Calendar View (Primary Interface)
 
-- The application provides a `/calendar` route displaying a monthly calendar grid as the primary interface for viewing timeslots.
-- The calendar shows all timeslots for the selected month across all service providers.
-- Users can navigate between months using previous/next controls.
-- Each day shows the number of timeslots and visual indicators for their status.
-- Clicking on a day with timeslots opens a dialog showing detailed information for all slots on that date.
-- Each timeslot is visually marked with its status: **Available** (green), **Booked** (blue), or **Cancelled** (not displayed by default).
-- Users can book available timeslots directly from the calendar dialog according to their role and permissions.
-- The calendar replaces the previous list-based browsing interface, providing a more intuitive date-based navigation.
+- **Unified Route**: The application provides a single `/calendar` route accessible to all authenticated users regardless of role (Admin, ServiceProvider, or Client).
+- **Role-Agnostic Interface**: The same calendar page and component are displayed to all roles. User interactions (booking, managing timeslots) are controlled by role-based permissions, not by separate views.
+- **Calendar Display**: The calendar shows a monthly calendar grid displaying all timeslots for the selected month across all service providers.
+- **Client Time Filtering**: Clients see only future timeslots starting from the current time onwards. Past timeslots are not displayed to clients to focus on bookable slots. Providers and admins see timeslots from yesterday onwards for management purposes.
+- **Upcoming Booking Alerts**: When a client has confirmed bookings within the next 3 days, flash message notifications appear at the top of the calendar showing the appointment details (provider, date, time).
+- **Navigation**: Users can navigate between months using previous/next controls.
+- **Day View**: Each day shows the number of timeslots and visual indicators for their status.
+- **Timeslot Details**: Clicking on a day with timeslots opens a dialog showing detailed information for all slots on that date.
+- **Status Indicators**: Each timeslot is visually marked with its status: **Available** (green), **Booked** (blue), or **Cancelled** (not displayed by default).
+- **Contextual Actions**: Users can interact with timeslots directly from the calendar dialog according to their role and permissions (e.g., clients can book available slots, providers can manage their slots).
+- **Persistent View State**: The calendar remembers the user's current view (selected month/year) indefinitely. When a user navigates away and returns to `/calendar`, they see the same month they were previously viewing, not today's date. This view state persists across sessions (stored in user preferences or browser storage).
+- **Interface Replacement**: The calendar replaces the previous list-based browsing interface, providing a more intuitive date-based navigation.
+
+## Booking Status Lifecycle
+
+The system manages three booking statuses that represent the lifecycle of an appointment:
+
+- **confirmed**: Active booking, appointment scheduled and upcoming. This is the default status when a booking is created.
+- **cancelled**: Booking was cancelled by either the client or provider before the appointment occurred. Cancellation is a terminal state.
+- **completed**: Appointment has passed (automatically set after timeslot end_time). This status is applied by an automated hourly process.
+
+**Automated Status Management:**
+The system runs an hourly scheduled task (`bookings:update-completed`) that automatically updates all confirmed bookings to completed status once their associated timeslot's end time has passed. This ensures accurate historical record-keeping and allows users to distinguish between upcoming and past appointments.

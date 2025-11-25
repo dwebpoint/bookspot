@@ -30,6 +30,8 @@ class BookingController extends Controller
             $query->confirmed();
         } elseif ($request->status === 'cancelled') {
             $query->cancelled();
+        } elseif ($request->status === 'completed') {
+            $query->completed();
         }
 
         return Inertia::render('Bookings/Index', [

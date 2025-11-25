@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Calendar, CalendarCheck, Folder, LayoutGrid, Pizza, Users } from 'lucide-react';
+import { BookOpen, Calendar, CalendarCheck, Folder, LayoutGrid, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const getMainNavItems = (userRole: string): NavItem[] => {
@@ -37,12 +37,12 @@ const getMainNavItems = (userRole: string): NavItem[] => {
 
     const providerItems: NavItem[] = [
         {
-            title: 'My Schedule',
+            title: 'Schedule',
             href: '/provider/timeslots',
             icon: Calendar,
         },
         {
-            title: 'My Clients',
+            title: 'Clients',
             href: '/provider/clients',
             icon: Users,
         },
@@ -74,16 +74,6 @@ const footerNavItems: NavItem[] = [
         title: 'Repository',
         href: 'https://github.com/laravel/react-starter-kit',
         icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-    {
-        title: 'CUSTOM LINK',
-        href: 'https://laravel.com',
-        icon: Pizza,
     },
 ];
 

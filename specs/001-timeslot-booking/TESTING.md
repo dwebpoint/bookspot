@@ -103,11 +103,11 @@ npm run dev
 ### For All Users
 - [ ] Dashboard link works
 - [ ] Available Timeslots link works
-- [ ] My Bookings link works
+- [ ] Bookings link works
 
 ### For Providers and Admins
-- [ ] My Schedule link appears
-- [ ] My Schedule link works
+- [ ] Schedule link appears
+- [ ] Schedule link works
 
 ### For Admins Only
 - [ ] User Management link appears

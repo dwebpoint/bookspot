@@ -16,40 +16,65 @@ class CalendarController extends Controller
     public function index(Request $request): Response
     {
         $providerId = $request->input('provider_id'); // Optional provider filter
-        
-        // Date range: yesterday to +14 days (16 days total)
-        $startDate = now()->subDay()->startOfDay();
-        $endDate = now()->addDays(14)->endOfDay();
-        
+
         $user = auth()->user();
+
+        // Date range varies by role
+        // Clients: from current time onwards (future only)
+        // Providers/Admins: yesterday to +14 days (for management)
+        if ($user->isClient()) {
+            $startDate = now(); // Current time for clients
+            $endDate = now()->addDays(14)->endOfDay();
+        } else {
+            $startDate = now()->subDay()->startOfDay();
+            $endDate = now()->addDays(14)->endOfDay();
+        }
         
         // Build query for timeslots
         $query = Timeslot::with(['provider:id,name', 'booking.client:id,name'])
             ->whereBetween('start_time', [$startDate, $endDate]);
         
-        // For clients: only show timeslots from their linked providers
+        // For clients: show timeslots from their linked providers + their own bookings
         if ($user->isClient()) {
             $providerIds = $user->providers()->pluck('users.id');
-            
-            if ($providerIds->isEmpty()) {
-                // Client has no linked providers, show no timeslots
-                $timeslots = collect();
-                $providers = collect();
-            } else {
+
+            // Get timeslots from linked providers
+            $linkedTimeslots = collect();
+            if ($providerIds->isNotEmpty()) {
+                $linkedQuery = clone $query;
+
                 // Apply optional provider filter
                 if ($providerId && $providerIds->contains($providerId)) {
-                    $query->where('provider_id', $providerId);
+                    $linkedQuery->where('provider_id', $providerId);
                 } else {
-                    $query->whereIn('provider_id', $providerIds);
+                    $linkedQuery->whereIn('provider_id', $providerIds);
                 }
-                
-                $timeslots = $query->orderBy('start_time')->get();
-                
-                // Get client's linked providers for filter dropdown
-                $providers = $user->providers()
-                    ->select('users.id', 'users.name')
-                    ->get();
+
+                $linkedTimeslots = $linkedQuery->orderBy('start_time')->get();
             }
+
+            // Get client's own bookings (regardless of provider linkage)
+            $ownBookingsQuery = Timeslot::with(['provider:id,name', 'booking.client:id,name'])
+                ->whereBetween('start_time', [$startDate, $endDate])
+                ->whereHas('booking', function ($q) use ($user) {
+                    $q->where('client_id', $user->id);
+                })
+                ->orderBy('start_time');
+
+            // Apply provider filter to own bookings if selected
+            if ($providerId) {
+                $ownBookingsQuery->where('provider_id', $providerId);
+            }
+
+            $ownBookings = $ownBookingsQuery->get();
+
+            // Merge and deduplicate timeslots
+            $timeslots = $linkedTimeslots->merge($ownBookings)->unique('id')->sortBy('start_time')->values();
+
+            // Get client's linked providers for filter dropdown
+            $providers = $user->providers()
+                ->select('users.id', 'users.name')
+                ->get();
         } elseif ($user->isServiceProvider()) {
             // For service providers: show only their own timeslots
             $timeslots = $query->where('provider_id', $user->id)
@@ -76,6 +101,29 @@ class CalendarController extends Controller
                 ->get();
         }
         
+        // For clients: show flash messages for upcoming bookings (within 3 days)
+        if ($user->isClient()) {
+            $upcomingBookings = $user->bookings()
+                ->with('timeslot.provider')
+                ->confirmed()
+                ->whereHas('timeslot', function ($q) {
+                    $q->whereBetween('start_time', [now(), now()->addDays(3)]);
+                })
+                ->orderBy('created_at')
+                ->get();
+
+            foreach ($upcomingBookings as $booking) {
+                $timeslot = $booking->timeslot;
+                $message = sprintf(
+                    'Upcoming appointment with %s on %s at %s',
+                    $timeslot->provider->name,
+                    $timeslot->start_time->format('M d, Y'),
+                    $timeslot->start_time->format('g:i A')
+                );
+                session()->flash('info', $message);
+            }
+        }
+
         return Inertia::render('Calendar/Index', [
             'timeslots' => $timeslots,
             'startDate' => $startDate->format('Y-m-d'),

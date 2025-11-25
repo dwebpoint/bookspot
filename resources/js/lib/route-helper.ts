@@ -27,6 +27,8 @@ export function route(name: string, params?: Record<string, unknown> | number | 
         'provider.clients.index': '/provider/clients',
         'provider.clients.create': '/provider/clients/create',
         'provider.clients.store': '/provider/clients',
+        'provider.clients.edit': '/provider/clients/:id/edit',
+        'provider.clients.update': '/provider/clients/:id',
         'provider.clients.destroy': '/provider/clients/:id',
         
         // Admin routes

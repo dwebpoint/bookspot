@@ -78,14 +78,14 @@ export default function Index() {
 
     return (
         <AppLayout>
-            <Head title="My Schedule" />
+            <Head title="Schedule" />
             <FlashMessages />
 
-            <div className="space-y-6">
+            <div className="space-y-6 p-4">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">
-                            My Schedule
+                            Schedule
                         </h1>
                         <p className="text-muted-foreground">
                             Manage your available timeslots and bookings

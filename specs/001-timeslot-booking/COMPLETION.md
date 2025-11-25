@@ -127,7 +127,7 @@ The timeslot booking feature has been fully implemented according to the specifi
 #### Navigation
 - [x] Updated AppSidebar with role-based menu items
 - [x] Common items: Dashboard, Available Timeslots, My Bookings
-- [x] Provider items: My Schedule
+- [x] Provider items: Schedule
 - [x] Admin items: User Management
 - [x] Dynamic navigation based on auth.user.role
 

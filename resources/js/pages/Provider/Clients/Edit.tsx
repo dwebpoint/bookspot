@@ -9,33 +9,41 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { SharedData } from '@/types';
 
-interface CreateClientProps extends SharedData {}
+interface Client {
+    id: number;
+    name: string;
+    email: string;
+}
 
-export default function Create() {
-    const { data, setData, post, processing, errors } = useForm({
-        name: '',
-        email: '',
+interface EditClientProps extends SharedData {
+    client: Client;
+}
+
+export default function Edit({ client }: EditClientProps) {
+    const { data, setData, put, processing, errors } = useForm({
+        name: client.name,
+        email: client.email,
         phone: '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('provider.clients.store'));
+        put(route('provider.clients.update', client.id));
     };
 
     return (
         <AppLayout>
-            <Head title="Add New Client" />
+            <Head title="Edit Client" />
             <FlashMessages />
 
             <div className="space-y-6 p-4">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">
-                            Add New Client
+                            Edit Client
                         </h1>
                         <p className="text-muted-foreground">
-                            Create a new client account and link them to your services
+                            Update client information
                         </p>
                     </div>
                     <Button
@@ -51,7 +59,7 @@ export default function Create() {
                     <CardHeader>
                         <CardTitle>Client Information</CardTitle>
                         <CardDescription>
-                            Enter the client's details. If an account with this email already exists, they will be linked to your services.
+                            Update the client's details below.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -90,27 +98,14 @@ export default function Create() {
                                 {errors.email && (
                                     <p className="text-sm text-destructive">{errors.email}</p>
                                 )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Phone (Optional)</Label>
-                                <Input
-                                    id="phone"
-                                    type="tel"
-                                    value={data.phone}
-                                    onChange={(e) => setData('phone', e.target.value)}
-                                    placeholder="+1 (555) 123-4567"
-                                    disabled={processing}
-                                    className={errors.phone ? 'border-destructive' : ''}
-                                />
-                                {errors.phone && (
-                                    <p className="text-sm text-destructive">{errors.phone}</p>
-                                )}
+                                <p className="text-xs text-muted-foreground">
+                                    Changing the email will update the client's login credentials
+                                </p>
                             </div>
 
                             <div className="flex gap-3 pt-4">
                                 <Button type="submit" disabled={processing}>
-                                    {processing ? 'Adding Client...' : 'Add Client'}
+                                    {processing ? 'Updating Client...' : 'Update Client'}
                                 </Button>
                                 <Button
                                     type="button"
@@ -122,26 +117,6 @@ export default function Create() {
                                 </Button>
                             </div>
                         </form>
-                    </CardContent>
-                </Card>
-
-                <Card className="max-w-2xl bg-muted/50">
-                    <CardHeader>
-                        <CardTitle className="text-base">About Client Accounts</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground space-y-2">
-                        <p>
-                            • If a client account with this email doesn't exist, a new account will be created
-                        </p>
-                        <p>
-                            • If the email is already registered, the existing client will be linked to your services
-                        </p>
-                        <p>
-                            • New clients will receive an email with instructions to set their password
-                        </p>
-                        <p>
-                            • Clients will only see your available timeslots once linked
-                        </p>
                     </CardContent>
                 </Card>
             </div>

@@ -45,6 +45,7 @@ export default function Calendar() {
 
     const isServiceProvider = auth.user?.role === 'service_provider';
     const isAdmin = auth.user?.role === 'admin';
+    const isClient = auth.user?.role === 'client';
     const canSeeClientNames = isServiceProvider || isAdmin;
     
     const rangeStart = new Date(startDate);
@@ -131,21 +132,23 @@ export default function Calendar() {
             <Head title="Calendar" />
             <FlashMessages />
 
-            <div className="space-y-6">
+            <div className="space-y-6 p-4">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">
                             Calendar
                         </h1>
                         <p className="text-muted-foreground">
-                            View available timeslots in calendar format
+                            {isClient
+                                ? 'Browse and book available timeslots'
+                                : 'View available timeslots in calendar format'}
                         </p>
                     </div>
                 </div>
 
                 {/* Calendar Header */}
                 <Card>
-                    <CardContent className="p-6">
+                    <CardContent className="p-4">
                         <div className="mb-6 flex items-center justify-between">
                             <div>
                                 <h2 className="text-2xl font-semibold">
@@ -218,59 +221,142 @@ export default function Calendar() {
                                             </div>
                                             {hasTimeslots ? (
                                                 <div className="space-y-2">
-                                                    {dayTimeslots.map((timeslot) => (
-                                                        <button
-                                                            key={timeslot.id}
-                                                            onClick={() => {
-                                                                handleTimeslotClick(timeslot, day);
-                                                            }}
-                                                            className={`
-                                                                w-full text-left rounded-lg border p-3 transition-colors
-                                                                ${timeslot.is_available 
-                                                                    ? 'bg-green-50 border-green-200 hover:bg-green-100' 
-                                                                    : 'bg-blue-50 border-blue-200 hover:bg-blue-100'}
-                                                            `}
-                                                        >
-                                                            <div className="flex items-start justify-between gap-2">
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                                                                        <span className="text-sm font-medium">
-                                                                            {format(new Date(timeslot.start_time), 'HH:mm')}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                                        <Clock className="h-3 w-3 flex-shrink-0" />
-                                                                        <span>{timeslot.duration_minutes} min</span>
-                                                                    </div>
-                                                                    {timeslot.provider && !isServiceProvider && (
-                                                                        <div className="text-xs text-muted-foreground mt-1 truncate">
-                                                                            {timeslot.provider.name}
+                                                    {/* For clients: show available timeslots first, then booked ones */}
+                                                    {isClient ? (
+                                                        <>
+                                                            {/* Client's own booked timeslots */}
+                                                            {dayTimeslots
+                                                                .filter((ts) => !ts.is_available && ts.booking?.client?.id === auth.user?.id)
+                                                                .map((timeslot) => (
+                                                                    <button
+                                                                        key={timeslot.id}
+                                                                        onClick={() => {
+                                                                            handleTimeslotClick(timeslot, day);
+                                                                        }}
+                                                                        className="w-full text-left rounded-lg border bg-blue-50 border-blue-200 hover:bg-blue-100 p-3 transition-colors"
+                                                                    >
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                                                                                    <span className="text-sm font-medium">
+                                                                                        {format(new Date(timeslot.start_time), 'HH:mm')}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                                    <Clock className="h-3 w-3 flex-shrink-0" />
+                                                                                    <span>{timeslot.duration_minutes} min</span>
+                                                                                </div>
+                                                                                {timeslot.provider && (
+                                                                                    <div className="text-xs text-muted-foreground mt-1 truncate">
+                                                                                        {timeslot.provider.name}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            <span className="flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">
+                                                                                Your Booking
+                                                                            </span>
                                                                         </div>
-                                                                    )}
-                                                                    {canSeeClientNames && timeslot.booking?.client && (
-                                                                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 truncate">
-                                                                            <UserIcon className="h-3 w-3 flex-shrink-0" />
-                                                                            <span>{timeslot.booking.client.name}</span>
+                                                                    </button>
+                                                                ))}
+                                                            {/* Available timeslots */}
+                                                            {dayTimeslots
+                                                                .filter((ts) => ts.is_available)
+                                                                .map((timeslot) => (
+                                                                    <button
+                                                                        key={timeslot.id}
+                                                                        onClick={() => {
+                                                                            handleTimeslotClick(timeslot, day);
+                                                                        }}
+                                                                        className="w-full text-left rounded-lg border bg-green-50 border-green-200 hover:bg-green-100 p-3 transition-colors"
+                                                                    >
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                                                                                    <span className="text-sm font-medium">
+                                                                                        {format(new Date(timeslot.start_time), 'HH:mm')}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                                    <Clock className="h-3 w-3 flex-shrink-0" />
+                                                                                    <span>{timeslot.duration_minutes} min</span>
+                                                                                </div>
+                                                                                {timeslot.provider && (
+                                                                                    <div className="text-xs text-muted-foreground mt-1 truncate">
+                                                                                        {timeslot.provider.name}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            <span className="flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700">
+                                                                                Available
+                                                                            </span>
                                                                         </div>
-                                                                    )}
+                                                                    </button>
+                                                                ))}
+                                                            {/* Other booked timeslots count (not by this client) */}
+                                                            {dayTimeslots.filter((ts) => !ts.is_available && ts.booking?.client?.id !== auth.user?.id).length > 0 && (
+                                                                <div className="text-xs text-muted-foreground text-center pt-1">
+                                                                    {dayTimeslots.filter((ts) => !ts.is_available && ts.booking?.client?.id !== auth.user?.id).length} booked by others
                                                                 </div>
-                                                                <span
-                                                                    className={`
-                                                                        flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium
-                                                                        ${timeslot.is_available 
-                                                                            ? 'bg-green-100 text-green-700' 
-                                                                            : 'bg-blue-100 text-blue-700'}
-                                                                    `}
-                                                                >
-                                                                    {timeslot.is_available ? 'Open' : 'Booked'}
-                                                                </span>
-                                                            </div>
-                                                        </button>
-                                                    ))}
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        /* For providers and admins: show all timeslots */
+                                                        dayTimeslots.map((timeslot) => (
+                                                            <button
+                                                                key={timeslot.id}
+                                                                onClick={() => {
+                                                                    handleTimeslotClick(timeslot, day);
+                                                                }}
+                                                                className={`
+                                                                    w-full text-left rounded-lg border p-3 transition-colors
+                                                                    ${timeslot.is_available
+                                                                        ? 'bg-green-50 border-green-200 hover:bg-green-100'
+                                                                        : 'bg-blue-50 border-blue-200 hover:bg-blue-100'}
+                                                                `}
+                                                            >
+                                                                <div className="flex items-start justify-between gap-2">
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                            <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                                                                            <span className="text-sm font-medium">
+                                                                                {format(new Date(timeslot.start_time), 'HH:mm')}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                            <Clock className="h-3 w-3 flex-shrink-0" />
+                                                                            <span>{timeslot.duration_minutes} min</span>
+                                                                        </div>
+                                                                        {timeslot.provider && !isServiceProvider && (
+                                                                            <div className="text-xs text-muted-foreground mt-1 truncate">
+                                                                                {timeslot.provider.name}
+                                                                            </div>
+                                                                        )}
+                                                                        {canSeeClientNames && timeslot.booking?.client && (
+                                                                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 truncate">
+                                                                                <UserIcon className="h-3 w-3 flex-shrink-0" />
+                                                                                <span>{timeslot.booking.client.name}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <span
+                                                                        className={`
+                                                                            flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium
+                                                                            ${timeslot.is_available
+                                                                                ? 'bg-green-100 text-green-700'
+                                                                                : 'bg-blue-100 text-blue-700'}
+                                                                        `}
+                                                                    >
+                                                                        {timeslot.is_available ? 'Open' : 'Booked'}
+                                                                    </span>
+                                                                </div>
+                                                            </button>
+                                                        ))
+                                                    )}
                                                 </div>
                                             ) : (
-                                                <div className="text-center py-6">
+                                                <div className="text-center py-4">
                                                     {isServiceProvider && !isDayPast ? (
                                                         <Button
                                                             variant="ghost"
@@ -283,7 +369,7 @@ export default function Calendar() {
                                                         </Button>
                                                     ) : (
                                                         <div className="text-sm text-muted-foreground">
-                                                            No timeslots
+                                                            {isClient ? 'No available slots' : 'No timeslots'}
                                                         </div>
                                                     )}
                                                 </div>
@@ -298,14 +384,22 @@ export default function Calendar() {
 
                 {/* Legend */}
                 <div className="flex gap-4 text-sm">
+                    {isClient && (
+                        <div className="flex items-center gap-2">
+                            <div className="h-4 w-4 rounded bg-blue-100 border border-blue-200" />
+                            <span>Your Booking</span>
+                        </div>
+                    )}
                     <div className="flex items-center gap-2">
                         <div className="h-4 w-4 rounded bg-green-100 border border-green-200" />
                         <span>Available</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="h-4 w-4 rounded bg-blue-100 border border-blue-200" />
-                        <span>Booked</span>
-                    </div>
+                    {!isClient && (
+                        <div className="flex items-center gap-2">
+                            <div className="h-4 w-4 rounded bg-blue-100 border border-blue-200" />
+                            <span>Booked</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

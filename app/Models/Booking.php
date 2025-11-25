@@ -61,6 +61,14 @@ class Booking extends Model
     }
 
     /**
+     * Scope a query to only include completed bookings.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
+    }
+
+    /**
      * Scope a query to only include bookings for a specific client.
      */
     public function scopeForClient($query, int $clientId)
@@ -90,5 +98,21 @@ class Booking extends Model
     public function isCancelled(): bool
     {
         return $this->status === 'cancelled';
+    }
+
+    /**
+     * Check if the booking is completed.
+     */
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
+    }
+
+    /**
+     * Mark this booking as completed.
+     */
+    public function complete(): bool
+    {
+        return $this->update(['status' => 'completed']);
     }
 }

@@ -24,7 +24,7 @@ import type { BookingWithTimeslot, SharedData } from '@/types';
 interface BookingsIndexProps extends SharedData {
     bookings: BookingWithTimeslot[];
     filters: {
-        status?: 'all' | 'confirmed' | 'cancelled';
+        status?: 'all' | 'confirmed' | 'cancelled' | 'completed';
     };
 }
 
@@ -62,10 +62,10 @@ export default function Index() {
 
     return (
         <AppLayout>
-            <Head title="My Bookings" />
+            <Head title="Bookings" />
             <FlashMessages />
 
-            <div className="space-y-6">
+            <div className="space-y-6 p-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">
                         My Bookings
@@ -82,7 +82,8 @@ export default function Index() {
                 >
                     <TabsList>
                         <TabsTrigger value="all">All</TabsTrigger>
-                        <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
+                        <TabsTrigger value="confirmed">Upcoming</TabsTrigger>
+                        <TabsTrigger value="completed">Completed</TabsTrigger>
                         <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
                     </TabsList>
                 </Tabs>

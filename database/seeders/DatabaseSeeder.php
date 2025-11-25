@@ -19,16 +19,5 @@ class DatabaseSeeder extends Seeder
             TimeslotBookingSeeder::class,
         ]);
 
-        // Original test user (kept for backward compatibility)
-        User::firstOrCreate(
-            ['email' => 'test@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => 'password',
-                'role' => 'client',
-                'timezone' => 'UTC',
-                'email_verified_at' => now(),
-            ]
-        );
     }
 }

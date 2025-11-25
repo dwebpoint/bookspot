@@ -20,17 +20,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
-        $user = auth()->user();
-        $data = [];
-        
-        // For clients, load their linked providers
-        if ($user->isClient()) {
-            $data['providers'] = $user->providers()
-                ->select('users.id', 'users.name', 'users.email')
-                ->get();
-        }
-        
-        return Inertia::render('dashboard', $data);
+        return Inertia::render('dashboard');
     })->name('dashboard');
 
     // Calendar - All authenticated users
@@ -60,6 +50,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('clients/create', [\App\Http\Controllers\Provider\ClientController::class, 'create'])->name('clients.create');
         Route::post('clients', [\App\Http\Controllers\Provider\ClientController::class, 'store'])->name('clients.store');
         Route::delete('clients/{client}', [\App\Http\Controllers\Provider\ClientController::class, 'destroy'])->name('clients.destroy');
+        Route::get('clients/{client}/edit', [\App\Http\Controllers\Provider\ClientController::class, 'edit'])->name('clients.edit');
+        Route::put('clients/{client}', [\App\Http\Controllers\Provider\ClientController::class, 'update'])->name('clients.update');
     });
 
     // Admin routes

@@ -117,6 +117,61 @@ class ClientController extends Controller
     }
 
     /**
+     * Show the form for editing the specified client.
+     */
+    public function edit(User $client): Response
+    {
+        abort_if(!auth()->user()->isServiceProvider() && !auth()->user()->isAdmin(), 403);
+
+        // Verify the relationship exists
+        if (!auth()->user()->hasClient($client->id)) {
+            abort(404, 'Client not found.');
+        }
+
+        return Inertia::render('Provider/Clients/Edit', [
+            'client' => $client->only(['id', 'name', 'email']),
+        ]);
+    }
+
+    /**
+     * Update the specified client in storage.
+     */
+    public function update(StoreClientRequest $request, User $client): RedirectResponse
+    {
+        abort_if(!auth()->user()->isServiceProvider() && !auth()->user()->isAdmin(), 403);
+
+        // Verify the relationship exists
+        if (!auth()->user()->hasClient($client->id)) {
+            abort(404, 'Client not found.');
+        }
+
+        try {
+            // Check if email is being changed to an existing email
+            if ($request->email !== $client->email) {
+                $existingUser = User::where('email', $request->email)
+                    ->where('id', '!=', $client->id)
+                    ->first();
+
+                if ($existingUser) {
+                    throw new \Exception('A user with this email already exists.');
+                }
+            }
+
+            $client->update([
+                'name' => $request->name,
+                'email' => $request->email,
+            ]);
+
+            return redirect()->route('provider.clients.index')
+                ->with('success', 'Client updated successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
      * Remove the client relationship.
      */
     public function destroy(User $client): RedirectResponse
