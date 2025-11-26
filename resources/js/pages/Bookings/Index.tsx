@@ -19,12 +19,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { BookingWithTimeslot, SharedData } from '@/types';
+import type { TimeslotWithProvider, SharedData } from '@/types';
 
 interface BookingsIndexProps extends SharedData {
-    bookings: BookingWithTimeslot[];
+    bookings: TimeslotWithProvider[];
     filters: {
-        status?: 'all' | 'confirmed' | 'cancelled' | 'completed';
+        status?: 'all' | 'booked' | 'cancelled' | 'completed';
     };
 }
 
@@ -32,21 +32,21 @@ export default function Index() {
     const { bookings, filters } = usePage<BookingsIndexProps>().props;
     const [cancellingId, setCancellingId] = useState<number | null>(null);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
-    const [selectedBooking, setSelectedBooking] = useState<number | null>(null);
+    const [selectedTimeslot, setSelectedTimeslot] = useState<number | null>(null);
 
-    const handleCancelClick = (bookingId: number) => {
-        setSelectedBooking(bookingId);
+    const handleCancelClick = (timeslotId: number) => {
+        setSelectedTimeslot(timeslotId);
         setShowCancelDialog(true);
     };
 
     const handleCancelConfirm = () => {
-        if (selectedBooking) {
-            setCancellingId(selectedBooking);
-            router.delete(route('bookings.destroy', selectedBooking), {
+        if (selectedTimeslot) {
+            setCancellingId(selectedTimeslot);
+            router.delete(route('bookings.destroy', selectedTimeslot), {
                 onFinish: () => {
                     setCancellingId(null);
                     setShowCancelDialog(false);
-                    setSelectedBooking(null);
+                    setSelectedTimeslot(null);
                 },
             });
         }
@@ -82,7 +82,7 @@ export default function Index() {
                 >
                     <TabsList>
                         <TabsTrigger value="all">All</TabsTrigger>
-                        <TabsTrigger value="confirmed">Upcoming</TabsTrigger>
+                        <TabsTrigger value="booked">Upcoming</TabsTrigger>
                         <TabsTrigger value="completed">Completed</TabsTrigger>
                         <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
                     </TabsList>
@@ -104,28 +104,28 @@ export default function Index() {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {bookings.map((booking) => (
-                            <Card key={booking.id}>
+                        {bookings.map((timeslot) => (
+                            <Card key={timeslot.id}>
                                 <CardHeader>
                                     <div className="flex items-start justify-between">
                                         <div className="space-y-1">
                                             <CardTitle className="flex items-center gap-2">
-                                                {booking.timeslot.provider.name}
-                                                <StatusBadge status={booking.status} />
+                                                {timeslot.provider.name}
+                                                <StatusBadge status={timeslot.status} />
                                             </CardTitle>
                                             <p className="text-sm text-muted-foreground">
-                                                {booking.timeslot.provider.email}
+                                                {timeslot.provider.email}
                                             </p>
                                         </div>
-                                        {booking.status === 'confirmed' && (
+                                        {timeslot.status === 'booked' && (
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() =>
-                                                    handleCancelClick(booking.id)
+                                                    handleCancelClick(timeslot.id)
                                                 }
                                                 disabled={
-                                                    cancellingId === booking.id
+                                                    cancellingId === timeslot.id
                                                 }
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -139,10 +139,7 @@ export default function Index() {
                                             <Calendar className="h-4 w-4 text-muted-foreground" />
                                             <span>
                                                 {format(
-                                                    new Date(
-                                                        booking.timeslot
-                                                            .start_time
-                                                    ),
+                                                    new Date(timeslot.start_time),
                                                     'PPP'
                                                 )}
                                             </span>
@@ -153,17 +150,12 @@ export default function Index() {
                                             </span>
                                             <span className="font-medium">
                                                 {format(
-                                                    new Date(
-                                                        booking.timeslot
-                                                            .start_time
-                                                    ),
+                                                    new Date(timeslot.start_time),
                                                     'p'
                                                 )}{' '}
                                                 -{' '}
                                                 {format(
-                                                    new Date(
-                                                        booking.timeslot.end_time
-                                                    ),
+                                                    new Date(timeslot.end_time),
                                                     'p'
                                                 )}
                                             </span>
@@ -173,11 +165,7 @@ export default function Index() {
                                                 Duration:
                                             </span>
                                             <span>
-                                                {
-                                                    booking.timeslot
-                                                        .duration_minutes
-                                                }{' '}
-                                                minutes
+                                                {timeslot.duration_minutes} minutes
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -186,9 +174,7 @@ export default function Index() {
                                             </span>
                                             <span>
                                                 {format(
-                                                    new Date(
-                                                        booking.created_at
-                                                    ),
+                                                    new Date(timeslot.created_at),
                                                     'PPp'
                                                 )}
                                             </span>

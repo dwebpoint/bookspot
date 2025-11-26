@@ -24,7 +24,7 @@ import {
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import type { SharedData, Timeslot } from '@/types';
 import type { Provider } from '@/types/client';
-import type { Client } from '@/types/booking';
+import type { Client } from '@/types/client';
 
 interface CalendarPageProps extends SharedData {
     timeslots: Timeslot[];
@@ -107,7 +107,7 @@ export default function Calendar() {
     const handleTimeslotClick = (timeslot: Timeslot, date: Date) => {
         setSelectedTimeslot(timeslot);
         setSelectedDate(date);
-        setSelectedClientId(timeslot.booking?.client?.id || null);
+        setSelectedClientId(timeslot.client?.id || null);
         setShowDialog(true);
     };
 
@@ -226,7 +226,7 @@ export default function Calendar() {
                                                         <>
                                                             {/* Client's own booked timeslots */}
                                                             {dayTimeslots
-                                                                .filter((ts) => !ts.is_available && ts.booking?.client?.id === auth.user?.id)
+                                                                .filter((ts) => !ts.is_available && ts.client?.id === auth.user?.id)
                                                                 .map((timeslot) => (
                                                                     <button
                                                                         key={timeslot.id}
@@ -295,9 +295,9 @@ export default function Calendar() {
                                                                     </button>
                                                                 ))}
                                                             {/* Other booked timeslots count (not by this client) */}
-                                                            {dayTimeslots.filter((ts) => !ts.is_available && ts.booking?.client?.id !== auth.user?.id).length > 0 && (
+                                                            {dayTimeslots.filter((ts) => !ts.is_available && ts.client?.id !== auth.user?.id).length > 0 && (
                                                                 <div className="text-xs text-muted-foreground text-center pt-1">
-                                                                    {dayTimeslots.filter((ts) => !ts.is_available && ts.booking?.client?.id !== auth.user?.id).length} booked by others
+                                                                    {dayTimeslots.filter((ts) => !ts.is_available && ts.client?.id !== auth.user?.id).length} booked by others
                                                                 </div>
                                                             )}
                                                         </>
@@ -333,10 +333,10 @@ export default function Calendar() {
                                                                                 {timeslot.provider.name}
                                                                             </div>
                                                                         )}
-                                                                        {canSeeClientNames && timeslot.booking?.client && (
+                                                                        {canSeeClientNames && timeslot.client && (
                                                                             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 truncate">
                                                                                 <UserIcon className="h-3 w-3 flex-shrink-0" />
-                                                                                <span>{timeslot.booking.client.name}</span>
+                                                                                <span>{timeslot.client.name}</span>
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -525,9 +525,9 @@ export default function Calendar() {
                                                         Provider: {timeslot.provider.name}
                                                     </p>
                                                 )}
-                                                {canSeeClientNames && timeslot.booking?.client && (
+                                                {canSeeClientNames && timeslot.client && (
                                                     <p className="text-sm text-muted-foreground">
-                                                        Client: {timeslot.booking.client.name}
+                                                        Client: {timeslot.client.name}
                                                     </p>
                                                 )}
                                             </div>

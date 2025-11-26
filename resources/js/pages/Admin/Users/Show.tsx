@@ -23,12 +23,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import type { Booking, SharedData, Timeslot, User } from '@/types';
+import type { SharedData, Timeslot, User } from '@/types';
 
 interface AdminUsersShowProps extends SharedData {
     user: User & {
         timeslots?: Timeslot[];
-        bookings?: Booking[];
+        bookedTimeslots?: Timeslot[];
     };
 }
 
@@ -150,7 +150,7 @@ export default function Show() {
                                         Booked Timeslots
                                     </span>
                                     <span className="font-semibold">
-                                        {user.timeslots?.filter((t) => t.booking)
+                                        {user.timeslots?.filter((t) => t.status === 'booked')
                                             .length || 0}
                                     </span>
                                 </div>
@@ -172,16 +172,16 @@ export default function Show() {
                                         Total Bookings
                                     </span>
                                     <span className="font-semibold">
-                                        {user.bookings?.length || 0}
+                                        {user.bookedTimeslots?.length || 0}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm text-muted-foreground">
-                                        Confirmed Bookings
+                                        Active Bookings
                                     </span>
                                     <span className="font-semibold">
-                                        {user.bookings?.filter(
-                                            (b) => b.status === 'confirmed'
+                                        {user.bookedTimeslots?.filter(
+                                            (t) => t.status === 'booked'
                                         ).length || 0}
                                     </span>
                                 </div>
