@@ -130,9 +130,10 @@ See `docs/SPATIE_PERMISSIONS.md` for complete permission structure and usage exa
 
 **Key Models:**
 - `User` - HasRoles trait, client/provider relationships via many-to-many
-- `Timeslot` - Belongs to provider, has status (available/booked/cancelled)
-- `Booking` - Links client to timeslot
+- `Timeslot` - Belongs to provider, optionally to client, has status (available/booked/cancelled/completed)
 - `ProviderClient` - Pivot table for provider-client relationships
+
+**Note:** The Booking model has been consolidated into the Timeslot model. Timeslots now directly reference clients via `client_id` and track their lifecycle through the `status` field.
 
 #### Timeslot Model
 
@@ -141,32 +142,49 @@ The `Timeslot` model ([app/Models/Timeslot.php](app/Models/Timeslot.php)) repres
 **Schema:**
 - `id` - Primary key
 - `provider_id` - Foreign key to users table (the service provider)
+- `client_id` - Foreign key to users table (the client who booked, nullable)
 - `start_time` - DateTime when the slot begins
 - `duration_minutes` - Integer duration of the slot
+- `status` - Enum: 'available', 'booked', 'cancelled', 'completed'
 - `timestamps` - created_at, updated_at
 
 **Relationships:**
 - `belongsTo(User::class, 'provider_id')` - The provider who created the slot
-- `hasOne(Booking::class)` - The booking for this slot (if booked)
+- `belongsTo(User::class, 'client_id')` - The client who booked the slot (if booked)
 
 **Computed Attributes (appended to array/JSON):**
 - `end_time` - Calculated as `start_time + duration_minutes`
-- `is_available` - Boolean: true if no confirmed booking exists
-- `is_booked` - Boolean: true if confirmed booking exists
+- `is_available` - Boolean: true if status === 'available'
+- `is_booked` - Boolean: true if status === 'booked'
+- `is_cancelled` - Boolean: true if status === 'cancelled'
+- `is_completed` - Boolean: true if status === 'completed'
 
 **Query Scopes:**
-- `available()` - Slots without confirmed bookings and in the future
+- `available()` - Slots with status 'available' and in the future
+- `booked()` - Slots with status 'booked'
+- `cancelled()` - Slots with status 'cancelled'
+- `completed()` - Slots with status 'completed'
 - `future()` - Slots where start_time > now
 - `forProvider($providerId)` - Slots for specific provider
+- `forClient($clientId)` - Slots for specific client
 - `forClientProviders($client)` - Slots for all of client's linked providers
 - `forProviders($providerIds)` - Slots for multiple provider IDs
+
+**Helper Methods:**
+- `book($clientId)` - Book the timeslot for a client (sets client_id, status='booked')
+- `cancel()` - Cancel the timeslot (sets status='cancelled')
+- `complete()` - Mark as completed (sets status='completed')
+- `makeAvailable()` - Clear booking and make available (clears client_id, sets status='available')
 
 **Authorization (TimeslotPolicy):**
 - `viewAny` - service_provider, admin, or 'view timeslots' permission
 - `view` - Owner (provider) or admin
 - `create` - service_provider, admin, or 'create timeslots' permission
-- `update` - Owner + 'update timeslots' permission, or admin
-- `delete` - Owner + 'delete timeslots' permission, or admin
+- `update` - Owner + 'update timeslots' permission + not booked, or admin
+- `delete` - Owner + 'delete timeslots' permission + not booked/completed, or admin
+- `book` - Client + linked to provider + timeslot is available
+- `cancelBooking` - Client who booked + provider + admin
+- `assignClient` - Provider or admin + timeslot is available
 
 **Key Patterns:**
 ```php
@@ -175,7 +193,17 @@ $timeslot = Timeslot::create([
     'provider_id' => auth()->id(),
     'start_time' => '2025-11-26 14:00:00',
     'duration_minutes' => 60,
+    'status' => 'available',
 ]);
+
+// Book a timeslot for a client
+$timeslot->book($clientId);
+
+// Cancel a booking
+$timeslot->cancel();
+
+// Make timeslot available again
+$timeslot->makeAvailable();
 
 // Query available slots for a provider
 $slots = Timeslot::forProvider($providerId)
@@ -183,17 +211,24 @@ $slots = Timeslot::forProvider($providerId)
     ->orderBy('start_time')
     ->get();
 
-// Check if slot is available
-if ($timeslot->is_available) {
-    // Can be booked
-}
+// Query booked slots for a client
+$bookings = Timeslot::forClient($clientId)
+    ->booked()
+    ->with('provider')
+    ->orderBy('start_time')
+    ->get();
+
+// Check statuses
+if ($timeslot->is_available) { /* Can be booked */ }
+if ($timeslot->is_booked) { /* Currently booked */ }
+if ($timeslot->is_completed) { /* Past appointment */ }
 
 // Get end time
 $endTime = $timeslot->end_time; // Carbon instance
 ```
 
 **Authorization:**
-- Policies in `app/Policies/` (TimeslotPolicy, BookingPolicy)
+- Policies in `app/Policies/` (TimeslotPolicy)
 - CheckRole middleware in `app/Http/Middleware/CheckRole.php`
 
 **Routes:**
