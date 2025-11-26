@@ -31,7 +31,7 @@ class CalendarController extends Controller
         }
         
         // Build query for timeslots
-        $query = Timeslot::with(['provider:id,name', 'booking.client:id,name'])
+        $query = Timeslot::with(['provider:id,name', 'client:id,name'])
             ->whereBetween('start_time', [$startDate, $endDate]);
         
         // For clients: show timeslots from their linked providers + their own bookings
@@ -54,11 +54,9 @@ class CalendarController extends Controller
             }
 
             // Get client's own bookings (regardless of provider linkage)
-            $ownBookingsQuery = Timeslot::with(['provider:id,name', 'booking.client:id,name'])
+            $ownBookingsQuery = Timeslot::with(['provider:id,name', 'client:id,name'])
                 ->whereBetween('start_time', [$startDate, $endDate])
-                ->whereHas('booking', function ($q) use ($user) {
-                    $q->where('client_id', $user->id);
-                })
+                ->where('client_id', $user->id)
                 ->orderBy('start_time');
 
             // Apply provider filter to own bookings if selected
@@ -103,17 +101,14 @@ class CalendarController extends Controller
         
         // For clients: show flash messages for upcoming bookings (within 3 days)
         if ($user->isClient()) {
-            $upcomingBookings = $user->bookings()
-                ->with('timeslot.provider')
-                ->confirmed()
-                ->whereHas('timeslot', function ($q) {
-                    $q->whereBetween('start_time', [now(), now()->addDays(3)]);
-                })
-                ->orderBy('created_at')
+            $upcomingBookings = Timeslot::with('provider')
+                ->where('client_id', $user->id)
+                ->where('status', 'booked')
+                ->whereBetween('start_time', [now(), now()->addDays(3)])
+                ->orderBy('start_time')
                 ->get();
 
-            foreach ($upcomingBookings as $booking) {
-                $timeslot = $booking->timeslot;
+            foreach ($upcomingBookings as $timeslot) {
                 $message = sprintf(
                     'Upcoming appointment with %s on %s at %s',
                     $timeslot->provider->name,
