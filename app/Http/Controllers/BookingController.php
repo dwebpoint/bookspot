@@ -19,9 +19,20 @@ class BookingController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Timeslot::with('provider')
-            ->forClient(auth()->id())
-            ->orderBy('created_at', 'desc');
+        $user = auth()->user();
+
+        // For service providers: show their timeslots that are booked
+        if ($user->isServiceProvider()) {
+            $query = Timeslot::with('client')
+                ->forProvider($user->id)
+                ->whereNotNull('client_id')
+                ->orderBy('start_time', 'desc');
+        } else {
+            // For clients: show their bookings
+            $query = Timeslot::with('provider')
+                ->forClient($user->id)
+                ->orderBy('start_time', 'desc');
+        }
 
         // Filter by status if specified
         if ($request->status === 'booked') {

@@ -24,9 +24,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Calendar - All authenticated users
     Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
 
-    // Bookings - Client routes
+    // Bookings - Client and Provider routes
+    Route::get('bookings', [BookingController::class, 'index'])->name('bookings.index');
+
+    // Booking creation - Client and Admin only
     Route::middleware('role:client,admin')->group(function () {
-        Route::get('bookings', [BookingController::class, 'index'])->name('bookings.index');
         Route::post('bookings', [BookingController::class, 'store'])->name('bookings.store');
     });
 
