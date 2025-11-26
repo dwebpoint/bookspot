@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\BookTimeslotRequest;
-use App\Models\Booking;
 use App\Models\Timeslot;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -21,13 +19,13 @@ class BookingController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Booking::with('timeslot.provider')
+        $query = Timeslot::with('provider')
             ->forClient(auth()->id())
             ->orderBy('created_at', 'desc');
 
         // Filter by status if specified
-        if ($request->status === 'confirmed') {
-            $query->confirmed();
+        if ($request->status === 'booked') {
+            $query->booked();
         } elseif ($request->status === 'cancelled') {
             $query->cancelled();
         } elseif ($request->status === 'completed') {
@@ -43,30 +41,26 @@ class BookingController extends Controller
     /**
      * Store a newly created booking in storage.
      */
-    public function store(BookTimeslotRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        $this->authorize('create', Booking::class);
+        $request->validate([
+            'timeslot_id' => 'required|exists:timeslots,id',
+        ]);
 
         try {
             DB::transaction(function () use ($request) {
                 // Lock the timeslot row to prevent race conditions
                 $timeslot = Timeslot::where('id', $request->timeslot_id)
-                    ->whereDoesntHave('booking', fn($q) => $q->where('status', 'confirmed'))
+                    ->where('status', 'available')
                     ->where('start_time', '>', now())
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                // Validate that client is linked to the timeslot's provider
-                $user = auth()->user();
-                if ($user->isClient() && !$user->hasProvider($timeslot->provider_id)) {
-                    throw new \Exception('You must be linked to this provider to book their timeslots.');
-                }
+                // Authorize booking
+                $this->authorize('book', $timeslot);
 
-                Booking::create([
-                    'timeslot_id' => $request->timeslot_id,
-                    'client_id' => auth()->id(),
-                    'status' => 'confirmed',
-                ]);
+                // Book the timeslot
+                $timeslot->book(auth()->id());
             });
 
             return redirect()->route('bookings.index')
@@ -78,13 +72,13 @@ class BookingController extends Controller
     }
 
     /**
-     * Remove the specified booking from storage (cancel booking).
+     * Cancel the specified booking (timeslot).
      */
-    public function destroy(Booking $booking): RedirectResponse
+    public function destroy(Timeslot $timeslot): RedirectResponse
     {
-        $this->authorize('delete', $booking);
+        $this->authorize('cancelBooking', $timeslot);
 
-        $booking->cancel();
+        $timeslot->cancel();
 
         return redirect()->route('bookings.index')
             ->with('success', 'Booking cancelled successfully.');

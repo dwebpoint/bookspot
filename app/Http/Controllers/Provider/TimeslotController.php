@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Provider;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Provider\AssignClientRequest;
 use App\Http\Requests\StoreTimeslotRequest;
-use App\Models\Booking;
 use App\Models\Timeslot;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -17,6 +16,7 @@ use Inertia\Response;
 class TimeslotController extends Controller
 {
     use AuthorizesRequests;
+
     /**
      * Display a listing of the provider's timeslots.
      */
@@ -24,7 +24,7 @@ class TimeslotController extends Controller
     {
         $this->authorize('viewAny', Timeslot::class);
 
-        $query = Timeslot::with('booking.client')
+        $query = Timeslot::with('client')
             ->forProvider(auth()->id())
             ->future()
             ->orderBy('start_time');
@@ -33,7 +33,11 @@ class TimeslotController extends Controller
         if ($request->status === 'available') {
             $query->available();
         } elseif ($request->status === 'booked') {
-            $query->whereHas('booking', fn($q) => $q->where('status', 'confirmed'));
+            $query->booked();
+        } elseif ($request->status === 'cancelled') {
+            $query->cancelled();
+        } elseif ($request->status === 'completed') {
+            $query->completed();
         }
 
         // Filter by date if specified
@@ -43,7 +47,7 @@ class TimeslotController extends Controller
 
         // Filter by client if specified
         if ($request->client_id) {
-            $query->whereHas('booking', fn($q) => $q->where('client_id', $request->client_id));
+            $query->where('client_id', $request->client_id);
         }
 
         // Get provider's clients for filter dropdown
@@ -80,6 +84,7 @@ class TimeslotController extends Controller
             'provider_id' => auth()->id(),
             'start_time' => $request->start_time,
             'duration_minutes' => $request->duration_minutes,
+            'status' => 'available',
         ]);
 
         return redirect()->route('provider.timeslots.index')
@@ -104,11 +109,11 @@ class TimeslotController extends Controller
      */
     public function assignClient(AssignClientRequest $request, Timeslot $timeslot): RedirectResponse
     {
-        $this->authorize('update', $timeslot);
+        $this->authorize('assignClient', $timeslot);
 
-        // Check if timeslot is already booked
-        if ($timeslot->booking) {
-            return back()->with('error', 'This timeslot is already booked.');
+        // Check if timeslot is available
+        if (!$timeslot->is_available) {
+            return back()->with('error', 'This timeslot is not available.');
         }
 
         // Validate provider-client relationship
@@ -117,28 +122,25 @@ class TimeslotController extends Controller
             return back()->with('error', 'You can only assign clients you are linked to.');
         }
 
-        // Create the booking
-        Booking::create([
-            'timeslot_id' => $timeslot->id,
-            'client_id' => $request->client_id,
-            'status' => 'confirmed',
-        ]);
+        // Book the timeslot
+        $timeslot->book($request->client_id);
 
         return back()->with('success', 'Client assigned to timeslot successfully.');
     }
 
     /**
-     * Remove a client's booking from a timeslot.
+     * Remove a client's booking from a timeslot (make it available again).
      */
     public function removeClient(Timeslot $timeslot): RedirectResponse
     {
-        $this->authorize('update', $timeslot);
+        $this->authorize('cancelBooking', $timeslot);
 
-        if (!$timeslot->booking) {
+        if (!$timeslot->is_booked) {
             return back()->with('error', 'This timeslot has no booking to remove.');
         }
 
-        $timeslot->booking->delete();
+        // Make timeslot available again
+        $timeslot->makeAvailable();
 
         return back()->with('success', 'Client booking removed successfully.');
     }

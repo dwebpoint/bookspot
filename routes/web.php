@@ -33,7 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Booking cancellation - Client, Provider, or Admin
-    Route::delete('bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
+    Route::delete('bookings/{timeslot}', [BookingController::class, 'destroy'])->name('bookings.destroy');
 
     // Provider routes
     Route::prefix('provider')->name('provider.')->middleware('role:service_provider,admin')->group(function () {
