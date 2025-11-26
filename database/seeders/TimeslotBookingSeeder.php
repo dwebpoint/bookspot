@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Booking;
 use App\Models\Timeslot;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -38,37 +37,38 @@ class TimeslotBookingSeeder extends Seeder
                 $startTime = now()->addDays(rand(1, 30))->setHour(rand(9, 17))->setMinute(rand(0, 1) * 30);
                 $duration = [30, 60, 90, 120][rand(0, 3)];
 
-                $timeslot = Timeslot::create([
+                // Determine if this timeslot should be booked
+                $shouldBook = rand(0, 1) === 1 && $clients->isNotEmpty();
+
+                $timeslotData = [
                     'provider_id' => $provider->id,
                     'start_time' => $startTime,
                     'duration_minutes' => $duration,
-                ]);
+                    'status' => 'available',
+                ];
 
                 // Book 50% of timeslots
-                if (rand(0, 1) === 1 && $clients->isNotEmpty()) {
+                if ($shouldBook) {
                     $client = $clients->random();
-                    
-                    Booking::create([
-                        'timeslot_id' => $timeslot->id,
-                        'client_id' => $client->id,
-                        'status' => rand(0, 4) === 0 ? 'cancelled' : 'confirmed', // 20% cancelled
-                    ]);
+                    $timeslotData['client_id'] = $client->id;
+                    $timeslotData['status'] = rand(0, 4) === 0 ? 'cancelled' : 'booked'; // 20% cancelled
                 }
+
+                Timeslot::create($timeslotData);
             }
 
             $this->command->info("Created 10 timeslots for {$provider->name}");
         }
 
         $totalTimeslots = Timeslot::count();
-        $totalBookings = Booking::count();
-        $confirmedBookings = Booking::where('status', 'confirmed')->count();
-        $cancelledBookings = Booking::where('status', 'cancelled')->count();
+        $bookedTimeslots = Timeslot::where('status', 'booked')->count();
+        $cancelledTimeslots = Timeslot::where('status', 'cancelled')->count();
+        $availableTimeslots = Timeslot::where('status', 'available')->count();
 
         $this->command->info("\nSeeding completed successfully!");
         $this->command->info("Total Timeslots: {$totalTimeslots}");
-        $this->command->info("Total Bookings: {$totalBookings}");
-        $this->command->info("  - Confirmed: {$confirmedBookings}");
-        $this->command->info("  - Cancelled: {$cancelledBookings}");
-        $this->command->info("Available Timeslots: " . ($totalTimeslots - $totalBookings));
+        $this->command->info("  - Available: {$availableTimeslots}");
+        $this->command->info("  - Booked: {$bookedTimeslots}");
+        $this->command->info("  - Cancelled: {$cancelledTimeslots}");
     }
 }
