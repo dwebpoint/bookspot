@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Timeslot extends Model
 {
@@ -15,6 +14,7 @@ class Timeslot extends Model
      */
     protected $fillable = [
         'provider_id',
+        'client_id',
         'start_time',
         'duration_minutes',
         'status',
@@ -39,6 +39,8 @@ class Timeslot extends Model
         'end_time',
         'is_available',
         'is_booked',
+        'is_cancelled',
+        'is_completed',
     ];
 
     /**
@@ -50,11 +52,11 @@ class Timeslot extends Model
     }
 
     /**
-     * Get the booking for this timeslot.
+     * Get the client (user) who booked this timeslot.
      */
-    public function booking(): HasOne
+    public function client(): BelongsTo
     {
-        return $this->hasOne(Booking::class);
+        return $this->belongsTo(User::class, 'client_id');
     }
 
     /**
@@ -62,9 +64,32 @@ class Timeslot extends Model
      */
     public function scopeAvailable($query)
     {
-        return $query->whereDoesntHave('booking', function ($q) {
-            $q->where('status', 'confirmed');
-        })->where('start_time', '>', now());
+        return $query->where('status', 'available')
+            ->where('start_time', '>', now());
+    }
+
+    /**
+     * Scope a query to only include booked timeslots.
+     */
+    public function scopeBooked($query)
+    {
+        return $query->where('status', 'booked');
+    }
+
+    /**
+     * Scope a query to only include cancelled timeslots.
+     */
+    public function scopeCancelled($query)
+    {
+        return $query->where('status', 'cancelled');
+    }
+
+    /**
+     * Scope a query to only include completed timeslots.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
     }
 
     /**
@@ -81,6 +106,14 @@ class Timeslot extends Model
     public function scopeForProvider($query, int $providerId)
     {
         return $query->where('provider_id', $providerId);
+    }
+
+    /**
+     * Scope a query to only include timeslots for a specific client.
+     */
+    public function scopeForClient($query, int $clientId)
+    {
+        return $query->where('client_id', $clientId);
     }
 
     /**
@@ -113,7 +146,7 @@ class Timeslot extends Model
      */
     public function getIsAvailableAttribute(): bool
     {
-        return !$this->booking || $this->booking->status === 'cancelled';
+        return $this->status === 'available';
     }
 
     /**
@@ -121,6 +154,60 @@ class Timeslot extends Model
      */
     public function getIsBookedAttribute(): bool
     {
-        return $this->booking && $this->booking->status === 'confirmed';
+        return $this->status === 'booked';
+    }
+
+    /**
+     * Check if the timeslot is cancelled.
+     */
+    public function getIsCancelledAttribute(): bool
+    {
+        return $this->status === 'cancelled';
+    }
+
+    /**
+     * Check if the timeslot is completed.
+     */
+    public function getIsCompletedAttribute(): bool
+    {
+        return $this->status === 'completed';
+    }
+
+    /**
+     * Book this timeslot for a client.
+     */
+    public function book(int $clientId): bool
+    {
+        return $this->update([
+            'client_id' => $clientId,
+            'status' => 'booked',
+        ]);
+    }
+
+    /**
+     * Cancel this timeslot.
+     */
+    public function cancel(): bool
+    {
+        return $this->update(['status' => 'cancelled']);
+    }
+
+    /**
+     * Mark this timeslot as completed.
+     */
+    public function complete(): bool
+    {
+        return $this->update(['status' => 'completed']);
+    }
+
+    /**
+     * Make this timeslot available (clear booking).
+     */
+    public function makeAvailable(): bool
+    {
+        return $this->update([
+            'client_id' => null,
+            'status' => 'available',
+        ]);
     }
 }
