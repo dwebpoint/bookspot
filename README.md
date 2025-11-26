@@ -1,20 +1,32 @@
-# Laravel + React Starter Kit - BookSpot
+# BookSpot
 
-## Introduction
+> Simple scheduling for service professionals.
 
-Our React starter kit provides a robust, modern starting point for building Laravel applications with a React frontend using [Inertia](https://inertiajs.com).
+A scheduling platform that connects service providers with clients. BookSpot streamlines appointment management for service-based businesses — providers set their availability through an intuitive weekly calendar, and clients book directly from available timeslots.
 
-Inertia allows you to build modern, single-page React applications using classic server-side routing and controllers. This lets you enjoy the frontend power of React combined with the incredible backend productivity of Laravel and lightning-fast Vite compilation.
+### Who it's for
 
-This React starter kit utilizes React 19, TypeScript, Tailwind, and the [shadcn/ui](https://ui.shadcn.com) and [radix-ui](https://www.radix-ui.com) component libraries.
+- **Service providers** — consultants, coaches, therapists, freelancers, or any professional offering scheduled services
+- **Clients** — individuals booking appointments with their service providers
+
+### Core value
+
+- **For providers**: Eliminate back-and-forth scheduling. Set availability once, let clients self-book.
+- **For clients**: See real-time availability and book instantly.
+
+---
+
+## Tech stack
+
+Built with Laravel 12, React 19, TypeScript, Tailwind CSS, and [Inertia](https://inertiajs.com). Uses [shadcn/ui](https://ui.shadcn.com) and [Radix UI](https://www.radix-ui.com) component libraries.
 
 ## Features
 
-### 📅 Timeslot Booking System
-- Monthly calendar view with available timeslots
-- Service providers can create and manage timeslots
+### 📅 Timeslot Management System
+- Weekly calendar view with available timeslots
+- Service providers can create and manage timeslots via modal interface
 - Clients can book available timeslots
-- Status tracking (available, booked, cancelled)
+- Consolidated status tracking directly on timeslots (available, booked, completed, cancelled)
 
 ### 👥 Client-Provider Relationship Management
 - Service providers can create and manage clients
@@ -88,14 +100,13 @@ The application uses Spatie Laravel Permission for role and permission managemen
 
 ### Key Permissions
 
-- Timeslot Management: `view`, `create`, `update`, `delete`, `assign timeslots`
-- Booking Management: `view`, `create`, `cancel bookings`
-- Client Management: `view`, `create`, `update`, `delete clients`
-- User Management: `view`, `create`, `update`, `delete users` (admin only)
+- Timeslot management: `view`, `create`, `update`, `delete`, `assign timeslots`
+- Client management: `view`, `create`, `update`, `delete clients`
+- User management: `view`, `create`, `update`, `delete users` (admin only)
 
 ### Migration Guide
 
-See [MIGRATION_STEPS.md](MIGRATION_STEPS.md) for quick setup or [docs/SPATIE_PERMISSIONS.md](docs/SPATIE_PERMISSIONS.md) for detailed documentation.
+See [docs/SPATIE_PERMISSIONS.md](docs/SPATIE_PERMISSIONS.md) for detailed RBAC documentation.
 
 ## Project Structure
 
@@ -105,15 +116,14 @@ app/
 │   ├── Controllers/
 │   │   ├── Admin/          # Admin controllers
 │   │   ├── Provider/       # Service provider controllers
-│   │   ├── BookingController.php
-│   │   └── CalendarController.php
+│   │   ├── CalendarController.php
+│   │   └── TimeslotController.php
 │   ├── Middleware/
 │   │   └── CheckRole.php   # Role verification middleware
 │   └── Requests/           # Form request validation
 ├── Models/
 │   ├── User.php           # User model with HasRoles trait
-│   ├── Timeslot.php
-│   ├── Booking.php
+│   ├── Timeslot.php       # Timeslot with integrated booking status
 │   └── ProviderClient.php
 └── Policies/              # Authorization policies
 
@@ -134,8 +144,11 @@ database/
 └── factories/
 
 specs/                     # Feature specifications
+├── UNIFIED-SPEC.md
 ├── 001-timeslot-booking/
-└── 002-client-provider-link/
+├── 002-client-provider-link/
+├── 003-consolidate-booking-to-timeslot/
+└── 004-modal-based-timeslot-creation/
 ```
 
 ## Development
@@ -159,8 +172,8 @@ npm run lint
 ## Documentation
 
 - [Spatie Permissions Setup](docs/SPATIE_PERMISSIONS.md)
-- [Feature 001: Timeslot Booking](specs/001-timeslot-booking/spec.md)
-- [Feature 002: Client-Provider Links](specs/002-client-provider-link/spec.md)
+- [Calendar Client Display](docs/CALENDAR_CLIENT_DISPLAY.md)
+- [Unified Specification](specs/UNIFIED-SPEC.md)
 
 ## Official Documentation
 

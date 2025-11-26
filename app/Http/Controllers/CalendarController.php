@@ -16,24 +16,19 @@ class CalendarController extends Controller
     public function index(Request $request): Response
     {
         $providerId = $request->input('provider_id'); // Optional provider filter
+        $weekOffset = (int) $request->input('week', 0); // Week offset from current week
 
         $user = auth()->user();
 
-        // Date range varies by role
-        // Clients: from current time onwards (future only)
-        // Providers/Admins: yesterday to +14 days (for management)
-        if ($user->isClient()) {
-            $startDate = now(); // Current time for clients
-            $endDate = now()->addDays(14)->endOfDay();
-        } else {
-            $startDate = now()->subDay()->startOfDay();
-            $endDate = now()->addDays(14)->endOfDay();
-        }
-        
+        // Date range: single week (Monday to Sunday) based on offset
+        $currentWeekStart = now()->startOfWeek(\Carbon\CarbonInterface::MONDAY);
+        $startDate = $currentWeekStart->copy()->addWeeks($weekOffset);
+        $endDate = $startDate->copy()->endOfWeek(\Carbon\CarbonInterface::SUNDAY)->endOfDay();
+
         // Build query for timeslots
-        $query = Timeslot::with(['provider:id,name', 'booking.client:id,name'])
+        $query = Timeslot::with(['provider:id,name', 'client:id,name'])
             ->whereBetween('start_time', [$startDate, $endDate]);
-        
+
         // For clients: show timeslots from their linked providers + their own bookings
         if ($user->isClient()) {
             $providerIds = $user->providers()->pluck('users.id');
@@ -54,11 +49,9 @@ class CalendarController extends Controller
             }
 
             // Get client's own bookings (regardless of provider linkage)
-            $ownBookingsQuery = Timeslot::with(['provider:id,name', 'booking.client:id,name'])
+            $ownBookingsQuery = Timeslot::with(['provider:id,name', 'client:id,name'])
                 ->whereBetween('start_time', [$startDate, $endDate])
-                ->whereHas('booking', function ($q) use ($user) {
-                    $q->where('client_id', $user->id);
-                })
+                ->where('client_id', $user->id)
                 ->orderBy('start_time');
 
             // Apply provider filter to own bookings if selected
@@ -86,7 +79,7 @@ class CalendarController extends Controller
             $timeslots = $query->orderBy('start_time')->get();
             $providers = collect();
         }
-        
+
         // Get provider's clients for client selector (service providers and admins)
         $clients = collect();
         if ($user->role === 'service_provider') {
@@ -100,24 +93,21 @@ class CalendarController extends Controller
                 ->orderBy('name')
                 ->get();
         }
-        
+
         // For clients: show flash messages for upcoming bookings (within 3 days)
         if ($user->isClient()) {
-            $upcomingBookings = $user->bookings()
-                ->with('timeslot.provider')
-                ->confirmed()
-                ->whereHas('timeslot', function ($q) {
-                    $q->whereBetween('start_time', [now(), now()->addDays(3)]);
-                })
-                ->orderBy('created_at')
+            $upcomingBookings = Timeslot::with('provider')
+                ->where('client_id', $user->id)
+                ->where('status', 'booked')
+                ->whereBetween('start_time', [now(), now()->addDays(3)])
+                ->orderBy('start_time')
                 ->get();
 
-            foreach ($upcomingBookings as $booking) {
-                $timeslot = $booking->timeslot;
+            foreach ($upcomingBookings as $timeslot) {
                 $message = sprintf(
                     'Upcoming appointment with %s on %s at %s',
                     $timeslot->provider->name,
-                    $timeslot->start_time->format('M d, Y'),
+                    $timeslot->start_time->format('d M Y'),
                     $timeslot->start_time->format('g:i A')
                 );
                 session()->flash('info', $message);
@@ -128,6 +118,7 @@ class CalendarController extends Controller
             'timeslots' => $timeslots,
             'startDate' => $startDate->format('Y-m-d'),
             'endDate' => $endDate->format('Y-m-d'),
+            'weekOffset' => $weekOffset,
             'providers' => $providers,
             'selectedProviderId' => $providerId,
             'clients' => $clients,

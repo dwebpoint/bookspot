@@ -2,6 +2,8 @@
 
 **Purpose**: Define all Inertia routes for timeslot management and calendar viewing with props and responses
 
+> **⚠️ DEPRECATION NOTICE**: As of spec 004, the routes `GET /provider/timeslots` (index) and `GET /provider/timeslots/create` have been **REMOVED**. Timeslot management is now fully integrated into the Calendar page (`/calendar`) using modal-based creation. See [spec 004](../004-modal-based-timeslot-creation/IMPLEMENTATION.md) for details.
+
 ---
 
 ## Route: GET /calendar (View Calendar)
@@ -163,10 +165,12 @@ public function store(BookTimeslotRequest $request): RedirectResponse
 
 ---
 
-## Route: GET /provider/timeslots (Provider's Schedule)
+## Route: GET /provider/timeslots (Provider's Schedule) ⚠️ DEPRECATED
 
-**Name**: `provider.timeslots.index`  
-**Access**: ServiceProvider, Admin  
+> **⚠️ DEPRECATED**: This route was removed in spec 004. Use `/calendar` instead.
+
+**Name**: `provider.timeslots.index`
+**Access**: ServiceProvider, Admin
 **Purpose**: View own timeslots with booking status
 
 ### Request
@@ -478,9 +482,9 @@ public function destroy(Booking $booking): RedirectResponse
 | POST | /bookings | bookings.store | Client, Admin | Book a timeslot |
 | GET | /bookings | bookings.index | Client, Admin | View my bookings |
 | DELETE | /bookings/{id} | bookings.destroy | Client, SP, Admin | Cancel booking |
-| GET | /provider/timeslots | provider.timeslots.index | SP, Admin | View my schedule |
-| GET | /provider/timeslots/create | provider.timeslots.create | SP, Admin | Create timeslot form |
-| POST | /provider/timeslots | provider.timeslots.store | SP, Admin | Store new timeslot |
+| ~~GET~~ | ~~/provider/timeslots~~ | ~~provider.timeslots.index~~ | ~~SP, Admin~~ | ⚠️ **REMOVED** (spec 004) |
+| ~~GET~~ | ~~/provider/timeslots/create~~ | ~~provider.timeslots.create~~ | ~~SP, Admin~~ | ⚠️ **REMOVED** (spec 004) |
+| POST | /provider/timeslots | provider.timeslots.store | SP, Admin | Store new timeslot (redirects to calendar) |
 | DELETE | /provider/timeslots/{id} | provider.timeslots.destroy | SP, Admin | Cancel timeslot |
 | POST | /provider/timeslots/{id}/assign | provider.timeslots.assign | SP, Admin | Manually assign client |
 | DELETE | /provider/timeslots/{id}/remove | provider.timeslots.remove | SP, Admin | Remove client booking |

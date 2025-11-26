@@ -45,6 +45,25 @@
 
 ---
 
+## Timeslot State Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> available: Created by provider
+    available --> booked: book(clientId)
+    booked --> available: cancel()
+    booked --> completed: complete()
+    completed --> [*]
+```
+
+**Status Transitions:**
+- `available` → `booked` - Client assigned via `book(clientId)` method
+- `booked` → `available` - Booking cancelled via `cancel()` method
+- `booked` → `completed` - Marked complete via `complete()` method (automated hourly)
+- Terminal state `completed` indicates the appointment was fulfilled
+
+---
+
 ## Database Tables
 
 ### 1. users (extend existing)

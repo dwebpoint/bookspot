@@ -334,7 +334,6 @@ php artisan serve --port=8001
 ### Bookings
 - `GET /bookings` - My bookings
 - `POST /bookings` - Book a timeslot
-- `DELETE /bookings/{id}` - Cancel booking
 
 ### Admin
 - `GET /admin/users` - List all users

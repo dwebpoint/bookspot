@@ -15,11 +15,11 @@ return new class extends Migration
             $table->enum('role', ['admin', 'service_provider', 'client'])
                 ->default('client')
                 ->after('email');
-            
+
             $table->string('timezone', 50)
                 ->default('UTC')
                 ->after('role');
-            
+
             // Add index for role filtering
             $table->index('role');
         });

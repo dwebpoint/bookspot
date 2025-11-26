@@ -24,25 +24,25 @@ class RolesAndPermissionsSeeder extends Seeder
             'update timeslots',
             'delete timeslots',
             'assign timeslots',
-            
+
             // Booking permissions
             'view bookings',
             'create bookings',
             'cancel bookings',
             'view own bookings',
-            
+
             // Client management permissions
             'view clients',
             'create clients',
             'update clients',
             'delete clients',
-            
+
             // User management permissions (admin only)
             'view users',
             'create users',
             'update users',
             'delete users',
-            
+
             // Calendar permissions
             'view calendar',
         ];

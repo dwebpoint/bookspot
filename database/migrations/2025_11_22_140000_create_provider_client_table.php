@@ -22,10 +22,10 @@ return new class extends Migration
             $table->boolean('created_by_provider')->default(true);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
-            
+
             // Unique constraint to prevent duplicate relationships
             $table->unique(['provider_id', 'client_id']);
-            
+
             // Indexes for performance
             $table->index('provider_id');
             $table->index('client_id');

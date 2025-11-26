@@ -12,16 +12,17 @@ import { Link, usePage } from '@inertiajs/react';
 export function NavMain({ items = [] }: { items: NavItem[] }) {
     const page = usePage();
     const { auth } = usePage<{ auth: { user: User } }>().props;
-    
+
     return (
         <SidebarGroup className="px-2 py-0">
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
                 {items.map((item) => {
-                    const showBadge = item.title === 'My Clients' && 
-                                     auth.user.clients_count !== undefined && 
-                                     auth.user.clients_count > 0;
-                    
+                    const showBadge =
+                        item.title === 'My Clients' &&
+                        auth.user.clients_count !== undefined &&
+                        auth.user.clients_count > 0;
+
                     return (
                         <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton
@@ -31,7 +32,11 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 )}
                                 tooltip={{ children: item.title }}
                             >
-                                <Link href={item.href} prefetch className="flex items-center justify-between">
+                                <Link
+                                    href={item.href}
+                                    prefetch
+                                    className="flex items-center justify-between"
+                                >
                                     <div className="flex items-center gap-2">
                                         {item.icon && <item.icon />}
                                         <span>{item.title}</span>

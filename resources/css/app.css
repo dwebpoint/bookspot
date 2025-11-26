@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-@import "tw-animate-css";
+@import 'tw-animate-css';
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -139,5 +139,48 @@
 
     body {
         @apply bg-background text-foreground;
+    }
+
+    /* Enhanced styles for date and time inputs */
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"] {
+        @apply border-2;
+    }
+
+    /* Force 24-hour format for time inputs */
+    input[type="time"]::-webkit-datetime-edit-ampm-field {
+        display: none;
+    }
+
+    input[type="time"] {
+        -webkit-appearance: textfield;
+        -moz-appearance: textfield;
+    }
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator {
+        @apply cursor-pointer opacity-70 hover:opacity-100 transition-opacity;
+        padding: 4px;
+        border-radius: 4px;
+    }
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+    input[type="date"]::-webkit-calendar-picker-indicator:hover,
+    input[type="time"]::-webkit-calendar-picker-indicator:hover {
+        @apply bg-accent;
+    }
+
+    input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper,
+    input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+    input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+        @apply rounded;
+    }
+
+    input[type="datetime-local"]::-webkit-datetime-edit,
+    input[type="date"]::-webkit-datetime-edit,
+    input[type="time"]::-webkit-datetime-edit {
+        @apply rounded;
     }
 }

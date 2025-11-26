@@ -23,7 +23,7 @@ return new class extends Migration
             $table->enum('status', ['confirmed', 'cancelled'])
                 ->default('confirmed');
             $table->timestamps();
-            
+
             // Indexes
             $table->index('client_id');
             $table->index(['status', 'created_at']);

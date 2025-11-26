@@ -456,8 +456,8 @@ Tasks are organized by:
    - Delete timeslot (cascades to booking)
    - Redirect with success
 6. Add routes:
-   - `GET /provider/timeslots` → `provider.timeslots.index`
-   - `GET /provider/timeslots/create` → `provider.timeslots.create`
+   - ~~`GET /provider/timeslots` → `provider.timeslots.index`~~ ⚠️ **REMOVED in spec 004**
+   - ~~`GET /provider/timeslots/create` → `provider.timeslots.create`~~ ⚠️ **REMOVED in spec 004**
    - `POST /provider/timeslots` → `provider.timeslots.store`
    - `DELETE /provider/timeslots/{timeslot}` → `provider.timeslots.destroy`
 

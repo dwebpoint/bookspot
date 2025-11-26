@@ -55,8 +55,6 @@ The timeslot booking feature has been fully implemented according to the specifi
 
 #### Routes
 - [x] GET `/timeslots` - browse available
-- [x] GET/POST `/bookings` - view/create bookings
-- [x] DELETE `/bookings/{id}` - cancel booking
 - [x] GET/POST `/provider/timeslots` - view schedule/create timeslot
 - [x] DELETE `/provider/timeslots/{id}` - cancel timeslot
 - [x] Full CRUD routes for `/admin/users`
@@ -126,7 +124,7 @@ The timeslot booking feature has been fully implemented according to the specifi
 
 #### Navigation
 - [x] Updated AppSidebar with role-based menu items
-- [x] Common items: Dashboard, Available Timeslots, My Bookings
+- [x] Common items: Dashboard, Calendar, My Bookings
 - [x] Provider items: Schedule
 - [x] Admin items: User Management
 - [x] Dynamic navigation based on auth.user.role

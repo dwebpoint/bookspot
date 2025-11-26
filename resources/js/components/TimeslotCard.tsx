@@ -1,8 +1,8 @@
+import type { Timeslot } from '@/types';
 import { format } from 'date-fns';
 import { Calendar, Clock, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
-import type { Timeslot } from '@/types';
 
 interface TimeslotCardProps {
     timeslot: Timeslot;
@@ -28,7 +28,7 @@ export default function TimeslotCard({
     if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
         return (
             <Card>
-                <CardContent className="py-6">
+                <CardContent className="py-2">
                     <p className="text-center text-sm text-muted-foreground">
                         Invalid timeslot data
                     </p>
@@ -43,7 +43,7 @@ export default function TimeslotCard({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        <span>{format(startTime, 'PPP')}</span>
+                        <span>{format(startTime, 'd MMM yyyy')}</span>
                     </div>
                     {timeslot.is_booked && (
                         <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
@@ -74,15 +74,15 @@ export default function TimeslotCard({
                             <span>{timeslot.provider.name}</span>
                         </div>
                     )}
-                    {timeslot.booking?.client && (
+                    {timeslot.client && (
                         <div className="flex items-center gap-2 text-sm">
                             <User className="h-4 w-4 text-muted-foreground" />
                             <div>
                                 <div className="font-medium">
-                                    {timeslot.booking.client.name}
+                                    {timeslot.client.name}
                                 </div>
                                 <div className="text-muted-foreground">
-                                    {timeslot.booking.client.email}
+                                    {timeslot.client.email}
                                 </div>
                             </div>
                         </div>

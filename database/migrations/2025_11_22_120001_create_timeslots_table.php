@@ -16,10 +16,10 @@ return new class extends Migration
             $table->foreignId('provider_id')
                 ->constrained('users')
                 ->onDelete('cascade');
-            $table->dateTime('start_time');
+            $table->timestamp('start_time'); // Stores as UTC
             $table->unsignedInteger('duration_minutes');
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['provider_id', 'start_time']);
             $table->index('start_time');

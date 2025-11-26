@@ -36,7 +36,17 @@ class TimeslotPolicy
      */
     public function update(User $user, Timeslot $timeslot): bool
     {
-        return ($user->can('update timeslots') && $user->id === $timeslot->provider_id) || $user->isAdmin();
+        // Admins can update any timeslot
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        // Cannot update booked timeslots
+        if ($timeslot->is_booked) {
+            return false;
+        }
+
+        return $user->can('update timeslots') && $user->id === $timeslot->provider_id;
     }
 
     /**
@@ -44,6 +54,106 @@ class TimeslotPolicy
      */
     public function delete(User $user, Timeslot $timeslot): bool
     {
-        return ($user->can('delete timeslots') && $user->id === $timeslot->provider_id) || $user->isAdmin();
+        // Admins can delete any timeslot
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        // Service providers can delete their own timeslots (including past ones and completed)
+        if ($user->isServiceProvider() && $user->id === $timeslot->provider_id && $user->can('delete timeslots')) {
+            // Cannot delete booked timeslots (to protect active bookings)
+            if ($timeslot->is_booked) {
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether the user can book the timeslot.
+     */
+    public function book(User $user, Timeslot $timeslot): bool
+    {
+        // Must be a client
+        if (! $user->isClient()) {
+            return false;
+        }
+
+        // Timeslot must be available
+        if (! $timeslot->is_available) {
+            return false;
+        }
+
+        // Client must be linked to the provider
+        return $user->hasProvider($timeslot->provider_id);
+    }
+
+    /**
+     * Determine whether the user can cancel the booking on this timeslot.
+     */
+    public function cancelBooking(User $user, Timeslot $timeslot): bool
+    {
+        // Timeslot must be booked
+        if (! $timeslot->is_booked) {
+            return false;
+        }
+
+        // Clients cannot cancel bookings for timeslots in the past
+        if ($user->isClient() && $timeslot->start_time->lessThan(now())) {
+            return false;
+        }
+
+        // Client who booked it, provider who owns it, or admin
+        return $user->id === $timeslot->client_id
+            || $user->id === $timeslot->provider_id
+            || $user->isAdmin();
+    }
+
+    /**
+     * Determine whether the provider can assign a client to this timeslot.
+     */
+    public function assignClient(User $user, Timeslot $timeslot): bool
+    {
+        // Must be the provider or admin
+        if ($user->id !== $timeslot->provider_id && ! $user->isAdmin()) {
+            return false;
+        }
+
+        // Timeslot must be available or booked (for reassignment)
+        // POLICY CHANGE: Allow assignment to already booked timeslots to enable reassignment.
+        // This permits providers or admins to overwrite an existing booking with a new client assignment.
+        // Use with caution, as this will replace the current client on the timeslot.
+        return $timeslot->is_available || $timeslot->is_booked;
+    }
+
+    /**
+     * Determine whether the user can force delete the timeslot (including booked ones).
+     * This is used from the bookings page to delete booked timeslots.
+     */
+    public function forceDelete(User $user, Timeslot $timeslot): bool
+    {
+        // Provider can force delete their own timeslots (including booked ones)
+        // Admin can force delete any timeslot
+        return ($user->id === $timeslot->provider_id && $user->isServiceProvider())
+            || $user->isAdmin();
+    }
+
+    /**
+     * Determine whether the user can mark the timeslot as completed.
+     */
+    public function complete(User $user, Timeslot $timeslot): bool
+    {
+        // Timeslot must have a client assigned (status is 'booked')
+        if ($timeslot->status !== 'booked' || ! $timeslot->client_id) {
+            return false;
+        }
+
+        // Provider can complete their own timeslots
+        // Admin can complete any timeslot
+        return ($user->id === $timeslot->provider_id && $user->isServiceProvider())
+            || $user->isAdmin();
     }
 }

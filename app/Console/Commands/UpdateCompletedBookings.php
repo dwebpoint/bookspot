@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Booking;
+use App\Models\Timeslot;
 use Illuminate\Console\Command;
 
 class UpdateCompletedBookings extends Command
@@ -19,25 +19,22 @@ class UpdateCompletedBookings extends Command
      *
      * @var string
      */
-    protected $description = 'Mark past bookings as completed automatically';
+    protected $description = 'Mark past booked timeslots as completed automatically';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $this->info('Updating completed bookings...');
+        $this->info('Updating completed timeslots...');
 
-        // Find confirmed bookings where the timeslot end time has passed
+        // Find booked timeslots where the end time has passed
         // end_time is calculated as: start_time + duration_minutes
-        $count = Booking::confirmed()
-            ->whereHas('timeslot', function ($query) {
-                // Calculate end_time as start_time + INTERVAL duration_minutes MINUTE
-                $query->whereRaw('DATE_ADD(start_time, INTERVAL duration_minutes MINUTE) < ?', [now()]);
-            })
+        $count = Timeslot::where('status', 'booked')
+            ->whereRaw('DATE_ADD(start_time, INTERVAL duration_minutes MINUTE) < ?', [now()])
             ->update(['status' => 'completed']);
 
-        $this->info("Updated {$count} booking(s) to completed status");
+        $this->info("Updated {$count} timeslot(s) to completed status");
 
         return Command::SUCCESS;
     }

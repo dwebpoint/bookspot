@@ -27,17 +27,26 @@ class StoreTimeslotRequest extends FormRequest
             'start_time' => [
                 'required',
                 'date',
-                'after:now',
                 function ($attribute, $value, $fail) {
-                    $startTime = Carbon::parse($value);
+                    // Parse incoming time as app timezone and validate it's in the future
+                    $startTime = Carbon::parse($value, config('app.timezone'));
+                    $now = Carbon::now(config('app.timezone'));
+                    
+                    if ($startTime <= $now) {
+                        $fail('The start time must be in the future.');
+                        return;
+                    }
+                    
                     $endTime = $startTime->copy()->addMinutes($this->duration_minutes);
 
                     // Check for overlapping timeslots for the same provider
                     $overlap = Timeslot::where('provider_id', auth()->id())
                         ->get()
                         ->contains(function ($existing) use ($startTime, $endTime) {
-                            $existingStart = Carbon::parse($existing->start_time);
+                            // $existing->start_time is already Carbon in app timezone from model accessor
+                            $existingStart = $existing->start_time;
                             $existingEnd = $existingStart->copy()->addMinutes($existing->duration_minutes);
+
                             // Overlap if existing slot starts before new slot ends and ends after new slot starts
                             return $existingStart < $endTime && $existingEnd > $startTime;
                         });
@@ -52,6 +61,19 @@ class StoreTimeslotRequest extends FormRequest
                 'integer',
                 'min:15',
                 'max:480',
+            ],
+            'client_id' => [
+                'nullable',
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    if ($value) {
+                        // Verify provider-client relationship
+                        $provider = auth()->user();
+                        if (! $provider->hasClient($value)) {
+                            $fail('You can only assign clients you are linked to.');
+                        }
+                    }
+                },
             ],
         ];
     }

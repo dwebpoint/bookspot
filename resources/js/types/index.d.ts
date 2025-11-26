@@ -66,5 +66,5 @@ export interface PaginatedResponse<T> {
     }>;
 }
 
-export * from './timeslot';
 export * from './booking';
+export * from './timeslot';
