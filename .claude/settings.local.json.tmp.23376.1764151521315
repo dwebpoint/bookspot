@@ -9,10 +9,7 @@
       "Bash(powershell.exe -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
       "Bash(git fetch:*)",
       "Bash(sed:*)",
-      "Bash(git checkout:*)",
-      "Bash(git push:*)",
-      "Bash(mkdir:*)",
-      "Bash(git add:*)"
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

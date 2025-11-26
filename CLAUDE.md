@@ -93,8 +93,8 @@ The application uses **Spatie Laravel Permission** for granular RBAC with three 
 
 **Roles:**
 - `admin` - Full system access (superuser)
-- `service_provider` - Manage timeslots, clients, and bookings
-- `client` - Book timeslots, view own bookings
+- `service_provider` - Manage own timeslots, own clients, and bookings
+- `client` - Book timeslots, view, cancel own bookings
 
 **Key Patterns:**
 - User model uses `HasRoles` trait from Spatie
@@ -133,6 +133,64 @@ See `docs/SPATIE_PERMISSIONS.md` for complete permission structure and usage exa
 - `Timeslot` - Belongs to provider, has status (available/booked/cancelled)
 - `Booking` - Links client to timeslot
 - `ProviderClient` - Pivot table for provider-client relationships
+
+#### Timeslot Model
+
+The `Timeslot` model ([app/Models/Timeslot.php](app/Models/Timeslot.php)) represents time slots that service providers create for clients to book.
+
+**Schema:**
+- `id` - Primary key
+- `provider_id` - Foreign key to users table (the service provider)
+- `start_time` - DateTime when the slot begins
+- `duration_minutes` - Integer duration of the slot
+- `timestamps` - created_at, updated_at
+
+**Relationships:**
+- `belongsTo(User::class, 'provider_id')` - The provider who created the slot
+- `hasOne(Booking::class)` - The booking for this slot (if booked)
+
+**Computed Attributes (appended to array/JSON):**
+- `end_time` - Calculated as `start_time + duration_minutes`
+- `is_available` - Boolean: true if no confirmed booking exists
+- `is_booked` - Boolean: true if confirmed booking exists
+
+**Query Scopes:**
+- `available()` - Slots without confirmed bookings and in the future
+- `future()` - Slots where start_time > now
+- `forProvider($providerId)` - Slots for specific provider
+- `forClientProviders($client)` - Slots for all of client's linked providers
+- `forProviders($providerIds)` - Slots for multiple provider IDs
+
+**Authorization (TimeslotPolicy):**
+- `viewAny` - service_provider, admin, or 'view timeslots' permission
+- `view` - Owner (provider) or admin
+- `create` - service_provider, admin, or 'create timeslots' permission
+- `update` - Owner + 'update timeslots' permission, or admin
+- `delete` - Owner + 'delete timeslots' permission, or admin
+
+**Key Patterns:**
+```php
+// Create a timeslot
+$timeslot = Timeslot::create([
+    'provider_id' => auth()->id(),
+    'start_time' => '2025-11-26 14:00:00',
+    'duration_minutes' => 60,
+]);
+
+// Query available slots for a provider
+$slots = Timeslot::forProvider($providerId)
+    ->available()
+    ->orderBy('start_time')
+    ->get();
+
+// Check if slot is available
+if ($timeslot->is_available) {
+    // Can be booked
+}
+
+// Get end time
+$endTime = $timeslot->end_time; // Carbon instance
+```
 
 **Authorization:**
 - Policies in `app/Policies/` (TimeslotPolicy, BookingPolicy)
