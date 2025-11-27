@@ -20,8 +20,7 @@ export function route(
         'bookings.destroy': '/bookings/:id',
 
         // Provider routes
-        'provider.timeslots.index': '/provider/timeslots',
-        'provider.timeslots.create': '/provider/timeslots/create',
+
         'provider.timeslots.store': '/provider/timeslots',
         'provider.timeslots.destroy': '/provider/timeslots/:id',
         'provider.timeslots.assign': '/provider/timeslots/:id/assign',

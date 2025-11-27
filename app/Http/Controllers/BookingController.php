@@ -111,7 +111,9 @@ class BookingController extends Controller
         $this->authorize('cancelBooking', $timeslot);
 
         // Unassign client and make available
-        $timeslot->makeAvailable();
+        $timeslot->status = 'available';
+        $timeslot->client_id = null;
+        $timeslot->save();
 
         return redirect()->route('bookings.index')
             ->with('success', 'Booking cancelled successfully. Timeslot is now available.');

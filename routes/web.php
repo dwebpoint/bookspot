@@ -35,9 +35,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('bookings/{timeslot}', [BookingController::class, 'destroy'])->name('bookings.destroy');
 
     // Timeslot deletion from bookings page - Service Provider or Admin only
-    Route::delete('bookings/{timeslot}/delete', [BookingController::class, 'forceDelete'])
-        ->name('bookings.forceDelete')
-        ->middleware('role:service_provider,admin');
 
     // Mark timeslot as completed - Service Provider or Admin only
     Route::patch('bookings/{timeslot}/complete', [BookingController::class, 'complete'])

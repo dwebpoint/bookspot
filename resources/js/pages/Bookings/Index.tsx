@@ -145,13 +145,13 @@ export default function Index() {
         );
     };
 
-    const handleClientChange = (clientId: string) => {
+    const handleClientChange = (clientIdOrAll: string) => {
         router.get(
             route('bookings.index'),
             {
                 status: filters.status,
                 date: filters.date,
-                client_id: clientId === 'all' ? undefined : clientId,
+                client_id: clientIdOrAll === 'all' ? undefined : clientIdOrAll,
             },
             { preserveState: true },
         );

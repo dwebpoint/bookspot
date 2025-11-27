@@ -730,7 +730,7 @@ export default function Calendar() {
                                                         placeholder="Select a client..."
                                                         searchPlaceholder="Search clients..."
                                                         emptyText="No clients found."
-                                                        disabled={false}
+                                                        disabled={!selectedTimeslot.is_available}
                                                     />
                                                     {selectedTimeslot.is_available ? (
                                                         selectedClientId && (
