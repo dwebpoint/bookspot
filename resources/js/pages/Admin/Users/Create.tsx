@@ -1,7 +1,3 @@
-import { Head, useForm } from '@inertiajs/react';
-import { route } from '@/lib/route-helper';
-import { FormEvent } from 'react';
-import AppLayout from '@/layouts/app-layout';
 import FlashMessages from '@/components/FlashMessages';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +16,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import AppLayout from '@/layouts/app-layout';
+import { route } from '@/lib/route-helper';
+import { Head, useForm } from '@inertiajs/react';
+import { FormEvent } from 'react';
 
 const timezones = [
     'UTC',
@@ -77,7 +77,8 @@ export default function Create() {
                         <form onSubmit={submit} className="space-y-6">
                             <div className="space-y-2">
                                 <Label htmlFor="name">
-                                    Name <span className="text-destructive">*</span>
+                                    Name{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                     id="name"
@@ -98,7 +99,8 @@ export default function Create() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="email">
-                                    Email <span className="text-destructive">*</span>
+                                    Email{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                     id="email"
@@ -118,7 +120,8 @@ export default function Create() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="password">
-                                    Password <span className="text-destructive">*</span>
+                                    Password{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                     id="password"
@@ -148,7 +151,7 @@ export default function Create() {
                                     onChange={(e) =>
                                         setData(
                                             'password_confirmation',
-                                            e.target.value
+                                            e.target.value,
                                         )
                                     }
                                     required
@@ -162,7 +165,8 @@ export default function Create() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="role">
-                                    Role <span className="text-destructive">*</span>
+                                    Role{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <Select
                                     value={data.role}
@@ -172,7 +176,7 @@ export default function Create() {
                                             value as
                                                 | 'admin'
                                                 | 'service_provider'
-                                                | 'client'
+                                                | 'client',
                                         )
                                     }
                                 >
@@ -180,11 +184,15 @@ export default function Create() {
                                         <SelectValue placeholder="Select role" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="client">Client</SelectItem>
+                                        <SelectItem value="client">
+                                            Client
+                                        </SelectItem>
                                         <SelectItem value="service_provider">
                                             Service Provider
                                         </SelectItem>
-                                        <SelectItem value="admin">Admin</SelectItem>
+                                        <SelectItem value="admin">
+                                            Admin
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 {errors.role && (
@@ -196,7 +204,8 @@ export default function Create() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="timezone">
-                                    Timezone <span className="text-destructive">*</span>
+                                    Timezone{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <Select
                                     value={data.timezone}

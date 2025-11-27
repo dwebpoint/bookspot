@@ -63,12 +63,12 @@ class TimeslotPolicy
     public function book(User $user, Timeslot $timeslot): bool
     {
         // Must be a client
-        if (!$user->isClient()) {
+        if (! $user->isClient()) {
             return false;
         }
 
         // Timeslot must be available
-        if (!$timeslot->is_available) {
+        if (! $timeslot->is_available) {
             return false;
         }
 
@@ -82,7 +82,7 @@ class TimeslotPolicy
     public function cancelBooking(User $user, Timeslot $timeslot): bool
     {
         // Timeslot must be booked
-        if (!$timeslot->is_booked) {
+        if (! $timeslot->is_booked) {
             return false;
         }
 
@@ -98,11 +98,11 @@ class TimeslotPolicy
     public function assignClient(User $user, Timeslot $timeslot): bool
     {
         // Must be the provider or admin
-        if ($user->id !== $timeslot->provider_id && !$user->isAdmin()) {
+        if ($user->id !== $timeslot->provider_id && ! $user->isAdmin()) {
             return false;
         }
 
-        // Timeslot must be available
-        return $timeslot->is_available;
+        // Timeslot must be available or booked (for reassignment)
+        return $timeslot->is_available || $timeslot->is_booked;
     }
 }

@@ -49,11 +49,11 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'role' => $request->user()->role,
                     'timezone' => $request->user()->timezone,
-                    'clients_count' => $request->user()->isServiceProvider() || $request->user()->isAdmin() 
-                        ? $request->user()->clients()->count() 
+                    'clients_count' => $request->user()->isServiceProvider() || $request->user()->isAdmin()
+                        ? $request->user()->clients()->count()
                         : null,
-                    'providers_count' => $request->user()->isClient() 
-                        ? $request->user()->providers()->count() 
+                    'providers_count' => $request->user()->isClient()
+                        ? $request->user()->providers()->count()
                         : null,
                 ] : null,
             ],

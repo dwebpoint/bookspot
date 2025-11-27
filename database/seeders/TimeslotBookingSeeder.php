@@ -18,6 +18,7 @@ class TimeslotBookingSeeder extends Seeder
 
         if ($providers->isEmpty()) {
             $this->command->warn('No service providers found. Run RoleSeeder first.');
+
             return;
         }
 
@@ -26,6 +27,7 @@ class TimeslotBookingSeeder extends Seeder
 
         if ($clients->isEmpty()) {
             $this->command->warn('No clients found. Run RoleSeeder first.');
+
             return;
         }
 

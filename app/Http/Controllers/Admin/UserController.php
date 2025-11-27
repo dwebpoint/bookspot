@@ -16,6 +16,7 @@ use Inertia\Response;
 class UserController extends Controller
 {
     use AuthorizesRequests;
+
     /**
      * Display a listing of users.
      */

@@ -1,8 +1,8 @@
+import type { Timeslot } from '@/types';
 import { format } from 'date-fns';
 import { Calendar, Clock, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
-import type { Timeslot } from '@/types';
 
 interface TimeslotCardProps {
     timeslot: Timeslot;

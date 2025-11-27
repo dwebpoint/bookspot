@@ -2,19 +2,23 @@
  * Laravel route helper for use with standard named routes
  * This is a compatibility helper until Wayfinder routes are regenerated
  */
-export function route(name: string, params?: Record<string, unknown> | number | string, absolute = false): string {
+export function route(
+    name: string,
+    params?: Record<string, unknown> | number | string,
+    absolute = false,
+): string {
     const routes: Record<string, string> = {
         // Dashboard
-        'dashboard': '/dashboard',
-        
+        dashboard: '/dashboard',
+
         // Calendar
-        'calendar': '/calendar',
-        
+        calendar: '/calendar',
+
         // Booking routes
         'bookings.index': '/bookings',
         'bookings.store': '/bookings',
         'bookings.destroy': '/bookings/:id',
-        
+
         // Provider routes
         'provider.timeslots.index': '/provider/timeslots',
         'provider.timeslots.create': '/provider/timeslots/create',
@@ -22,7 +26,7 @@ export function route(name: string, params?: Record<string, unknown> | number | 
         'provider.timeslots.destroy': '/provider/timeslots/:id',
         'provider.timeslots.assign': '/provider/timeslots/:id/assign',
         'provider.timeslots.remove': '/provider/timeslots/:id/remove',
-        
+
         // Provider client routes
         'provider.clients.index': '/provider/clients',
         'provider.clients.create': '/provider/clients/create',
@@ -30,7 +34,7 @@ export function route(name: string, params?: Record<string, unknown> | number | 
         'provider.clients.edit': '/provider/clients/:id/edit',
         'provider.clients.update': '/provider/clients/:id',
         'provider.clients.destroy': '/provider/clients/:id',
-        
+
         // Admin routes
         'admin.users.index': '/admin/users',
         'admin.users.create': '/admin/users/create',
@@ -40,14 +44,14 @@ export function route(name: string, params?: Record<string, unknown> | number | 
         'admin.users.update': '/admin/users/:id',
         'admin.users.destroy': '/admin/users/:id',
     };
-    
+
     let url = routes[name];
-    
+
     if (!url) {
         console.error(`Route "${name}" not found`);
         return '/';
     }
-    
+
     // Handle params
     if (params !== undefined) {
         if (typeof params === 'number' || typeof params === 'string') {
@@ -63,6 +67,6 @@ export function route(name: string, params?: Record<string, unknown> | number | 
             });
         }
     }
-    
+
     return absolute ? window.location.origin + url : url;
 }

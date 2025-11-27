@@ -239,7 +239,8 @@ $endTime = $timeslot->end_time; // Carbon instance
 
 **Organization:**
 - `resources/js/pages/` - Inertia page components (route-level components)
-  - Organized by role: `Admin/`, `Provider/`, `Bookings/`, `Calendar/`, etc.
+  - Organized by feature: `Admin/`, `Bookings/`, `Calendar/`, `Settings/`, etc.
+  - Note: Service provider timeslot management is integrated into the Calendar page
 - `resources/js/components/` - Reusable UI components (shadcn/ui architecture)
 - `resources/js/layouts/` - Page layouts (authenticated, guest)
 - `resources/js/types/` - TypeScript type definitions
@@ -249,14 +250,32 @@ $endTime = $timeslot->end_time; // Carbon instance
 **Key Patterns:**
 - All components are functional with TypeScript strict mode
 - Inertia props are typed via TypeScript interfaces
-- Routes are type-safe via Laravel Wayfinder: `route('provider.timeslots.index')`
+- Routes are type-safe via Laravel Wayfinder: `route('calendar')`
 - shadcn/ui components use Radix UI primitives with Tailwind styling
 - Forms use Inertia's `useForm` hook with validation
+- Modal dialogs are used for inline create/edit operations (e.g., timeslot creation)
 
 **TypeScript Configuration:**
 - Strict mode enabled (`strict: true`, `noImplicitAny: true`)
 - Path alias: `@/*` maps to `resources/js/*`
 - JSX: `react-jsx` (automatic React import)
+
+**Navigation Structure:**
+
+The application sidebar (`app-sidebar.tsx`) provides role-based navigation:
+
+*Common (All Users):*
+- Dashboard
+- Calendar
+- Bookings
+
+*Service Provider Only:*
+- Clients (manage linked clients)
+
+*Admin Only:*
+- User Management
+
+**Note:** Service providers no longer have a separate "Schedule" menu item. All timeslot management is integrated into the Calendar page through modal-based creation and inline operations.
 
 ### Inertia.js Bridge
 
@@ -265,7 +284,7 @@ Inertia connects Laravel controllers to React components without building a sepa
 **Controller → Component:**
 ```php
 // In controller
-return Inertia::render('Provider/Timeslots/Index', [
+return Inertia::render('Calendar/Index', [
     'timeslots' => $timeslots,
     'clients' => $clients,
 ]);
@@ -276,7 +295,7 @@ return Inertia::render('Provider/Timeslots/Index', [
 // In React component
 interface Props {
     timeslots: Timeslot[];
-    clients: Client[];
+    clients?: Client[];
 }
 
 export default function Index({ timeslots, clients }: Props) { ... }
@@ -286,6 +305,18 @@ export default function Index({ timeslots, clients }: Props) { ... }
 ```tsx
 const form = useForm({ name: '', email: '' });
 form.post(route('provider.clients.store'));
+
+// Modal-based form submission (e.g., timeslot creation)
+const createForm = useForm({
+    start_time: '',
+    duration_minutes: 60,
+});
+createForm.post(route('provider.timeslots.store'), {
+    onSuccess: () => {
+        setShowModal(false);
+        createForm.reset();
+    },
+});
 ```
 
 ### Database Schema
@@ -359,6 +390,45 @@ Located in `specs/###-feature-name/`:
 
 Examples: `specs/001-timeslot-booking/`, `specs/002-client-provider-link/`
 
+## User Workflows
+
+### Service Provider Timeslot Management
+
+Service providers manage their timeslots through the calendar interface with modal-based creation:
+
+**Timeslot Creation Flow:**
+1. Navigate to `/calendar`
+2. Click "+ Create Timeslot" button or click on a date in the calendar
+3. Modal dialog opens with pre-filled date/time
+4. Select start time (datetime-local input)
+5. Select duration (15 minutes to 4 hours)
+6. Submit form → redirects back to calendar with success message
+
+**Routes:**
+- `POST /provider/timeslots` - Create new timeslot
+- `DELETE /provider/timeslots/{timeslot}` - Delete timeslot
+- `POST /provider/timeslots/{timeslot}/assign` - Assign client to timeslot
+- `DELETE /provider/timeslots/{timeslot}/remove` - Remove client from timeslot
+
+**Implementation Details:**
+- Modal uses shadcn/ui Dialog component
+- Form state managed via Inertia's `useForm` hook
+- Default values: selected date at 9:00 AM, 60 minutes duration
+- Success callback closes modal and resets form
+- All operations redirect to `/calendar` for consistent user experience
+
+**Note:** There are no separate timeslot index or create pages. All timeslot management happens on the calendar page for a streamlined, context-aware workflow.
+
+### Client Booking Flow
+
+Clients book timeslots through the calendar or bookings page:
+
+1. Browse available timeslots on `/calendar`
+2. Filter by provider if needed
+3. Click "Book" button on an available timeslot
+4. Confirm booking
+5. View confirmed bookings at `/bookings`
+
 ## Common Patterns
 
 ### Creating a New Feature
@@ -405,19 +475,19 @@ php artisan db:seed --class=RolesAndPermissionsSeeder
 
 **Backend (routes/web.php):**
 ```php
-Route::get('provider/timeslots', [TimeslotController::class, 'index'])
-    ->name('provider.timeslots.index');
+Route::post('provider/timeslots', [TimeslotController::class, 'store'])
+    ->name('provider.timeslots.store');
 ```
 
 **Frontend (React):**
 ```tsx
-import { route } from '@laravel/vite-plugin-wayfinder';
+import { router } from '@inertiajs/react';
 
 // Type-safe route generation
-<Link href={route('provider.timeslots.index')}>Timeslots</Link>
+<Link href={route('calendar')}>Calendar</Link>
 
-// With parameters
-<Link href={route('provider.timeslots.show', { timeslot: timeslot.id })}>View</Link>
+// Form submission with type-safe routing
+form.post(route('provider.timeslots.store'));
 ```
 
 ### Form Validation

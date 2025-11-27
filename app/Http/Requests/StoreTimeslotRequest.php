@@ -38,6 +38,7 @@ class StoreTimeslotRequest extends FormRequest
                         ->contains(function ($existing) use ($startTime, $endTime) {
                             $existingStart = Carbon::parse($existing->start_time);
                             $existingEnd = $existingStart->copy()->addMinutes($existing->duration_minutes);
+
                             // Overlap if existing slot starts before new slot ends and ends after new slot starts
                             return $existingStart < $endTime && $existingEnd > $startTime;
                         });

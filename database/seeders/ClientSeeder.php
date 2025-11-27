@@ -62,7 +62,7 @@ class ClientSeeder extends Seeder
 
         // Link clients to providers
         // Client 1 linked to Provider 1 only
-        if (!$provider1->hasClient($client1->id)) {
+        if (! $provider1->hasClient($client1->id)) {
             $provider1->clients()->attach($client1->id, [
                 'created_by_provider' => true,
                 'status' => 'active',
@@ -70,7 +70,7 @@ class ClientSeeder extends Seeder
         }
 
         // Client 2 linked to Provider 2 only
-        if (!$provider2->hasClient($client2->id)) {
+        if (! $provider2->hasClient($client2->id)) {
             $provider2->clients()->attach($client2->id, [
                 'created_by_provider' => true,
                 'status' => 'active',
@@ -78,13 +78,13 @@ class ClientSeeder extends Seeder
         }
 
         // Client 3 linked to both providers (shared client)
-        if (!$provider1->hasClient($client3->id)) {
+        if (! $provider1->hasClient($client3->id)) {
             $provider1->clients()->attach($client3->id, [
                 'created_by_provider' => true,
                 'status' => 'active',
             ]);
         }
-        if (!$provider2->hasClient($client3->id)) {
+        if (! $provider2->hasClient($client3->id)) {
             $provider2->clients()->attach($client3->id, [
                 'created_by_provider' => false,
                 'status' => 'active',

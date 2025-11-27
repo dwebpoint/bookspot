@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         // Check if client_id column exists before adding
-        if (!Schema::hasColumn('timeslots', 'client_id')) {
+        if (! Schema::hasColumn('timeslots', 'client_id')) {
             Schema::table('timeslots', function (Blueprint $table) {
                 $table->foreignId('client_id')
                     ->nullable()
@@ -75,7 +75,7 @@ return new class extends Migration
 
         foreach ($bookings as $booking) {
             // Determine the timeslot status based on booking status
-            $status = match($booking->status) {
+            $status = match ($booking->status) {
                 'confirmed' => 'booked',
                 'cancelled' => 'cancelled',
                 'completed' => 'completed',

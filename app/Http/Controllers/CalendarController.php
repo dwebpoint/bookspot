@@ -19,21 +19,14 @@ class CalendarController extends Controller
 
         $user = auth()->user();
 
-        // Date range varies by role
-        // Clients: from current time onwards (future only)
-        // Providers/Admins: yesterday to +14 days (for management)
-        if ($user->isClient()) {
-            $startDate = now(); // Current time for clients
-            $endDate = now()->addDays(14)->endOfDay();
-        } else {
-            $startDate = now()->subDay()->startOfDay();
-            $endDate = now()->addDays(14)->endOfDay();
-        }
-        
+        // Date range: today to +10 days for all users
+        $startDate = now()->startOfDay();
+        $endDate = now()->addDays(10)->endOfDay();
+
         // Build query for timeslots
         $query = Timeslot::with(['provider:id,name', 'client:id,name'])
             ->whereBetween('start_time', [$startDate, $endDate]);
-        
+
         // For clients: show timeslots from their linked providers + their own bookings
         if ($user->isClient()) {
             $providerIds = $user->providers()->pluck('users.id');
@@ -84,7 +77,7 @@ class CalendarController extends Controller
             $timeslots = $query->orderBy('start_time')->get();
             $providers = collect();
         }
-        
+
         // Get provider's clients for client selector (service providers and admins)
         $clients = collect();
         if ($user->role === 'service_provider') {
@@ -98,7 +91,7 @@ class CalendarController extends Controller
                 ->orderBy('name')
                 ->get();
         }
-        
+
         // For clients: show flash messages for upcoming bookings (within 3 days)
         if ($user->isClient()) {
             $upcomingBookings = Timeslot::with('provider')

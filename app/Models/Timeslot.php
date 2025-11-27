@@ -122,6 +122,7 @@ class Timeslot extends Model
     public function scopeForClientProviders($query, User $client)
     {
         $providerIds = $client->providers()->pluck('users.id');
+
         return $query->whereIn('provider_id', $providerIds);
     }
 

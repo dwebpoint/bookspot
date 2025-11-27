@@ -19,7 +19,7 @@ return new class extends Migration
             $table->dateTime('start_time');
             $table->unsignedInteger('duration_minutes');
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['provider_id', 'start_time']);
             $table->index('start_time');

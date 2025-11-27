@@ -6,7 +6,6 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\Provider\TimeslotController as ProviderTimeslotController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -35,16 +34,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Booking cancellation - Client, Provider, or Admin
     Route::delete('bookings/{timeslot}', [BookingController::class, 'destroy'])->name('bookings.destroy');
 
+    // Timeslot deletion from bookings page - Service Provider or Admin only
+    Route::delete('bookings/{timeslot}/delete', [BookingController::class, 'forceDelete'])
+        ->name('bookings.forceDelete')
+        ->middleware('role:service_provider,admin');
+
+    // Mark timeslot as completed - Service Provider or Admin only
+    Route::patch('bookings/{timeslot}/complete', [BookingController::class, 'complete'])
+        ->name('bookings.complete')
+        ->middleware('role:service_provider,admin');
+
     // Provider routes
     Route::prefix('provider')->name('provider.')->middleware('role:service_provider,admin')->group(function () {
         // Timeslots
-        Route::get('timeslots', [ProviderTimeslotController::class, 'index'])->name('timeslots.index');
-        Route::get('timeslots/create', [ProviderTimeslotController::class, 'create'])->name('timeslots.create');
         Route::post('timeslots', [ProviderTimeslotController::class, 'store'])->name('timeslots.store');
         Route::delete('timeslots/{timeslot}', [ProviderTimeslotController::class, 'destroy'])->name('timeslots.destroy');
         Route::post('timeslots/{timeslot}/assign', [ProviderTimeslotController::class, 'assignClient'])->name('timeslots.assign');
         Route::delete('timeslots/{timeslot}/remove', [ProviderTimeslotController::class, 'removeClient'])->name('timeslots.remove');
-        
+
         // Clients
         Route::get('clients', [\App\Http\Controllers\Provider\ClientController::class, 'index'])->name('clients.index');
         Route::get('clients/create', [\App\Http\Controllers\Provider\ClientController::class, 'create'])->name('clients.create');

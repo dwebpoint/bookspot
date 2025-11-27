@@ -1,8 +1,3 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { route } from '@/lib/route-helper';
-import { Calendar, Mail, MapPin, Pencil, Shield, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import AppLayout from '@/layouts/app-layout';
 import FlashMessages from '@/components/FlashMessages';
 import StatusBadge from '@/components/StatusBadge';
 import {
@@ -23,7 +18,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import AppLayout from '@/layouts/app-layout';
+import { route } from '@/lib/route-helper';
 import type { SharedData, Timeslot, User } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Calendar, Mail, MapPin, Pencil, Shield, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface AdminUsersShowProps extends SharedData {
     user: User & {
@@ -57,7 +57,10 @@ export default function Show() {
     };
 
     const getRoleBadgeVariant = (role: string) => {
-        const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+        const variants: Record<
+            string,
+            'default' | 'secondary' | 'destructive' | 'outline'
+        > = {
             admin: 'destructive',
             service_provider: 'default',
             client: 'secondary',
@@ -122,7 +125,9 @@ export default function Show() {
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm">
                                     Joined{' '}
-                                    {new Date(user.created_at).toLocaleDateString()}
+                                    {new Date(
+                                        user.created_at,
+                                    ).toLocaleDateString()}
                                 </span>
                             </div>
                         </CardContent>
@@ -150,8 +155,9 @@ export default function Show() {
                                         Booked Timeslots
                                     </span>
                                     <span className="font-semibold">
-                                        {user.timeslots?.filter((t) => t.status === 'booked')
-                                            .length || 0}
+                                        {user.timeslots?.filter(
+                                            (t) => t.status === 'booked',
+                                        ).length || 0}
                                     </span>
                                 </div>
                             </CardContent>
@@ -181,7 +187,7 @@ export default function Show() {
                                     </span>
                                     <span className="font-semibold">
                                         {user.bookedTimeslots?.filter(
-                                            (t) => t.status === 'booked'
+                                            (t) => t.status === 'booked',
                                         ).length || 0}
                                     </span>
                                 </div>
@@ -200,9 +206,9 @@ export default function Show() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete User</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete {user.name}? This will
-                            also delete all their timeslots and bookings. This
-                            action cannot be undone.
+                            Are you sure you want to delete {user.name}? This
+                            will also delete all their timeslots and bookings.
+                            This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

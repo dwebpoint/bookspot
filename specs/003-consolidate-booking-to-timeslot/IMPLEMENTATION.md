@@ -354,3 +354,10 @@ Updated in CLAUDE.md:
 - Database migration includes data preservation
 - All authorization checks remain in place
 - Performance improved by removing join to bookings table
+
+## Follow-Up Changes
+
+After this consolidation, the timeslot management workflow was further improved with modal-based creation. See [004-modal-based-timeslot-creation/IMPLEMENTATION.md](../004-modal-based-timeslot-creation/IMPLEMENTATION.md) for details on:
+- Removal of separate `/provider/timeslots` pages
+- Integration of timeslot creation into calendar page via modal dialog
+- Improved user experience with context-aware workflows

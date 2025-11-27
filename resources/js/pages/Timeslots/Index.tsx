@@ -1,8 +1,3 @@
-import { Head, router, usePage } from '@inertiajs/react';
-import { route } from '@/lib/route-helper';
-import { Calendar, Filter } from 'lucide-react';
-import { useState } from 'react';
-import AppLayout from '@/layouts/app-layout';
 import FlashMessages from '@/components/FlashMessages';
 import TimeslotCard from '@/components/TimeslotCard';
 import { Button } from '@/components/ui/button';
@@ -15,7 +10,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { PaginatedResponse, Provider, SharedData, TimeslotWithProvider } from '@/types';
+import AppLayout from '@/layouts/app-layout';
+import { route } from '@/lib/route-helper';
+import type {
+    PaginatedResponse,
+    Provider,
+    SharedData,
+    TimeslotWithProvider,
+} from '@/types';
+import { Head, router, usePage } from '@inertiajs/react';
+import { Calendar, Filter } from 'lucide-react';
+import { useState } from 'react';
 
 interface TimeslotsIndexProps extends SharedData {
     timeslots: PaginatedResponse<TimeslotWithProvider>;
@@ -27,7 +32,8 @@ interface TimeslotsIndexProps extends SharedData {
 }
 
 export default function Index() {
-    const { timeslots, filters, providers } = usePage<TimeslotsIndexProps>().props;
+    const { timeslots, filters, providers } =
+        usePage<TimeslotsIndexProps>().props;
     const [bookingId, setBookingId] = useState<number | null>(null);
 
     const handleBook = (timeslotId: number) => {
@@ -37,7 +43,7 @@ export default function Index() {
             { timeslot_id: timeslotId },
             {
                 onFinish: () => setBookingId(null),
-            }
+            },
         );
     };
 
@@ -45,7 +51,7 @@ export default function Index() {
         router.get(
             route('timeslots.index'),
             { ...filters, [key]: value || undefined },
-            { preserveState: true }
+            { preserveState: true },
         );
     };
 
@@ -85,7 +91,9 @@ export default function Index() {
                                     <SelectValue placeholder="All providers" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">All providers</SelectItem>
+                                    <SelectItem value="">
+                                        All providers
+                                    </SelectItem>
                                     {providers.map((provider) => (
                                         <SelectItem
                                             key={provider.id}
@@ -131,7 +139,8 @@ export default function Index() {
                             No available timeslots
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                            There are no available timeslots matching your filters.
+                            There are no available timeslots matching your
+                            filters.
                         </p>
                     </div>
                 ) : (
@@ -157,9 +166,7 @@ export default function Index() {
                                 variant={link.active ? 'default' : 'outline'}
                                 size="sm"
                                 disabled={!link.url}
-                                onClick={() =>
-                                    link.url && router.get(link.url)
-                                }
+                                onClick={() => link.url && router.get(link.url)}
                                 dangerouslySetInnerHTML={{ __html: link.label }}
                             />
                         ))}
