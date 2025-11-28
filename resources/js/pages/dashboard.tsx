@@ -1,10 +1,10 @@
+import ClientProviders from '@/components/ClientProviders';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
-import { Head, usePage } from '@inertiajs/react';
-import ClientProviders from '@/components/ClientProviders';
 import type { Provider } from '@/types/client';
+import { Head, usePage } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -49,4 +49,3 @@ export default function Dashboard() {
         </AppLayout>
     );
 }
-

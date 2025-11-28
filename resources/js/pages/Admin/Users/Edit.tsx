@@ -1,7 +1,3 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { route } from '@/lib/route-helper';
-import { FormEvent } from 'react';
-import AppLayout from '@/layouts/app-layout';
 import FlashMessages from '@/components/FlashMessages';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +16,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import AppLayout from '@/layouts/app-layout';
+import { route } from '@/lib/route-helper';
 import type { SharedData, User } from '@/types';
+import { Head, useForm, usePage } from '@inertiajs/react';
+import { FormEvent } from 'react';
 
 interface AdminUsersEditProps extends SharedData {
     user: User;
@@ -76,15 +76,16 @@ export default function Edit() {
                     <CardHeader>
                         <CardTitle>User Details</CardTitle>
                         <CardDescription>
-                            Update the user's information and role. Leave password
-                            blank to keep current password.
+                            Update the user's information and role. Leave
+                            password blank to keep current password.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={submit} className="space-y-6">
                             <div className="space-y-2">
                                 <Label htmlFor="name">
-                                    Name <span className="text-destructive">*</span>
+                                    Name{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                     id="name"
@@ -105,7 +106,8 @@ export default function Edit() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="email">
-                                    Email <span className="text-destructive">*</span>
+                                    Email{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                     id="email"
@@ -156,7 +158,7 @@ export default function Edit() {
                                     onChange={(e) =>
                                         setData(
                                             'password_confirmation',
-                                            e.target.value
+                                            e.target.value,
                                         )
                                     }
                                 />
@@ -169,7 +171,8 @@ export default function Edit() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="role">
-                                    Role <span className="text-destructive">*</span>
+                                    Role{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <Select
                                     value={data.role}
@@ -179,7 +182,7 @@ export default function Edit() {
                                             value as
                                                 | 'admin'
                                                 | 'service_provider'
-                                                | 'client'
+                                                | 'client',
                                         )
                                     }
                                 >
@@ -187,11 +190,15 @@ export default function Edit() {
                                         <SelectValue placeholder="Select role" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="client">Client</SelectItem>
+                                        <SelectItem value="client">
+                                            Client
+                                        </SelectItem>
                                         <SelectItem value="service_provider">
                                             Service Provider
                                         </SelectItem>
-                                        <SelectItem value="admin">Admin</SelectItem>
+                                        <SelectItem value="admin">
+                                            Admin
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 {errors.role && (
@@ -203,7 +210,8 @@ export default function Edit() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="timezone">
-                                    Timezone <span className="text-destructive">*</span>
+                                    Timezone{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <Select
                                     value={data.timezone}

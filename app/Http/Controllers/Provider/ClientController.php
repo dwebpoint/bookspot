@@ -24,7 +24,7 @@ class ClientController extends Controller
      */
     public function index(Request $request): Response
     {
-        abort_if(!auth()->user()->isServiceProvider() && !auth()->user()->isAdmin(), 403);
+        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
 
         $search = $request->input('search');
 
@@ -53,7 +53,7 @@ class ClientController extends Controller
      */
     public function create(): Response
     {
-        abort_if(!auth()->user()->isServiceProvider() && !auth()->user()->isAdmin(), 403);
+        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
 
         return Inertia::render('Provider/Clients/Create');
     }
@@ -70,7 +70,7 @@ class ClientController extends Controller
 
                 if ($existingUser) {
                     // User exists - check if they're a client
-                    if (!$existingUser->isClient()) {
+                    if (! $existingUser->isClient()) {
                         throw new \Exception('A user with this email already exists with a different role.');
                     }
 
@@ -121,10 +121,10 @@ class ClientController extends Controller
      */
     public function edit(User $client): Response
     {
-        abort_if(!auth()->user()->isServiceProvider() && !auth()->user()->isAdmin(), 403);
+        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
 
         // Verify the relationship exists
-        if (!auth()->user()->hasClient($client->id)) {
+        if (! auth()->user()->hasClient($client->id)) {
             abort(404, 'Client not found.');
         }
 
@@ -138,10 +138,10 @@ class ClientController extends Controller
      */
     public function update(StoreClientRequest $request, User $client): RedirectResponse
     {
-        abort_if(!auth()->user()->isServiceProvider() && !auth()->user()->isAdmin(), 403);
+        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
 
         // Verify the relationship exists
-        if (!auth()->user()->hasClient($client->id)) {
+        if (! auth()->user()->hasClient($client->id)) {
             abort(404, 'Client not found.');
         }
 
@@ -176,12 +176,12 @@ class ClientController extends Controller
      */
     public function destroy(User $client): RedirectResponse
     {
-        abort_if(!auth()->user()->isServiceProvider() && !auth()->user()->isAdmin(), 403);
+        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
 
         try {
             DB::transaction(function () use ($client) {
                 // Verify the relationship exists
-                if (!auth()->user()->hasClient($client->id)) {
+                if (! auth()->user()->hasClient($client->id)) {
                     throw new \Exception('This client is not linked to your account.');
                 }
 

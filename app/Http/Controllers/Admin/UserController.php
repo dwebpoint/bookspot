@@ -16,6 +16,7 @@ use Inertia\Response;
 class UserController extends Controller
 {
     use AuthorizesRequests;
+
     /**
      * Display a listing of users.
      */
@@ -104,7 +105,7 @@ class UserController extends Controller
 
         if ($user->isServiceProvider()) {
             $data['timeslots'] = $user->timeslots()
-                ->with('booking.client')
+                ->with('client')
                 ->latest()
                 ->limit(10)
                 ->get();
@@ -115,14 +116,14 @@ class UserController extends Controller
         }
 
         if ($user->isClient()) {
-            $data['bookings'] = $user->bookings()
-                ->with('timeslot.provider')
+            $data['bookedTimeslots'] = $user->bookedTimeslots()
+                ->with('provider')
                 ->latest()
                 ->limit(10)
                 ->get();
             $data['stats'] = [
-                'total_bookings' => $user->bookings()->count(),
-                'active_bookings' => $user->bookings()->confirmed()->count(),
+                'total_bookings' => $user->bookedTimeslots()->count(),
+                'active_bookings' => $user->bookedTimeslots()->where('status', 'booked')->count(),
             ];
         }
 

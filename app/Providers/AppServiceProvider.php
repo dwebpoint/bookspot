@@ -30,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Timeslot::class, TimeslotPolicy::class);
         Gate::policy(Booking::class, BookingPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
-        
+
         // Register policy for provider-client relationships
         Gate::define('viewAnyClients', [ProviderClientPolicy::class, 'viewAny']);
         Gate::define('viewClient', [ProviderClientPolicy::class, 'view']);

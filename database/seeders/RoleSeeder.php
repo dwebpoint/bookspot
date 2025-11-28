@@ -35,7 +35,7 @@ class RoleSeeder extends Seeder
             User::firstOrCreate(
                 ['email' => $email],
                 [
-                    'name' => 'Service Provider ' . ($index + 1),
+                    'name' => 'Service Provider '.($index + 1),
                     'password' => Hash::make('password'),
                     'role' => 'service_provider',
                     'timezone' => 'UTC',
@@ -56,7 +56,7 @@ class RoleSeeder extends Seeder
             User::firstOrCreate(
                 ['email' => $email],
                 [
-                    'name' => 'Client ' . ($index + 1),
+                    'name' => 'Client '.($index + 1),
                     'password' => Hash::make('password'),
                     'role' => 'client',
                     'timezone' => 'UTC',

@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\BookTimeslotRequest;
-use App\Models\Booking;
 use App\Models\Timeslot;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -21,52 +19,79 @@ class BookingController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Booking::with('timeslot.provider')
-            ->forClient(auth()->id())
-            ->orderBy('created_at', 'desc');
+        $user = auth()->user();
+
+        // For service providers: show their timeslots that are booked
+        if ($user->isServiceProvider()) {
+            $query = Timeslot::with('client')
+                ->forProvider($user->id)
+                ->whereNotNull('client_id')
+                ->orderBy('start_time', 'desc');
+
+            // Get provider's clients for filter dropdown
+            $clients = $user->clients()
+                ->select('users.id', 'users.name')
+                ->orderBy('users.name')
+                ->get();
+        } else {
+            // For clients: show their bookings
+            $query = Timeslot::with('provider')
+                ->forClient($user->id)
+                ->orderBy('start_time', 'desc');
+
+            $clients = collect();
+        }
 
         // Filter by status if specified
-        if ($request->status === 'confirmed') {
-            $query->confirmed();
+        if ($request->status === 'booked') {
+            $query->booked();
         } elseif ($request->status === 'cancelled') {
             $query->cancelled();
         } elseif ($request->status === 'completed') {
             $query->completed();
         }
 
+        // Filter by date if specified
+        if ($request->filled('date')) {
+            $date = \Carbon\Carbon::parse($request->date);
+            $query->whereDate('start_time', $date);
+        }
+
+        // Filter by client (service provider only)
+        if ($user->isServiceProvider() && $request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
         return Inertia::render('Bookings/Index', [
             'bookings' => $query->get(),
-            'filters' => $request->only('status'),
+            'filters' => $request->only(['status', 'date', 'client_id']),
+            'clients' => $clients,
         ]);
     }
 
     /**
      * Store a newly created booking in storage.
      */
-    public function store(BookTimeslotRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        $this->authorize('create', Booking::class);
+        $request->validate([
+            'timeslot_id' => 'required|exists:timeslots,id',
+        ]);
 
         try {
             DB::transaction(function () use ($request) {
                 // Lock the timeslot row to prevent race conditions
                 $timeslot = Timeslot::where('id', $request->timeslot_id)
-                    ->whereDoesntHave('booking', fn($q) => $q->where('status', 'confirmed'))
+                    ->where('status', 'available')
                     ->where('start_time', '>', now())
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                // Validate that client is linked to the timeslot's provider
-                $user = auth()->user();
-                if ($user->isClient() && !$user->hasProvider($timeslot->provider_id)) {
-                    throw new \Exception('You must be linked to this provider to book their timeslots.');
-                }
+                // Authorize booking
+                $this->authorize('book', $timeslot);
 
-                Booking::create([
-                    'timeslot_id' => $request->timeslot_id,
-                    'client_id' => auth()->id(),
-                    'status' => 'confirmed',
-                ]);
+                // Book the timeslot
+                $timeslot->book(auth()->id());
             });
 
             return redirect()->route('bookings.index')
@@ -78,15 +103,64 @@ class BookingController extends Controller
     }
 
     /**
-     * Remove the specified booking from storage (cancel booking).
+     * Cancel the specified booking (timeslot).
+     * Unassigns the client and makes the timeslot available again.
      */
-    public function destroy(Booking $booking): RedirectResponse
+    public function destroy(Timeslot $timeslot): RedirectResponse
     {
-        $this->authorize('delete', $booking);
+        $this->authorize('cancelBooking', $timeslot);
 
-        $booking->cancel();
+        // Unassign client and make available
+        $timeslot->status = 'available';
+        $timeslot->client_id = null;
+        $timeslot->save();
 
         return redirect()->route('bookings.index')
-            ->with('success', 'Booking cancelled successfully.');
+            ->with('success', 'Booking cancelled successfully. Timeslot is now available.');
+    }
+
+    /**
+     * Delete the specified timeslot (service provider only).
+     */
+    public function forceDelete(Timeslot $timeslot): RedirectResponse
+    {
+        // Only service providers can delete timeslots
+        if (! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin()) {
+            abort(403, 'Only service providers can delete timeslots.');
+        }
+
+        $this->authorize('delete', $timeslot);
+
+        $timeslot->delete();
+
+        return redirect()->route('bookings.index')
+            ->with('success', 'Timeslot deleted successfully.');
+    }
+
+    /**
+     * Mark the specified timeslot as completed (service provider only).
+     */
+    public function complete(Timeslot $timeslot): RedirectResponse
+    {
+        // Only service providers can mark timeslots as completed
+        if (! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin()) {
+            abort(403, 'Only service providers can mark timeslots as completed.');
+        }
+
+        // Verify the timeslot is booked
+        if (! $timeslot->is_booked) {
+            return redirect()->back()
+                ->with('error', 'Only booked timeslots can be marked as completed.');
+        }
+
+        // Verify the provider owns this timeslot
+        if ($timeslot->provider_id !== auth()->id() && ! auth()->user()->isAdmin()) {
+            abort(403, 'You can only mark your own timeslots as completed.');
+        }
+
+        $timeslot->complete();
+
+        return redirect()->route('bookings.index')
+            ->with('success', 'Timeslot marked as completed successfully.');
     }
 }

@@ -11,7 +11,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -58,11 +58,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the bookings made by this client.
+     * Get the timeslots booked by this client.
      */
-    public function bookings()
+    public function bookedTimeslots()
     {
-        return $this->hasMany(Booking::class, 'client_id');
+        return $this->hasMany(Timeslot::class, 'client_id');
     }
 
     /**

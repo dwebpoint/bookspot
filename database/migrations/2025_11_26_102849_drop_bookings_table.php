@@ -11,6 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::dropIfExists('bookings');
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // Recreate bookings table if rollback is needed
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('timeslot_id')
@@ -20,7 +29,7 @@ return new class extends Migration
             $table->foreignId('client_id')
                 ->constrained('users')
                 ->onDelete('cascade');
-            $table->enum('status', ['confirmed', 'cancelled'])
+            $table->enum('status', ['confirmed', 'cancelled', 'completed'])
                 ->default('confirmed');
             $table->timestamps();
 
@@ -28,13 +37,5 @@ return new class extends Migration
             $table->index('client_id');
             $table->index(['status', 'created_at']);
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bookings');
     }
 };
