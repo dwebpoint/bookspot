@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 BookSpot is a Laravel 12 + React 19 timeslot booking application using Inertia.js as the bridge between backend and frontend. The application allows service providers to create timeslots, manage clients, and handle bookings through a calendar-first interface.
 
 **Tech Stack:**
-- Backend: Laravel 12, PHP 8.3+, Spatie Laravel Permission, Laravel Fortify
+- Backend: Laravel 12, PHP 8.4+, Spatie Laravel Permission, Laravel Fortify
 - Frontend: React 19, TypeScript 5.7+, Tailwind CSS 4.x, shadcn/ui, Radix UI
 - Bridge: Inertia.js 2.x (server-side rendering capable)
 - Build: Vite 7.x with Laravel Wayfinder for type-safe routing
