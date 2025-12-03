@@ -31,10 +31,13 @@ Removed the following routes:
 ```
 
 **Kept routes:**
-- `POST /provider/timeslots` - Create timeslot (now redirects to calendar)
-- `DELETE /provider/timeslots/{timeslot}` - Delete timeslot
-- `POST /provider/timeslots/{timeslot}/assign` - Assign client
-- `DELETE /provider/timeslots/{timeslot}/remove` - Remove client
+- `POST /provider/timeslots` - Create timeslot (redirects to calendar)
+- `DELETE /provider/timeslots/{timeslot}` - Delete timeslot (redirects to calendar)
+- `POST /provider/timeslots/{timeslot}/assign` - Assign client (redirects to calendar)
+- `DELETE /provider/timeslots/{timeslot}/remove` - Remove client (redirects to calendar)
+
+**Calendar Page Routing Pattern:**
+When users perform actions on `/calendar` (create/delete timeslots, assign/remove clients, book/cancel), they remain on `/calendar` after the operation completes. Controllers redirect back to `route('calendar')` to maintain user context and provide seamless workflow.
 
 ### Controller Updates
 

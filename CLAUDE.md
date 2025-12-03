@@ -417,6 +417,9 @@ Service providers manage their timeslots through the calendar interface with mod
 - Success callback closes modal and resets form
 - All operations redirect to `/calendar` for consistent user experience
 
+**Calendar Page Routing Pattern:**
+When users perform actions on `/calendar` (create/delete timeslots, assign/remove clients, book/cancel), they remain on `/calendar` after the operation completes. Controllers should redirect back to `route('calendar')` after successful operations to maintain user context and provide seamless workflow.
+
 **Note:** There are no separate timeslot index or create pages. All timeslot management happens on the calendar page for a streamlined, context-aware workflow.
 
 ### Client Booking Flow

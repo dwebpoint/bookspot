@@ -2,9 +2,9 @@
 
 **Feature**: 002-client-provider-link  
 **Input**: Design documents from `/specs/002-client-provider-link/`  
-**Prerequisites**: spec.md (required for user stories)
+**Prerequisites**: spec.md (required for user stories), plan.md (required for constitution compliance)
 
-**Tests**: Not explicitly requested in specification - focusing on implementation tasks only.
+**Tests**: Required per Constitution Principle III (Test-First for Critical Paths). Feature tests for authentication, data mutation, and authorization must be implemented.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -145,12 +145,25 @@
 
 ---
 
-## Phase 8: Polish & Cross-Cutting Concerns
+## Phase 8: Feature Tests (Constitution Required)
+
+**Purpose**: Test-first for critical paths per Constitution Principle III
+
+- [ ] T053 Create ProviderClientTest for provider creating client in tests/Feature/ProviderClient/CreateClientTest.php
+- [ ] T054 [P] Test automatic relationship linking when provider creates client
+- [ ] T055 [P] Test duplicate email detection and relationship-only creation
+- [ ] T056 Test calendar filtering by linked providers in tests/Feature/Calendar/LinkedProviderFilterTest.php
+- [ ] T057 [P] Test relationship removal with booking cancellation cascade
+- [ ] T058 [P] Test client cannot see unlinked provider's timeslots
+
+---
+
+## Phase 9: Polish & Cross-Cutting Concerns
 
 **Purpose**: Improvements that affect multiple user stories
 
 - [ ] T047 [P] Update spec.md documentation to mark as implemented in specs/002-client-provider-link/spec.md
-- [ ] T048 [P] Add email notification for new client creation (optional) in app/Notifications/ClientCreated.php
+- [ ] T048 [P] **REQUIRED (FR-006)** Add email notification for new client creation in app/Notifications/ClientCreated.php
 - [ ] T049 Add indexes for performance on provider_client table in database/migrations
 - [ ] T050 Add client relationship validation to existing authorization policies
 - [ ] T051 [P] Create TESTING.md with manual test scenarios in specs/002-client-provider-link/TESTING.md
@@ -284,14 +297,14 @@ With multiple developers:
 - Migration must run before any model/controller work (T001 is critical)
 - Provider-client relationship is many-to-many via pivot table
 - Existing features (calendar, bookings) need updates to respect relationships
-- Email notifications (T048) are optional/nice-to-have
+- Email notifications (T048) are REQUIRED per FR-006 (not optional)
 - Focus on P1 stories first for quickest value delivery
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 
 ---
 
-## Total Tasks: 52
+## Total Tasks: 58
 
 - **Setup**: 3 tasks
 - **Foundational**: 5 tasks (BLOCKING)
@@ -300,6 +313,7 @@ With multiple developers:
 - **User Story 3 (P2)**: 7 tasks (Multi-Provider)
 - **User Story 4 (P2)**: 8 tasks (Relationship Management)
 - **Integration**: 7 tasks
+- **Feature Tests**: 6 tasks (Constitution Required)
 - **Polish**: 6 tasks
 
-**Estimated MVP** (US1 + US2): 24 tasks (Setup + Foundational + US1 + US2)
+**Estimated MVP** (US1 + US2 + Tests): 30 tasks (Setup + Foundational + US1 + US2 + Core Tests)

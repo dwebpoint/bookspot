@@ -74,7 +74,7 @@ A client can cancel their booking if they can no longer make the appointment, fr
 1. **Given** a client has a booked timeslot, **When** they click "Cancel Booking", **Then** the booking is removed and the slot becomes available again
 2. **Given** a client cancels their booking, **When** other clients view available timeslots, **Then** the canceled slot appears as available
 3. **Given** a client views their bookings list, **When** they see a canceled booking, **Then** it is marked as "Canceled" with a timestamp
-4. **Given** a client tries to cancel a timeslot that starts in less than [NEEDS CLARIFICATION: cancellation deadline - e.g., 24 hours], **When** they attempt to cancel, **Then** the system prevents cancellation or requires admin approval
+4. **Given** a client tries to cancel a timeslot that starts in less than 24 hours, **When** they attempt to cancel, **Then** the system shows a warning but still allows cancellation (no hard restriction for MVP)
 
 ---
 
@@ -117,9 +117,9 @@ An admin can perform any service provider action on behalf of any provider, enab
 - **What happens when a client tries to book a slot that was just booked by another client (race condition)?** System should detect the conflict and show an error message
 - **How does the system handle timezone differences?** System operates in a single timezone (server timezone). All times are displayed and stored in this timezone without conversion. Multi-timezone support is out of scope for MVP.
 - **What happens when a service provider tries to delete their account with future bookings?** System should prevent deletion or require booking cancellation first
-- **How does the system handle recurring timeslots?** [NEEDS CLARIFICATION: does the system support recurring availability (e.g., "every Monday 9-10am") or only one-off slots?]
+- **How does the system handle recurring timeslots?** Recurring timeslots are out of scope for MVP. Only one-off timeslots are supported. Providers must create each timeslot individually.
 - **What happens when a timeslot duration is modified after it's been booked?** System should prevent modification of booked slots
-- **How are clients notified of booking confirmations and cancellations?** [NEEDS CLARIFICATION: notification method - email, in-app notifications, SMS, or just dashboard updates?]
+- **How are clients notified of booking confirmations and cancellations?** Email notifications are used for booking confirmations and cancellations. In-app flash messages provide immediate feedback. SMS notifications are out of scope.
 
 ## Requirements *(mandatory)*
 
@@ -143,7 +143,7 @@ An admin can perform any service provider action on behalf of any provider, enab
 - **FR-012**: System MUST prevent ServiceProviders from creating timeslots in the past
 
 **Booking Management (Client):**
-- **FR-013**: Clients MUST be able to view all timeslots (available and booked) in a calendar view across all service providers
+- **FR-013**: Clients MUST be able to view timeslots (available and booked) in a calendar view from their linked service providers only (see 002-client-provider-link for relationship management)
 - **FR-014**: Clients MUST be able to book an available timeslot from the calendar view
 - **FR-015**: Clients MUST be able to view their own booked timeslots
 - **FR-016**: Clients MUST be able to cancel their own bookings
@@ -174,9 +174,9 @@ An admin can perform any service provider action on behalf of any provider, enab
 
 - **ServiceProvider Profile**: Extends User entity with service-specific information like service name, description, and contact information. Has one-to-many relationship with Timeslots
 
-- **Timeslot**: Represents an available appointment slot with date, start time, duration (minutes), status (available/booked/planned), and associated ServiceProvider. Each timeslot can have zero or one booking
+- **Timeslot**: Represents an appointment slot with date, start time, duration (minutes), status (available/booked/cancelled/completed), associated ServiceProvider, and optional Client reference. Status values: 'available' (no client assigned), 'booked' (client assigned, upcoming), 'cancelled' (manually cancelled), 'completed' (automatically set after end time passes). The Booking entity has been consolidated into Timeslot - client_id is stored directly on the timeslot record.
 
-- **Booking**: Represents a client's reservation of a timeslot, with references to Client (User), Timeslot, booking timestamp, and status. Status values: 'confirmed' (active upcoming booking), 'cancelled' (manually cancelled), 'completed' (automatically set after timeslot end time passes)
+- **ProviderClient**: Pivot entity representing the many-to-many relationship between service providers and clients. Contains provider_id, client_id, created_at, created_by_provider flag, and status (active/inactive). Unique constraint on (provider_id, client_id) prevents duplicate relationships.
 
 ## Success Criteria *(mandatory)*
 
