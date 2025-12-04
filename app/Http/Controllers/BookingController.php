@@ -124,12 +124,7 @@ class BookingController extends Controller
      */
     public function forceDelete(Timeslot $timeslot): RedirectResponse
     {
-        // Only service providers can delete timeslots
-        if (! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin()) {
-            abort(403, 'Only service providers can delete timeslots.');
-        }
-
-        $this->authorize('delete', $timeslot);
+        $this->authorize('forceDelete', $timeslot);
 
         $timeslot->delete();
 
@@ -142,21 +137,7 @@ class BookingController extends Controller
      */
     public function complete(Timeslot $timeslot): RedirectResponse
     {
-        // Only service providers can mark timeslots as completed
-        if (! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin()) {
-            abort(403, 'Only service providers can mark timeslots as completed.');
-        }
-
-        // Verify the timeslot is booked
-        if (! $timeslot->is_booked) {
-            return redirect()->back()
-                ->with('error', 'Only booked timeslots can be marked as completed.');
-        }
-
-        // Verify the provider owns this timeslot
-        if ($timeslot->provider_id !== auth()->id() && ! auth()->user()->isAdmin()) {
-            abort(403, 'You can only mark your own timeslots as completed.');
-        }
+        $this->authorize('complete', $timeslot);
 
         $timeslot->complete();
 

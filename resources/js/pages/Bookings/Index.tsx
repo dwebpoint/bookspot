@@ -33,9 +33,9 @@ import AppLayout from '@/layouts/app-layout';
 import { route } from '@/lib/route-helper';
 import type { SharedData, Timeslot } from '@/types';
 import type { Client } from '@/types/client';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { CheckCircle, Edit, Trash2, X } from 'lucide-react';
+import { CheckCircle, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 interface BookingsIndexProps extends SharedData {
@@ -347,20 +347,6 @@ export default function Index() {
                                             <div className="flex justify-end gap-2">
                                                 {isProvider && (
                                                     <>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            asChild
-                                                            title="View in Calendar"
-                                                        >
-                                                            <Link
-                                                                href={route(
-                                                                    'calendar',
-                                                                )}
-                                                            >
-                                                                <Edit className="h-4 w-4" />
-                                                            </Link>
-                                                        </Button>
                                                         {timeslot.status ===
                                                             'booked' && (
                                                             <>

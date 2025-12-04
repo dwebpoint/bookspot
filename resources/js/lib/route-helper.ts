@@ -18,6 +18,8 @@ export function route(
         'bookings.index': '/bookings',
         'bookings.store': '/bookings',
         'bookings.destroy': '/bookings/:id',
+        'bookings.complete': '/bookings/:id/complete',
+        'bookings.forceDelete': '/bookings/:id/force-delete',
 
         // Provider routes
 

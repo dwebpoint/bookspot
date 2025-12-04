@@ -108,4 +108,32 @@ class TimeslotPolicy
         // Use with caution, as this will replace the current client on the timeslot.
         return $timeslot->is_available || $timeslot->is_booked;
     }
+
+    /**
+     * Determine whether the user can force delete the timeslot (including booked ones).
+     * This is used from the bookings page to delete booked timeslots.
+     */
+    public function forceDelete(User $user, Timeslot $timeslot): bool
+    {
+        // Provider can force delete their own timeslots (including booked ones)
+        // Admin can force delete any timeslot
+        return ($user->id === $timeslot->provider_id && $user->isServiceProvider()) 
+            || $user->isAdmin();
+    }
+
+    /**
+     * Determine whether the user can mark the timeslot as completed.
+     */
+    public function complete(User $user, Timeslot $timeslot): bool
+    {
+        // Timeslot must have a client assigned (status is 'booked')
+        if ($timeslot->status !== 'booked' || ! $timeslot->client_id) {
+            return false;
+        }
+
+        // Provider can complete their own timeslots
+        // Admin can complete any timeslot
+        return ($user->id === $timeslot->provider_id && $user->isServiceProvider()) 
+            || $user->isAdmin();
+    }
 }
