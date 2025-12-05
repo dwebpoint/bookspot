@@ -1,6 +1,6 @@
+import type { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
-import type { SharedData } from '@/types';
 
 interface RoleGuardProps {
     allowedRoles: Array<'admin' | 'service_provider' | 'client'>;

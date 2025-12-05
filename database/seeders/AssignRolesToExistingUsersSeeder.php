@@ -19,7 +19,7 @@ class AssignRolesToExistingUsersSeeder extends Seeder
             // Assign role based on the role column value
             if (isset($user->role)) {
                 $roleName = $user->role;
-                
+
                 // Map old role names to new role names if needed
                 $roleMapping = [
                     'admin' => 'admin',

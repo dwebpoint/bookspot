@@ -1,7 +1,7 @@
 import { Badge } from './ui/badge';
 
 interface StatusBadgeProps {
-    status: 'available' | 'booked' | 'confirmed' | 'cancelled' | 'completed' | string;
+    status: 'available' | 'booked' | 'cancelled' | 'completed' | string;
     variant?: 'default' | 'secondary' | 'destructive' | 'outline';
 }
 
@@ -22,11 +22,6 @@ export default function StatusBadge({ status, variant }: StatusBadgeProps) {
             variant: 'default' as const,
             className: 'bg-blue-100 text-blue-700 hover:bg-blue-100',
             label: 'Booked',
-        },
-        confirmed: {
-            variant: 'default' as const,
-            className: 'bg-blue-100 text-blue-700 hover:bg-blue-100',
-            label: 'Confirmed',
         },
         cancelled: {
             variant: 'secondary' as const,

@@ -1,8 +1,3 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { route } from '@/lib/route-helper';
-import { Plus, Search, UserCog } from 'lucide-react';
-import { useState } from 'react';
-import AppLayout from '@/layouts/app-layout';
 import FlashMessages from '@/components/FlashMessages';
 import StatusBadge from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +10,12 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import AppLayout from '@/layouts/app-layout';
+import { route } from '@/lib/route-helper';
 import type { PaginatedResponse, SharedData, User } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Plus, Search, UserCog } from 'lucide-react';
+import { useState } from 'react';
 
 interface AdminUsersIndexProps extends SharedData {
     users: PaginatedResponse<User>;
@@ -34,7 +34,7 @@ export default function Index() {
         router.get(
             route('admin.users.index'),
             { ...filters, search },
-            { preserveState: true }
+            { preserveState: true },
         );
     };
 
@@ -45,7 +45,7 @@ export default function Index() {
                 ...filters,
                 role: role === 'all' ? undefined : role,
             },
-            { preserveState: true }
+            { preserveState: true },
         );
     };
 
@@ -59,7 +59,10 @@ export default function Index() {
     };
 
     const getRoleBadgeVariant = (role: string) => {
-        const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+        const variants: Record<
+            string,
+            'default' | 'secondary' | 'destructive' | 'outline'
+        > = {
             admin: 'destructive',
             service_provider: 'default',
             client: 'secondary',
@@ -94,7 +97,7 @@ export default function Index() {
                 <div className="flex flex-col gap-4 md:flex-row">
                     <form onSubmit={handleSearch} className="flex flex-1 gap-2">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search by name or email..."
                                 value={search}
@@ -132,7 +135,9 @@ export default function Index() {
                         </Button>
                         <Button
                             variant={
-                                filters.role === 'client' ? 'default' : 'outline'
+                                filters.role === 'client'
+                                    ? 'default'
+                                    : 'outline'
                             }
                             onClick={() => handleRoleFilter('client')}
                         >
@@ -178,7 +183,9 @@ export default function Index() {
                                         <TableCell>
                                             <StatusBadge
                                                 status={getRoleLabel(user.role)}
-                                                variant={getRoleBadgeVariant(user.role)}
+                                                variant={getRoleBadgeVariant(
+                                                    user.role,
+                                                )}
                                             />
                                         </TableCell>
                                         <TableCell>
@@ -194,7 +201,7 @@ export default function Index() {
                                                     <Link
                                                         href={route(
                                                             'admin.users.show',
-                                                            user.id
+                                                            user.id,
                                                         )}
                                                     >
                                                         View
@@ -208,7 +215,7 @@ export default function Index() {
                                                     <Link
                                                         href={route(
                                                             'admin.users.edit',
-                                                            user.id
+                                                            user.id,
                                                         )}
                                                     >
                                                         Edit

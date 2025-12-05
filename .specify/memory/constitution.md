@@ -133,7 +133,6 @@ All database schema changes must use migrations. Foreign keys must enforce refer
 **Requirements**:
 - All authenticated routes must use `auth` middleware
 - Email verification must be enabled for sensitive operations
-- Two-factor authentication must be available to all users
 - Password resets must use Laravel Fortify's secure token system
 - Session configuration must use secure, httpOnly cookies
 

@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Calendar, CalendarCheck, Folder, LayoutGrid, Users } from 'lucide-react';
+import { BookOpen, Calendar, Folder, LayoutGrid, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const getMainNavItems = (userRole: string): NavItem[] => {
@@ -29,18 +29,13 @@ const getMainNavItems = (userRole: string): NavItem[] => {
             icon: Calendar,
         },
         {
-            title: 'My Bookings',
-            href: '/bookings',
+            title: 'Timeslots',
+            href: '/timeslots',
             icon: BookOpen,
         },
     ];
 
     const providerItems: NavItem[] = [
-        {
-            title: 'Schedule',
-            href: '/provider/timeslots',
-            icon: Calendar,
-        },
         {
             title: 'Clients',
             href: '/provider/clients',
