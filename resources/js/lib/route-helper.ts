@@ -14,12 +14,12 @@ export function route(
         // Calendar
         calendar: '/calendar',
 
-        // Booking routes
-        'bookings.index': '/bookings',
-        'bookings.store': '/bookings',
-        'bookings.destroy': '/bookings/:id',
-        'bookings.complete': '/bookings/:id/complete',
-        'bookings.forceDelete': '/bookings/:id/force-delete',
+        // Timeslot routes
+        'timeslots.index': '/timeslots',
+        'timeslots.store': '/timeslots',
+        'timeslots.destroy': '/timeslots/:id',
+        'timeslots.complete': '/timeslots/:id/complete',
+        'timeslots.forceDelete': '/timeslots/:id/force-delete',
 
         // Provider routes
 

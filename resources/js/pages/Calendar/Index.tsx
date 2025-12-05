@@ -81,6 +81,7 @@ export default function Calendar() {
     const createForm = useForm({
         start_time: '',
         duration_minutes: 60,
+        client_id: null as number | null,
     });
 
     const isServiceProvider = auth.user?.role === 'service_provider';
@@ -135,7 +136,7 @@ export default function Calendar() {
 
     const handleBookTimeslot = (timeslotId: number) => {
         router.post(
-            route('bookings.store'),
+            route('timeslots.store'),
             { timeslot_id: timeslotId },
             {
                 onSuccess: () => {
@@ -182,7 +183,7 @@ export default function Calendar() {
             );
         } else {
             // Client: cancel booking
-            router.delete(route('bookings.destroy', selectedTimeslot.id), {
+            router.delete(route('timeslots.destroy', selectedTimeslot.id), {
                 onSuccess: () => {
                     setShowDialog(false);
                     setShowCancelDialog(false);
@@ -211,7 +212,7 @@ export default function Calendar() {
         if (!selectedTimeslot) return;
 
         router.patch(
-            route('bookings.complete', selectedTimeslot.id),
+            route('timeslots.complete', selectedTimeslot.id),
             {},
             {
                 onSuccess: () => {
@@ -730,7 +731,6 @@ export default function Calendar() {
                                                         placeholder="Select a client..."
                                                         searchPlaceholder="Search clients..."
                                                         emptyText="No clients found."
-                                                        disabled={!selectedTimeslot.is_available}
                                                     />
                                                     {selectedTimeslot.is_available ? (
                                                         selectedClientId && (
@@ -1093,6 +1093,58 @@ export default function Calendar() {
                                 </p>
                             )}
                         </div>
+
+                        {/* Client selector for service providers */}
+                        {(isServiceProvider || isAdmin) &&
+                            clients &&
+                            clients.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="client_id">
+                                        Assign to Client (Optional)
+                                    </Label>
+                                    <Select
+                                        value={
+                                            createForm.data.client_id
+                                                ? String(createForm.data.client_id)
+                                                : 'none'
+                                        }
+                                        onValueChange={(value) =>
+                                            createForm.setData(
+                                                'client_id',
+                                                value === 'none'
+                                                    ? null
+                                                    : parseInt(value),
+                                            )
+                                        }
+                                    >
+                                        <SelectTrigger id="client_id">
+                                            <SelectValue placeholder="Leave available" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">
+                                                Leave available
+                                            </SelectItem>
+                                            {clients.map((client) => (
+                                                <SelectItem
+                                                    key={client.id}
+                                                    value={String(client.id)}
+                                                >
+                                                    {client.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Assign this timeslot directly to a client,
+                                        or leave it available for booking
+                                    </p>
+                                    {createForm.errors.client_id && (
+                                        <p className="text-sm text-destructive">
+                                            {createForm.errors.client_id}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                         <div className="flex gap-4">
                             <Button

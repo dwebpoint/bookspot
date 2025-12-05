@@ -54,6 +54,19 @@ class StoreTimeslotRequest extends FormRequest
                 'min:15',
                 'max:480',
             ],
+            'client_id' => [
+                'nullable',
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    if ($value) {
+                        // Verify provider-client relationship
+                        $provider = auth()->user();
+                        if (! $provider->hasClient($value)) {
+                            $fail('You can only assign clients you are linked to.');
+                        }
+                    }
+                },
+            ],
         ];
     }
 

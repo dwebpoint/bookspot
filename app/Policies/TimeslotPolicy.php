@@ -117,7 +117,7 @@ class TimeslotPolicy
     {
         // Provider can force delete their own timeslots (including booked ones)
         // Admin can force delete any timeslot
-        return ($user->id === $timeslot->provider_id && $user->isServiceProvider()) 
+        return ($user->id === $timeslot->provider_id && $user->isServiceProvider())
             || $user->isAdmin();
     }
 
@@ -133,7 +133,7 @@ class TimeslotPolicy
 
         // Provider can complete their own timeslots
         // Admin can complete any timeslot
-        return ($user->id === $timeslot->provider_id && $user->isServiceProvider()) 
+        return ($user->id === $timeslot->provider_id && $user->isServiceProvider())
             || $user->isAdmin();
     }
 }

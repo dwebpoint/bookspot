@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController as AdminUserController;
-use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\Provider\TimeslotController as ProviderTimeslotController;
+use App\Http\Controllers\TimeslotController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -23,25 +23,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Calendar - All authenticated users
     Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
 
-    // Bookings - Client and Provider routes
-    Route::get('bookings', [BookingController::class, 'index'])->name('bookings.index');
+    // Timeslots - All authenticated users can view
+    Route::get('timeslots', [TimeslotController::class, 'index'])->name('timeslots.index');
 
-    // Booking creation - Client and Admin only
+    // Timeslot booking - Client and Admin only
     Route::middleware('role:client,admin')->group(function () {
-        Route::post('bookings', [BookingController::class, 'store'])->name('bookings.store');
+        Route::post('timeslots', [TimeslotController::class, 'store'])->name('timeslots.store');
     });
 
     // Booking cancellation - Client, Provider, or Admin
-    Route::delete('bookings/{timeslot}', [BookingController::class, 'destroy'])->name('bookings.destroy');
+    Route::delete('timeslots/{timeslot}', [TimeslotController::class, 'destroy'])->name('timeslots.destroy');
 
-    // Timeslot deletion from bookings page - Service Provider or Admin only
-    Route::delete('bookings/{timeslot}/force-delete', [BookingController::class, 'forceDelete'])
-        ->name('bookings.forceDelete')
+    // Timeslot deletion - Service Provider or Admin only
+    Route::delete('timeslots/{timeslot}/force-delete', [TimeslotController::class, 'forceDelete'])
+        ->name('timeslots.forceDelete')
         ->middleware('role:service_provider,admin');
 
     // Mark timeslot as completed - Service Provider or Admin only
-    Route::patch('bookings/{timeslot}/complete', [BookingController::class, 'complete'])
-        ->name('bookings.complete')
+    Route::patch('timeslots/{timeslot}/complete', [TimeslotController::class, 'complete'])
+        ->name('timeslots.complete')
         ->middleware('role:service_provider,admin');
 
     // Provider routes

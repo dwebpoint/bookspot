@@ -1,7 +1,23 @@
 # Calendar Client Display & Selection Implementation
 
 ## Summary
-Enhanced the calendar view to display client names for service providers and admins, and added client assignment functionality through an autocomplete selector in the timeslot details dialog.
+Enhanced the calendar view to display client names for service providers and admins, and added comprehensive client management functionality including:
+- Client assignment through autocomplete selector in timeslot details dialog
+- Optional client assignment during timeslot creation
+- Client reassignment for booked timeslots
+
+## Timeslot State Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> available: Created by provider
+    available --> booked: book(clientId)
+    booked --> available: cancel()
+    booked --> completed: complete()
+    completed --> [*]
+```
+
+Timeslots follow a simple state machine where booking assigns a client, cancellation makes them available again, and completion marks the appointment as fulfilled.
 
 ## Changes Made
 
@@ -240,9 +256,107 @@ All components fully typed with TypeScript:
 - [ ] Client names truncate properly on mobile
 - [ ] Keyboard navigation works in combobox
 
+## Recent Enhancements (December 2025)
+
+### Create Timeslot Modal - Client Assignment
+**Feature:** Service providers can now assign clients when creating timeslots
+
+**Implementation:**
+- Added `client_id` field to `createForm` state in Calendar/Index.tsx
+- Added client selector dropdown to Create Timeslot modal
+- Dropdown shows "Leave available" option (default) and list of linked clients
+- Backend validates provider-client relationship via `StoreTimeslotRequest`
+- If client assigned: timeslot created with `status='booked'` and `client_id` set
+- If no client selected: timeslot created with `status='available'`
+
+**UI Components:**
+```tsx
+<Select
+    value={createForm.data.client_id ? String(createForm.data.client_id) : 'none'}
+    onValueChange={(value) =>
+        createForm.setData('client_id', value === 'none' ? null : parseInt(value))
+    }
+>
+    <SelectTrigger id="client_id">
+        <SelectValue placeholder="Leave available" />
+    </SelectTrigger>
+    <SelectContent>
+        <SelectItem value="none">Leave available</SelectItem>
+        {clients.map((client) => (
+            <SelectItem key={client.id} value={String(client.id)}>
+                {client.name}
+            </SelectItem>
+        ))}
+    </SelectContent>
+</Select>
+```
+
+**Backend Changes:**
+1. `app/Http/Requests/StoreTimeslotRequest.php` - Added optional `client_id` validation
+2. `app/Http/Controllers/Provider/TimeslotController.php` - Updated `store()` method to handle client assignment
+
+**User Flow:**
+1. Service provider clicks "+ Create Timeslot" button or clicks on a date
+2. Modal opens with pre-filled date/time and client dropdown
+3. Provider can either:
+   - Leave "Leave available" selected → creates available timeslot
+   - Select a client → creates booked timeslot with client assigned
+4. Form submission creates timeslot with appropriate status and client_id
+
+### Reassign Client Enhancement
+**Feature:** Service providers can now reassign booked timeslots to different clients
+
+**Implementation:**
+- Removed `disabled={!selectedTimeslot.is_available}` prop from Reassign client Combobox
+- Combobox now remains enabled for both available and booked timeslots
+- Allows service providers to change client assignments on already-booked slots
+
+**Before:**
+```tsx
+<Combobox
+    // ... other props
+    disabled={!selectedTimeslot.is_available}  // Disabled for booked slots
+/>
+```
+
+**After:**
+```tsx
+<Combobox
+    // ... other props
+    // No disabled prop - always enabled for providers/admins
+/>
+```
+
+**Benefits:**
+- More flexibility in managing appointments
+- Service providers can correct assignment mistakes
+- Enables quick client swaps without cancelling and rebooking
+
+### Delete Timeslot Authorization Fix
+**Issue:** Service providers received 403 Forbidden errors when deleting their own timeslots from the calendar
+
+**Root Cause:**
+- Calendar page uses `route('provider.timeslots.destroy')` for provider deletion
+- `Provider\TimeslotController::destroy()` was checking `delete` policy
+- `delete` policy only allows deletion of available/cancelled timeslots (blocks booked/completed)
+
+**Solution:**
+- Changed `Provider\TimeslotController::destroy()` to use `forceDelete` authorization
+- Updated from: `$this->authorize('delete', $timeslot)`
+- Updated to: `$this->authorize('forceDelete', $timeslot)`
+
+**Result:**
+- Service providers can now delete their own timeslots regardless of booking status
+- Proper ownership validation still enforced (must own timeslot or be admin)
+- Consistent with provider having full control over their schedule
+
+**File Modified:**
+- `app/Http/Controllers/Provider/TimeslotController.php` (Line 52)
+
 ## Future Enhancements
 - Add "Remove Client" button for booked timeslots
 - Add bulk client assignment
 - Add client details tooltip on hover
 - Add recent clients quick-select
 - Add client profile link from calendar
+- Add client assignment history/audit log

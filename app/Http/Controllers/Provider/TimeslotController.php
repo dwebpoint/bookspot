@@ -20,28 +20,40 @@ class TimeslotController extends Controller
     {
         $this->authorize('create', Timeslot::class);
 
-        Timeslot::create([
+        $data = [
             'provider_id' => auth()->id(),
             'start_time' => $request->start_time,
             'duration_minutes' => $request->duration_minutes,
-            'status' => 'available',
-        ]);
+        ];
 
-        return redirect()->route('calendar')
-            ->with('success', 'Timeslot created successfully!');
+        // If client_id is provided, assign immediately
+        if ($request->filled('client_id')) {
+            $data['client_id'] = $request->client_id;
+            $data['status'] = 'booked';
+        } else {
+            $data['status'] = 'available';
+        }
+
+        Timeslot::create($data);
+
+        $message = $request->filled('client_id')
+            ? 'Timeslot created and assigned to client successfully.'
+            : 'Timeslot created successfully.';
+
+        return back()->with('success', $message);
     }
 
     /**
      * Remove the specified timeslot from storage.
+     * Service providers can delete any of their own timeslots, including booked ones.
      */
     public function destroy(Timeslot $timeslot): RedirectResponse
     {
-        $this->authorize('delete', $timeslot);
+        $this->authorize('forceDelete', $timeslot);
 
         $timeslot->delete();
 
-        return redirect()->route('provider.timeslots.index')
-            ->with('success', 'Timeslot cancelled successfully.');
+        return back()->with('success', 'Timeslot deleted successfully.');
     }
 
     /**

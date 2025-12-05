@@ -29,6 +29,25 @@ Successfully consolidated the Booking model into the Timeslot model, simplifying
 - Dropped the `bookings` table after consolidation
 - Includes reversible `down()` method for rollback safety
 
+## Timeslot State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> available: Created by provider
+    available --> booked: book(clientId)
+    booked --> available: cancel()
+    booked --> completed: complete()
+    completed --> [*]
+```
+
+The consolidated model implements a clear state machine where:
+- New timeslots start as `available`
+- Booking sets `client_id` and status to `booked`
+- Cancellation clears `client_id` and returns to `available`
+- Completion (automated) sets status to `completed`
+
+---
+
 ## Model Changes
 
 ### Updated: `app/Models/Timeslot.php`
@@ -357,7 +376,68 @@ Updated in CLAUDE.md:
 
 ## Follow-Up Changes
 
-After this consolidation, the timeslot management workflow was further improved with modal-based creation. See [004-modal-based-timeslot-creation/IMPLEMENTATION.md](../004-modal-based-timeslot-creation/IMPLEMENTATION.md) for details on:
+After this consolidation, the timeslot management workflow was further improved with several enhancements:
+
+### 004: Modal-Based Timeslot Creation
+See [004-modal-based-timeslot-creation/IMPLEMENTATION.md](../004-modal-based-timeslot-creation/IMPLEMENTATION.md) for details on:
 - Removal of separate `/provider/timeslots` pages
 - Integration of timeslot creation into calendar page via modal dialog
 - Improved user experience with context-aware workflows
+
+### 005: Bookings-to-Timeslots Route Rename (December 2025)
+**Route Refactoring:**
+- Renamed `/bookings` route to `/timeslots` for consistency
+- Updated `BookingController` → `TimeslotController`
+- Updated all `bookings.*` route names to `timeslots.*`
+- Updated React component `Bookings/Index.tsx` → `Timeslots/Index.tsx`
+- Updated navigation sidebar to show "Timeslots" instead of "Bookings"
+
+**Enhanced Views:**
+- **Admin**: Now sees ALL timeslots (all statuses) with pagination (50 per page)
+- **Service Provider**: Sees all their timeslots (including available) with pagination
+- **Client**: Sees only their booked timeslots with pagination
+- Added "Available" tab to status filters for admins and service providers
+- Maintained all existing functionality while improving clarity and consistency
+
+### 006: Timeslot Client Assignment Enhancement (December 2025)
+**Create Timeslot Modal Enhancement:**
+- Added optional client assignment during timeslot creation
+- Service providers can now:
+  - Create timeslot and leave it available (default behavior)
+  - Create timeslot and immediately assign to a client (new feature)
+- Form includes dropdown with linked clients
+- Backend validates provider-client relationship before assignment
+- If client assigned during creation, timeslot is created with `status='booked'` and `client_id` set
+
+**Reassignment Improvement:**
+- Removed disabled state from "Reassign client" Combobox in timeslot details modal
+- Service providers can now reassign already-booked timeslots to different clients
+- Provides more flexibility in managing bookings
+
+**Technical Changes:**
+- Updated `StoreTimeslotRequest` to accept optional `client_id` parameter with validation
+- Updated `Provider\TimeslotController::store()` to handle immediate client assignment
+- Modified `Calendar/Index.tsx` createForm to include `client_id` field
+- Added client selector UI to Create Timeslot modal for service providers/admins
+
+### 007: Provider Timeslot Deletion Authorization Fix (December 2025)
+**Issue:** Service providers received 403 errors when attempting to delete their own timeslots from the calendar page, even though they owned those timeslots.
+
+**Root Cause:**
+- `Provider\TimeslotController::destroy()` was using `$this->authorize('delete', $timeslot)`
+- The `delete` policy method only allows deletion of available or cancelled timeslots
+- This prevented providers from deleting booked or completed timeslots they owned
+
+**Solution:**
+- Changed authorization in `Provider\TimeslotController::destroy()` from `delete` to `forceDelete`
+- The `forceDelete` policy correctly allows:
+  - Service providers to delete their own timeslots regardless of status
+  - Admins to delete any timeslot
+
+**File Changed:**
+- `app/Http/Controllers/Provider/TimeslotController.php` - Line 52: Changed from `authorize('delete')` to `authorize('forceDelete')`
+
+**Impact:**
+- Service providers can now delete their own timeslots from calendar page regardless of booking status
+- Maintains proper authorization checks (must own timeslot or be admin)
+- Aligns with intended behavior where providers have full control over their schedule

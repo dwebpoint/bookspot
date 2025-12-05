@@ -29,8 +29,8 @@ const getMainNavItems = (userRole: string): NavItem[] => {
             icon: Calendar,
         },
         {
-            title: 'Bookings',
-            href: '/bookings',
+            title: 'Timeslots',
+            href: '/timeslots',
             icon: BookOpen,
         },
     ];

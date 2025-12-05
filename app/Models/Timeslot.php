@@ -186,11 +186,11 @@ class Timeslot extends Model
     }
 
     /**
-     * Cancel this timeslot.
+     * Cancel this timeslot's booking.
      */
     public function cancel(): bool
     {
-        return $this->update(['status' => 'cancelled']);
+        return $this->update(['status' => 'available']);
     }
 
     /**
