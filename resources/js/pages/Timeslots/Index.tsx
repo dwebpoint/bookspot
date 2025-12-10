@@ -60,6 +60,7 @@ export default function Index() {
     const [selectedTimeslot, setSelectedTimeslot] = useState<number | null>(
         null,
     );
+    const [isAvailableTimeslotDelete, setIsAvailableTimeslotDelete] = useState(false);
 
     const isProvider = auth.user?.role === 'service_provider';
     const isAdmin = auth.user?.role === 'admin';
@@ -69,8 +70,9 @@ export default function Index() {
         setShowCancelDialog(true);
     };
 
-    const handleDeleteClick = (timeslotId: number) => {
+    const handleDeleteClick = (timeslotId: number, isAvailable: boolean = false) => {
         setSelectedTimeslot(timeslotId);
+        setIsAvailableTimeslotDelete(isAvailable);
         setShowDeleteDialog(true);
     };
 
@@ -95,11 +97,15 @@ export default function Index() {
     const handleDeleteConfirm = () => {
         if (selectedTimeslot) {
             setDeletingId(selectedTimeslot);
-            router.delete(route('timeslots.forceDelete', selectedTimeslot), {
+            const deleteRoute = isAvailableTimeslotDelete
+                ? route('provider.timeslots.destroy', selectedTimeslot)
+                : route('timeslots.forceDelete', selectedTimeslot);
+            router.delete(deleteRoute, {
                 onFinish: () => {
                     setDeletingId(null);
                     setShowDeleteDialog(false);
                     setSelectedTimeslot(null);
+                    setIsAvailableTimeslotDelete(false);
                 },
             });
         }
@@ -314,7 +320,7 @@ export default function Index() {
                                         <TableCell className="font-medium">
                                             {format(
                                                 new Date(timeslot.start_time),
-                                                'PPP',
+                                                'd MMM yyyy',
                                             )}
                                         </TableCell>
                                         <TableCell>
@@ -431,6 +437,7 @@ export default function Index() {
                                                                     onClick={() =>
                                                                         handleDeleteClick(
                                                                             timeslot.id,
+                                                                            false,
                                                                         )
                                                                     }
                                                                     disabled={
@@ -446,6 +453,26 @@ export default function Index() {
                                                                     <Trash2 className="h-4 w-4 text-destructive" />
                                                                 </Button>
                                                             </>
+                                                        )}
+                                                        {timeslot.status ===
+                                                            'available' && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() =>
+                                                                    handleDeleteClick(
+                                                                        timeslot.id,
+                                                                        true,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    deletingId ===
+                                                                    timeslot.id
+                                                                }
+                                                                title="Delete Available Timeslot"
+                                                            >
+                                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                                            </Button>
                                                         )}
                                                     </>
                                                 )}
@@ -532,18 +559,22 @@ export default function Index() {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Timeslot</AlertDialogTitle>
+                        <AlertDialogTitle>
+                            {isAvailableTimeslotDelete
+                                ? 'Delete Available Timeslot'
+                                : 'Delete Booked Timeslot'}
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to permanently delete this
-                            timeslot? This action cannot be undone and will
-                            remove the timeslot entirely.
+                            {isAvailableTimeslotDelete
+                                ? 'Are you sure you want to permanently delete this available timeslot? This action cannot be undone and will remove the timeslot entirely from your schedule.'
+                                : 'Are you sure you want to permanently delete this timeslot? This action cannot be undone and will remove the timeslot entirely, including the client booking.'}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>No, keep it</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDeleteConfirm}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            className="bg-destructive text-white hover:bg-destructive/90"
                         >
                             Yes, delete timeslot
                         </AlertDialogAction>

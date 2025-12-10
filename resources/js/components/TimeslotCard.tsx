@@ -43,7 +43,7 @@ export default function TimeslotCard({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        <span>{format(startTime, 'PPP')}</span>
+                        <span>{format(startTime, 'd MMM yyyy')}</span>
                     </div>
                     {timeslot.is_booked && (
                         <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">

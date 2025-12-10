@@ -205,7 +205,7 @@ export default function Index() {
                                                             ?.created_at ||
                                                             client.created_at,
                                                     ),
-                                                    'MMM d, yyyy',
+                                                    'd MMM yyyy',
                                                 )}
                                             </div>
                                             {client.providers_count &&

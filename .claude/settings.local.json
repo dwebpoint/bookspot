@@ -1,5 +1,5 @@
 {
-  "model": "opus",
+  "model": "sonnet 4.5",
   "permissions": {
     "allow": [
       "Bash(ddev describe:*)",

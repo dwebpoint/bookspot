@@ -16,12 +16,14 @@ class CalendarController extends Controller
     public function index(Request $request): Response
     {
         $providerId = $request->input('provider_id'); // Optional provider filter
+        $weekOffset = (int) $request->input('week', 0); // Week offset from current week
 
         $user = auth()->user();
 
-        // Date range: today to +10 days for all users
-        $startDate = now()->startOfDay();
-        $endDate = now()->addDays(10)->endOfDay();
+        // Date range: single week (Monday to Sunday) based on offset
+        $currentWeekStart = now()->startOfWeek(\Carbon\CarbonInterface::MONDAY);
+        $startDate = $currentWeekStart->copy()->addWeeks($weekOffset);
+        $endDate = $startDate->copy()->endOfWeek(\Carbon\CarbonInterface::SUNDAY)->endOfDay();
 
         // Build query for timeslots
         $query = Timeslot::with(['provider:id,name', 'client:id,name'])
@@ -105,7 +107,7 @@ class CalendarController extends Controller
                 $message = sprintf(
                     'Upcoming appointment with %s on %s at %s',
                     $timeslot->provider->name,
-                    $timeslot->start_time->format('M d, Y'),
+                    $timeslot->start_time->format('d M Y'),
                     $timeslot->start_time->format('g:i A')
                 );
                 session()->flash('info', $message);
@@ -116,6 +118,7 @@ class CalendarController extends Controller
             'timeslots' => $timeslots,
             'startDate' => $startDate->format('Y-m-d'),
             'endDate' => $endDate->format('Y-m-d'),
+            'weekOffset' => $weekOffset,
             'providers' => $providers,
             'selectedProviderId' => $providerId,
             'clients' => $clients,

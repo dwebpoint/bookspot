@@ -9,7 +9,7 @@ export function route(
 ): string {
     const routes: Record<string, string> = {
         // Dashboard
-        dashboard: '/dashboard',
+        dashboard: '/calendar',
 
         // Calendar
         calendar: '/calendar',

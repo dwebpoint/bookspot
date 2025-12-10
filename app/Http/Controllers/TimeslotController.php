@@ -106,7 +106,7 @@ class TimeslotController extends Controller
                 $timeslot->book(auth()->id());
             });
 
-            return redirect()->route('timeslots.index')
+            return redirect()->back()
                 ->with('success', 'Timeslot booked successfully!');
         } catch (\Exception $e) {
             return redirect()->back()
@@ -127,7 +127,7 @@ class TimeslotController extends Controller
         $timeslot->client_id = null;
         $timeslot->save();
 
-        return redirect()->route('timeslots.index')
+        return redirect()->back()
             ->with('success', 'Booking cancelled successfully. Timeslot is now available.');
     }
 
@@ -140,7 +140,7 @@ class TimeslotController extends Controller
 
         $timeslot->delete();
 
-        return redirect()->route('timeslots.index')
+        return redirect()->back()
             ->with('success', 'Timeslot deleted successfully.');
     }
 
@@ -153,7 +153,7 @@ class TimeslotController extends Controller
 
         $timeslot->complete();
 
-        return redirect()->route('timeslots.index')
+        return redirect()->back()
             ->with('success', 'Timeslot marked as completed successfully.');
     }
 }

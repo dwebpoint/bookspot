@@ -126,7 +126,7 @@ export default function Create() {
                                     onChange={(e) =>
                                         setData('phone', e.target.value)
                                     }
-                                    placeholder="+1 (555) 123-4567"
+                                    placeholder="+48 234-234-234"
                                     disabled={processing}
                                     className={
                                         errors.phone ? 'border-destructive' : ''

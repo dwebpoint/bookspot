@@ -11,6 +11,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious,
+} from '@/components/ui/carousel';
 import { Combobox } from '@/components/ui/combobox';
 import {
     Dialog,
@@ -33,7 +40,14 @@ import { route } from '@/lib/route-helper';
 import type { SharedData, Timeslot } from '@/types';
 import type { Client, Provider } from '@/types/client';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { eachDayOfInterval, format, isPast, isToday } from 'date-fns';
+import {
+    addWeeks,
+    eachDayOfInterval,
+    format,
+    getWeek,
+    isPast,
+    isToday,
+} from 'date-fns';
 import {
     Calendar as CalendarIcon,
     CheckCircle,
@@ -49,6 +63,7 @@ interface CalendarPageProps extends SharedData {
     timeslots: Timeslot[];
     startDate: string; // YYYY-MM-DD format
     endDate: string; // YYYY-MM-DD format
+    weekOffset: number; // Week offset from current week
     providers: Provider[];
     selectedProviderId?: number;
     clients: Client[];
@@ -59,12 +74,14 @@ export default function Calendar() {
         timeslots,
         startDate,
         endDate,
+        weekOffset,
         providers,
         selectedProviderId,
         clients,
         auth,
     } = usePage<CalendarPageProps>().props;
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [isNavigating, setIsNavigating] = useState(false);
     const [showDialog, setShowDialog] = useState(false);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(
@@ -108,8 +125,27 @@ export default function Calendar() {
         {} as Record<string, Timeslot[]>,
     );
 
+    const handleWeekNavigation = (direction: 'prev' | 'next') => {
+        const newOffset = direction === 'prev' ? weekOffset - 1 : weekOffset + 1;
+        setIsNavigating(true);
+
+        const params: Record<string, string> = {
+            week: String(newOffset),
+        };
+        if (selectedProviderId) {
+            params.provider_id = String(selectedProviderId);
+        }
+
+        router.get(route('calendar'), params, {
+            preserveState: true,
+            onFinish: () => setIsNavigating(false),
+        });
+    };
+
     const handleProviderFilter = (value: string) => {
-        const params: Record<string, string> = {};
+        const params: Record<string, string> = {
+            week: String(weekOffset),
+        };
         if (value !== 'all') params.provider_id = value;
         router.get(route('calendar'), params, { preserveState: true });
     };
@@ -266,18 +302,21 @@ export default function Calendar() {
                     </div>
                 </div>
 
-                {/* Calendar Header */}
+                {/* Calendar Header with Week Navigation */}
                 <Card>
                     <CardContent className="p-4">
                         <div className="mb-6 flex items-center justify-between">
-                            <div>
-                                <h2 className="text-2xl font-semibold">
-                                    {format(rangeStart, 'MMM d')} -{' '}
-                                    {format(rangeEnd, 'MMM d, yyyy')}
-                                </h2>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    11-day view (Today to +10 days)
-                                </p>
+                            <div className="flex items-center gap-4">
+                                <div>
+                                    <h2 className="text-2xl font-semibold">
+                                        {format(rangeStart, 'd MMM')} -{' '}
+                                        {format(rangeEnd, 'd MMM yyyy')}
+                                    </h2>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Week {getWeek(rangeStart)}
+                                        {weekOffset === 0 && ' (Current week)'}
+                                    </p>
+                                </div>
                             </div>
                             {showProviderFilter && (
                                 <Select
@@ -308,8 +347,11 @@ export default function Calendar() {
                             )}
                         </div>
 
-                        {/* Calendar Grid */}
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        {/* Carousel Week Navigation */}
+                        <Carousel className="w-full">
+                            <CarouselContent>
+                                <CarouselItem>
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                             {calendarDays.map((day) => {
                                 const dateKey = format(day, 'yyyy-MM-dd');
                                 const dayTimeslots =
@@ -321,7 +363,7 @@ export default function Calendar() {
                                 return (
                                     <Card
                                         key={day.toISOString()}
-                                        className={` ${isDayToday ? 'ring-2 ring-primary' : ''} ${isDayPast ? 'opacity-60' : ''} `}
+                                        className={` ${isDayPast ? 'opacity-60' : ''} `}
                                     >
                                         <CardContent className="p-4">
                                             <div className="mb-3">
@@ -329,15 +371,10 @@ export default function Calendar() {
                                                     <div className="text-lg font-semibold">
                                                         {format(
                                                             day,
-                                                            'EEE, MMM d',
+                                                            'EEE, d MMM',
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        {isDayToday && (
-                                                            <span className="text-xs font-medium text-primary">
-                                                                Today
-                                                            </span>
-                                                        )}
                                                         {isServiceProvider &&
                                                             !isDayPast && (
                                                                 <Button
@@ -606,6 +643,17 @@ export default function Calendar() {
                                 );
                             })}
                         </div>
+                                </CarouselItem>
+                            </CarouselContent>
+                            <CarouselPrevious
+                                onClick={() => handleWeekNavigation('prev')}
+                                disabled={isNavigating}
+                            />
+                            <CarouselNext
+                                onClick={() => handleWeekNavigation('next')}
+                                disabled={isNavigating}
+                            />
+                        </Carousel>
                     </CardContent>
                 </Card>
 
@@ -636,7 +684,7 @@ export default function Calendar() {
                     <DialogHeader>
                         <DialogTitle>
                             {selectedDate &&
-                                format(selectedDate, 'EEEE, MMMM d, yyyy')}
+                                format(selectedDate, 'EEEE, d MMMM yyyy')}
                         </DialogTitle>
                         <DialogDescription>
                             {selectedTimeslot
@@ -769,7 +817,7 @@ export default function Calendar() {
 
                                         {/* Action buttons for service providers/admins */}
                                         {canSeeClientNames &&
-                                            !selectedTimeslot.is_available && (
+                                            selectedTimeslot.is_booked && (
                                                 <div className="space-y-2 border-t pt-3">
                                                     <Button
                                                         variant="outline"
@@ -783,32 +831,18 @@ export default function Calendar() {
                                                         <CheckCircle className="mr-2 h-4 w-4" />
                                                         Mark as Completed
                                                     </Button>
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() =>
-                                                                setShowCancelDialog(
-                                                                    true,
-                                                                )
-                                                            }
-                                                            className="flex-1"
-                                                        >
-                                                            <X className="mr-2 h-4 w-4" />
-                                                            Cancel Booking
-                                                        </Button>
-                                                        <Button
-                                                            variant="destructive"
-                                                            onClick={() =>
-                                                                setShowDeleteDialog(
-                                                                    true,
-                                                                )
-                                                            }
-                                                            className="flex-1"
-                                                        >
-                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                            Delete Timeslot
-                                                        </Button>
-                                                    </div>
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            setShowCancelDialog(
+                                                                true,
+                                                            )
+                                                        }
+                                                        className="w-full"
+                                                    >
+                                                        <X className="mr-2 h-4 w-4" />
+                                                        Cancel Booking
+                                                    </Button>
                                                 </div>
                                             )}
 
@@ -980,18 +1014,18 @@ export default function Calendar() {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Timeslot</AlertDialogTitle>
+                        <AlertDialogTitle>Delete Available Timeslot</AlertDialogTitle>
                         <AlertDialogDescription>
                             Are you sure you want to permanently delete this
-                            timeslot? This action cannot be undone and will
-                            remove the timeslot entirely.
+                            available timeslot? This action cannot be undone and will
+                            remove the timeslot entirely from your schedule.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>No, keep it</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDeleteTimeslot}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            className="bg-destructive text-white hover:bg-destructive/90"
                         >
                             Yes, delete timeslot
                         </AlertDialogAction>

@@ -45,11 +45,12 @@ class TimeslotController extends Controller
 
     /**
      * Remove the specified timeslot from storage.
-     * Service providers can delete any of their own timeslots, including booked ones.
+     * Service providers can only delete available or cancelled timeslots.
+     * For deleting booked timeslots, use the forceDelete route.
      */
     public function destroy(Timeslot $timeslot): RedirectResponse
     {
-        $this->authorize('forceDelete', $timeslot);
+        $this->authorize('delete', $timeslot);
 
         $timeslot->delete();
 

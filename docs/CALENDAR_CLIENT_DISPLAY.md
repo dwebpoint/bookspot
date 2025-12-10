@@ -332,26 +332,103 @@ All components fully typed with TypeScript:
 - Service providers can correct assignment mistakes
 - Enables quick client swaps without cancelling and rebooking
 
-### Delete Timeslot Authorization Fix
-**Issue:** Service providers received 403 Forbidden errors when deleting their own timeslots from the calendar
+### Delete Timeslot Authorization Enhancement (December 2025)
+**Issue:** Need to provide different deletion capabilities based on page context and timeslot status
 
-**Root Cause:**
-- Calendar page uses `route('provider.timeslots.destroy')` for provider deletion
-- `Provider\TimeslotController::destroy()` was checking `delete` policy
-- `delete` policy only allows deletion of available/cancelled timeslots (blocks booked/completed)
+**Previous Behavior:**
+- Calendar page used `route('provider.timeslots.destroy')` for provider deletion
+- `Provider\TimeslotController::destroy()` used `forceDelete` authorization
+- This allowed deletion of booked timeslots from calendar (unintended)
 
-**Solution:**
-- Changed `Provider\TimeslotController::destroy()` to use `forceDelete` authorization
-- Updated from: `$this->authorize('delete', $timeslot)`
-- Updated to: `$this->authorize('forceDelete', $timeslot)`
+**New Implementation:**
+
+#### Calendar Page (`/calendar`)
+- **Available timeslots**: Show delete button with trash icon
+- **Booked timeslots**: Hide delete button, show "Cancel Booking" and "Mark as Completed" instead
+- Uses `provider.timeslots.destroy` route with `delete` policy
+- Policy restricts deletion to available or cancelled timeslots only
+
+**Controller Change:**
+```php
+// Provider\TimeslotController::destroy()
+public function destroy(Timeslot $timeslot): RedirectResponse
+{
+    $this->authorize('delete', $timeslot);  // Changed from 'forceDelete'
+    $timeslot->delete();
+    return back()->with('success', 'Timeslot deleted successfully.');
+}
+```
+
+#### Timeslots Page (`/timeslots`)
+- **Available timeslots**: Show delete button with trash icon
+- **Booked timeslots**: Show delete button (force delete)
+- Available uses `provider.timeslots.destroy` route with `delete` policy
+- Booked uses `timeslots.forceDelete` route with `forceDelete` policy
+- Confirmation dialog adapts message based on timeslot status
+
+**Frontend Implementation:**
+```tsx
+// Calendar/Index.tsx - Available timeslots only
+{canSeeClientNames && selectedTimeslot.is_available && (
+    <Button
+        variant="outline"
+        onClick={() => setShowDeleteDialog(true)}
+        className="w-full text-destructive hover:text-destructive"
+    >
+        <Trash2 className="mr-2 h-4 w-4" />
+        Delete Timeslot
+    </Button>
+)}
+
+// Timeslots/Index.tsx - Both available and booked
+const handleDeleteClick = (timeslotId: number, isAvailable: boolean = false) => {
+    setSelectedTimeslot(timeslotId);
+    setIsAvailableTimeslotDelete(isAvailable);
+    setShowDeleteDialog(true);
+};
+
+const handleDeleteConfirm = () => {
+    const deleteRoute = isAvailableTimeslotDelete
+        ? route('provider.timeslots.destroy', selectedTimeslot)  // Regular delete
+        : route('timeslots.forceDelete', selectedTimeslot);       // Force delete
+    router.delete(deleteRoute, { /* ... */ });
+};
+```
+
+**Policy Authorization:**
+```php
+// TimeslotPolicy::delete() - Available/cancelled only
+public function delete(User $user, Timeslot $timeslot): bool
+{
+    // Only allow deletion of available or cancelled timeslots
+    if ($timeslot->is_booked || $timeslot->is_completed) {
+        return false;
+    }
+    return ($user->can('delete timeslots') && $user->id === $timeslot->provider_id) 
+        || $user->isAdmin();
+}
+
+// TimeslotPolicy::forceDelete() - Any status
+public function forceDelete(User $user, Timeslot $timeslot): bool
+{
+    // Provider can force delete their own timeslots (including booked ones)
+    // Admin can force delete any timeslot
+    return ($user->id === $timeslot->provider_id && $user->isServiceProvider())
+        || $user->isAdmin();
+}
+```
 
 **Result:**
-- Service providers can now delete their own timeslots regardless of booking status
-- Proper ownership validation still enforced (must own timeslot or be admin)
-- Consistent with provider having full control over their schedule
+- **Calendar page**: Clean UX - providers can only delete unbooked slots, use "Cancel Booking" for booked ones
+- **Timeslots page**: Full control - providers can delete any of their timeslots
+- **Authorization**: Proper enforcement through separate policies
+- **User experience**: Contextual actions based on page and timeslot status
 
-**File Modified:**
-- `app/Http/Controllers/Provider/TimeslotController.php` (Line 52)
+**Files Modified:**
+1. `app/Http/Controllers/Provider/TimeslotController.php` - Changed authorization from `forceDelete` to `delete`
+2. `resources/js/pages/Calendar/Index.tsx` - Removed delete button for booked timeslots
+3. `resources/js/pages/Timeslots/Index.tsx` - Added conditional routing based on timeslot status
+4. `app/Policies/TimeslotPolicy.php` - No changes (already had proper logic)
 
 ## Future Enhancements
 - Add "Remove Client" button for booked timeslots

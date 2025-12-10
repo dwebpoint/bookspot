@@ -277,7 +277,7 @@ $table->foreignId('client_id')
 **Frontend**: Use `date-fns` or `Intl.DateTimeFormat` for consistent formatting
 ```typescript
 import { format } from 'date-fns';
-format(new Date(timeslot.start_time), 'PPp'); // "Apr 29, 2025, 9:00 AM"
+format(new Date(timeslot.start_time), 'd MMM yyyy, p'); // "29 Apr 2025, 9:00 AM"
 ```
 
 ### Performance Considerations

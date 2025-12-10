@@ -265,9 +265,8 @@ $endTime = $timeslot->end_time; // Carbon instance
 The application sidebar (`app-sidebar.tsx`) provides role-based navigation:
 
 *Common (All Users):*
-- Dashboard
 - Calendar
-- Bookings
+- Timeslots
 
 *Service Provider Only:*
 - Clients (manage linked clients)
