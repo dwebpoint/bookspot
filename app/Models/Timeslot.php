@@ -159,7 +159,7 @@ class Timeslot extends Model
     }
 
     /**
-     * Check if the timeslot is cancelled.
+     * Check if the timeslot is canceled.
      */
     public function getIsCancelledAttribute(): bool
     {

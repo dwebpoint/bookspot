@@ -93,7 +93,7 @@ The application uses **Spatie Laravel Permission** for granular RBAC with three 
 
 **Roles:**
 - `admin` - Full system access (superuser)
-- `service_provider` - Manage own timeslots, own clients, and bookings
+- `service_provider` - Manage own timeslots, own clients
 - `client` - Book timeslots, view, cancel own bookings
 
 **Key Patterns:**
