@@ -74,7 +74,7 @@ public function index(Request $request): Response
         });
     }
 
-    $users = $query->withCount(['timeslots', 'bookings'])
+    $users = $query->withCount(['timeslots'])
         ->orderBy('created_at', 'desc')
         ->paginate(20);
 

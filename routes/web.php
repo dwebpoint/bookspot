@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('provider')->name('provider.')->middleware('role:service_provider,admin')->group(function () {
         // Timeslots
         Route::post('timeslots', [ProviderTimeslotController::class, 'store'])->name('timeslots.store');
+        Route::patch('timeslots/{timeslot}', [ProviderTimeslotController::class, 'update'])->name('timeslots.update');
         Route::delete('timeslots/{timeslot}', [ProviderTimeslotController::class, 'destroy'])->name('timeslots.destroy');
         Route::post('timeslots/{timeslot}/assign', [ProviderTimeslotController::class, 'assignClient'])->name('timeslots.assign');
         Route::delete('timeslots/{timeslot}/remove', [ProviderTimeslotController::class, 'removeClient'])->name('timeslots.remove');

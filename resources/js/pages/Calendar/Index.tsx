@@ -41,7 +41,6 @@ import type { SharedData, Timeslot } from '@/types';
 import type { Client, Provider } from '@/types/client';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
-    addWeeks,
     eachDayOfInterval,
     format,
     getWeek,
@@ -52,6 +51,7 @@ import {
     Calendar as CalendarIcon,
     CheckCircle,
     Clock,
+    Edit2,
     Plus,
     Trash2,
     User as UserIcon,
@@ -94,6 +94,9 @@ export default function Calendar() {
     const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+    const [isEditingDuration, setIsEditingDuration] = useState(false);
+    const [editDuration, setEditDuration] = useState<number>(60);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     const createForm = useForm({
         start_time: '',
@@ -260,10 +263,30 @@ export default function Calendar() {
         );
     };
 
+    const handleUpdateDuration = () => {
+        if (!selectedTimeslot) return;
+
+        setIsUpdating(true);
+        router.patch(
+            route('provider.timeslots.update', selectedTimeslot.id),
+            { duration_minutes: editDuration },
+            {
+                onSuccess: () => {
+                    setIsEditingDuration(false);
+                },
+                onFinish: () => {
+                    setIsUpdating(false);
+                },
+            },
+        );
+    };
+
     const handleTimeslotClick = (timeslot: Timeslot, date: Date) => {
         setSelectedTimeslot(timeslot);
         setSelectedDate(date);
         setSelectedClientId(timeslot.client?.id || null);
+        setEditDuration(timeslot.duration_minutes);
+        setIsEditingDuration(false);
         setShowDialog(true);
     };
 
@@ -274,6 +297,7 @@ export default function Calendar() {
             setSelectedTimeslot(null);
             setSelectedDate(null);
             setSelectedClientId(null);
+            setIsEditingDuration(false);
         }
     };
 
@@ -363,7 +387,7 @@ export default function Calendar() {
                                 return (
                                     <Card
                                         key={day.toISOString()}
-                                        className={` ${isDayPast ? 'opacity-60' : ''} `}
+                                        className={isDayPast ? 'opacity-60' : ''}
                                     >
                                         <CardContent className="p-4">
                                             <div className="mb-3">
@@ -546,7 +570,9 @@ export default function Calendar() {
                                                                     className={`w-full rounded-lg border p-3 text-left transition-colors ${
                                                                         timeslot.is_available
                                                                             ? 'border-green-200 bg-green-50 hover:bg-green-100'
-                                                                            : 'border-blue-200 bg-blue-50 hover:bg-blue-100'
+                                                                            : timeslot.is_completed
+                                                                              ? 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                                                                              : 'border-blue-200 bg-blue-50 hover:bg-blue-100'
                                                                     } `}
                                                                 >
                                                                     <div className="flex items-start justify-between gap-2">
@@ -599,12 +625,16 @@ export default function Calendar() {
                                                                             className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                                                                                 timeslot.is_available
                                                                                     ? 'bg-green-100 text-green-700'
-                                                                                    : 'bg-blue-100 text-blue-700'
+                                                                                    : timeslot.is_completed
+                                                                                      ? 'bg-gray-100 text-gray-700'
+                                                                                      : 'bg-blue-100 text-blue-700'
                                                                             } `}
                                                                         >
                                                                             {timeslot.is_available
                                                                                 ? 'Open'
-                                                                                : 'Booked'}
+                                                                                : timeslot.is_completed
+                                                                                  ? 'Completed'
+                                                                                  : 'Booked'}
                                                                         </span>
                                                                     </div>
                                                                 </button>
@@ -675,6 +705,12 @@ export default function Calendar() {
                             <span>Booked</span>
                         </div>
                     )}
+                    {!isClient && (
+                        <div className="flex items-center gap-2">
+                            <div className="h-4 w-4 rounded border border-gray-200 bg-gray-100" />
+                            <span>Completed</span>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -721,21 +757,127 @@ export default function Calendar() {
                                                         className={`rounded-full px-2 py-1 text-xs font-medium ${
                                                             selectedTimeslot.is_available
                                                                 ? 'bg-green-100 text-green-700'
-                                                                : 'bg-blue-100 text-blue-700'
+                                                                : selectedTimeslot.is_completed
+                                                                  ? 'bg-gray-100 text-gray-700'
+                                                                  : 'bg-blue-100 text-blue-700'
                                                         } `}
                                                     >
                                                         {selectedTimeslot.is_available
                                                             ? 'Available'
-                                                            : 'Booked'}
+                                                            : selectedTimeslot.is_completed
+                                                              ? 'Completed'
+                                                              : 'Booked'}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Duration:{' '}
-                                                    {
-                                                        selectedTimeslot.duration_minutes
-                                                    }{' '}
-                                                    minutes
-                                                </p>
+                                                <div className="text-sm text-muted-foreground">
+                                                    <div className="flex items-center gap-2">
+                                                        <span>Duration:</span>
+                                                        {canSeeClientNames &&
+                                                        selectedTimeslot.is_available ? (
+                                                            isEditingDuration ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Select
+                                                                        value={editDuration.toString()}
+                                                                        onValueChange={(
+                                                                            value,
+                                                                        ) =>
+                                                                            setEditDuration(
+                                                                                parseInt(
+                                                                                    value,
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <SelectTrigger className="h-8 w-32">
+                                                                            <SelectValue placeholder="Select duration" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="15">
+                                                                                15 minutes
+                                                                            </SelectItem>
+                                                                            <SelectItem value="30">
+                                                                                30 minutes
+                                                                            </SelectItem>
+                                                                            <SelectItem value="45">
+                                                                                45 minutes
+                                                                            </SelectItem>
+                                                                            <SelectItem value="60">
+                                                                                1 hour
+                                                                            </SelectItem>
+                                                                            <SelectItem value="90">
+                                                                                1.5 hours
+                                                                            </SelectItem>
+                                                                            <SelectItem value="120">
+                                                                                2 hours
+                                                                            </SelectItem>
+                                                                            <SelectItem value="180">
+                                                                                3 hours
+                                                                            </SelectItem>
+                                                                            <SelectItem value="240">
+                                                                                4 hours
+                                                                            </SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={
+                                                                            handleUpdateDuration
+                                                                        }
+                                                                        disabled={
+                                                                            isUpdating
+                                                                        }
+                                                                    >
+                                                                        {isUpdating
+                                                                            ? 'Saving...'
+                                                                            : 'Save'}
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={() => {
+                                                                            setIsEditingDuration(
+                                                                                false,
+                                                                            );
+                                                                            setEditDuration(
+                                                                                selectedTimeslot.duration_minutes,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        Cancel
+                                                                    </Button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span>
+                                                                        {
+                                                                            selectedTimeslot.duration_minutes
+                                                                        }{' '}
+                                                                        minutes
+                                                                    </span>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="h-6 w-6 p-0"
+                                                                        onClick={() =>
+                                                                            setIsEditingDuration(
+                                                                                true,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Edit2 className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            )
+                                                        ) : (
+                                                            <span>
+                                                                {
+                                                                    selectedTimeslot.duration_minutes
+                                                                }{' '}
+                                                                minutes
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                                 {selectedTimeslot.provider && (
                                                     <p className="text-sm text-muted-foreground">
                                                         Provider:{' '}
@@ -930,12 +1072,16 @@ export default function Calendar() {
                                                         className={`rounded-full px-2 py-1 text-xs font-medium ${
                                                             timeslot.is_available
                                                                 ? 'bg-green-100 text-green-700'
-                                                                : 'bg-blue-100 text-blue-700'
+                                                                : timeslot.is_completed
+                                                                  ? 'bg-gray-100 text-gray-700'
+                                                                  : 'bg-blue-100 text-blue-700'
                                                         } `}
                                                     >
                                                         {timeslot.is_available
                                                             ? 'Available'
-                                                            : 'Booked'}
+                                                            : timeslot.is_completed
+                                                              ? 'Completed'
+                                                              : 'Booked'}
                                                     </span>
                                                 </div>
                                                 <p className="text-sm text-muted-foreground">
@@ -1111,14 +1257,12 @@ export default function Calendar() {
                                     <SelectValue placeholder="Select duration" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="15">15 minutes</SelectItem>
                                     <SelectItem value="30">30 minutes</SelectItem>
                                     <SelectItem value="45">45 minutes</SelectItem>
                                     <SelectItem value="60">1 hour</SelectItem>
                                     <SelectItem value="90">1.5 hours</SelectItem>
                                     <SelectItem value="120">2 hours</SelectItem>
                                     <SelectItem value="180">3 hours</SelectItem>
-                                    <SelectItem value="240">4 hours</SelectItem>
                                 </SelectContent>
                             </Select>
                             {createForm.errors.duration_minutes && (

@@ -2,9 +2,9 @@
 
 **Project**: Bookspot  
 **Created**: 2025-11-22  
-**Last Updated**: 2025-12-09
+**Last Updated**: 2025-12-10
 **Status**: Active
-**Version**: 2.2.0
+**Version**: 2.3.0
 
 **Consolidated From**:
 - 001-timeslot-booking (Core booking system)
@@ -15,6 +15,7 @@
 - 006-timeslot-client-assignment (Enhanced creation workflow)
 - 007-provider-delete-authorization-fix (Bug fix for calendar deletion)
 - 008-available-timeslot-deletion (Enhanced deletion for available timeslots)
+- 009-timeslot-duration-editing (Edit duration for available timeslots from calendar)
 
 ---
 
@@ -85,7 +86,7 @@ A service provider can view all clients they have created or are linked to.
 
 #### US-5: Service Provider Manages Bookings
 
-A service provider can manually add clients to timeslots, reassign clients, cancel timeslots, remove client bookings, and delete available timeslots.
+A service provider can manually add clients to timeslots, reassign clients, cancel timeslots, remove client bookings, delete available timeslots, and edit timeslot durations.
 
 **Acceptance Scenarios**:
 1. **Given** a service provider views an available timeslot, **When** they manually assign a client to that slot, **Then** the slot is marked as booked for that client
@@ -94,6 +95,9 @@ A service provider can manually add clients to timeslots, reassign clients, canc
 4. **Given** a service provider views an available timeslot on the calendar, **When** they click delete, **Then** the available timeslot is permanently removed from their schedule
 5. **Given** a service provider views an available timeslot on the timeslots page, **When** they click delete, **Then** the available timeslot is permanently removed from their schedule
 6. **Given** a service provider views a booked timeslot, **When** they click delete on the timeslots page, **Then** the timeslot is permanently removed including the client booking
+7. **Given** a service provider views an available timeslot in the calendar details modal, **When** they click the edit icon next to duration and select a new duration, **Then** the timeslot duration is updated if it doesn't create overlaps
+8. **Given** a service provider attempts to edit an available timeslot's duration, **When** the new duration would overlap with another timeslot, **Then** the system prevents the update and shows a validation error
+9. **Given** a service provider views a booked timeslot, **When** they try to edit the duration, **Then** the edit option is not available (duration is read-only for booked slots)
 
 ---
 
@@ -191,54 +195,57 @@ An admin can perform any service provider action on behalf of any provider.
 - **FR-013**: System MUST prevent overlapping timeslots for the same provider
 - **FR-014**: System MUST prevent timeslots in the past
 - **FR-015**: System MUST validate provider-client relationships during timeslot assignment
+- **FR-016**: ServiceProviders MUST be able to edit the duration of available timeslots from the calendar details modal
+- **FR-017**: System MUST prevent editing duration of booked, cancelled, or completed timeslots
+- **FR-018**: System MUST validate that duration changes do not create overlaps with existing timeslots
 
 ### Booking Management
-- **FR-016**: Clients MUST see timeslots only from their linked service providers
-- **FR-017**: Clients MUST be able to book an available timeslot from the calendar
-- **FR-018**: Clients MUST be able to view their own booked timeslots on /timeslots page
-- **FR-019**: Clients MUST be able to cancel their own bookings
-- **FR-020**: System MUST prevent double-booking (atomic operations with locking)
-- **FR-021**: System MUST prevent clients from booking overlapping timeslots
+- **FR-019**: Clients MUST see timeslots only from their linked service providers
+- **FR-020**: Clients MUST be able to book an available timeslot from the calendar
+- **FR-021**: Clients MUST be able to view their own booked timeslots on /timeslots page
+- **FR-022**: Clients MUST be able to cancel their own bookings
+- **FR-023**: System MUST prevent double-booking (atomic operations with locking)
+- **FR-024**: System MUST prevent clients from booking overlapping timeslots
 
 ### Client-Provider Relationships
-- **FR-022**: ServiceProviders MUST be able to create new client accounts with name, email, and optional phone
-- **FR-023**: System MUST automatically establish provider-client relationship when a provider creates a client
-- **FR-024**: System MUST allow a client to be linked to multiple providers
-- **FR-025**: System MUST prevent duplicate client accounts (email is unique identifier)
-- **FR-026**: ServiceProviders MUST be able to view their linked clients list
-- **FR-027**: System MUST send email notifications to newly created clients with credentials
-- **FR-028**: Clients MUST be able to view which providers they are linked to
-- **FR-029**: ServiceProviders MUST be able to remove a client relationship (with cascade to future bookings)
+- **FR-025**: ServiceProviders MUST be able to create new client accounts with name, email, and optional phone
+- **FR-026**: System MUST automatically establish provider-client relationship when a provider creates a client
+- **FR-027**: System MUST allow a client to be linked to multiple providers
+- **FR-028**: System MUST prevent duplicate client accounts (email is unique identifier)
+- **FR-029**: ServiceProviders MUST be able to view their linked clients list
+- **FR-030**: System MUST send email notifications to newly created clients with credentials
+- **FR-031**: Clients MUST be able to view which providers they are linked to
+- **FR-032**: ServiceProviders MUST be able to remove a client relationship (with cascade to future bookings)
 
 ### User Management (Admin)
-- **FR-030**: Admins MUST be able to create new user accounts with assigned roles
-- **FR-031**: Admins MUST be able to view a list of all users with their roles
-- **FR-032**: Admins MUST be able to update user roles
-- **FR-033**: Admins MUST be able to delete user accounts (with safeguards)
-- **FR-034**: Admins MUST be able to view all timeslots from all providers on /timeslots page
-- **FR-035**: Admins MUST be able to act on behalf of any ServiceProvider
+- **FR-033**: Admins MUST be able to create new user accounts with assigned roles
+- **FR-034**: Admins MUST be able to view a list of all users with their roles
+- **FR-035**: Admins MUST be able to update user roles
+- **FR-036**: Admins MUST be able to delete user accounts (with safeguards)
+- **FR-037**: Admins MUST be able to view all timeslots from all providers on /timeslots page
+- **FR-038**: Admins MUST be able to act on behalf of any ServiceProvider
 
 ### Data Integrity
-- **FR-036**: System MUST ensure atomic booking operations (no race conditions)
-- **FR-037**: System MUST maintain referential integrity between users, timeslots, and relationships
-- **FR-038**: System MUST prevent deletion of accounts with future active bookings
-- **FR-039**: System MUST log all booking and relationship changes with timestamps
+- **FR-039**: System MUST ensure atomic booking operations (no race conditions)
+- **FR-040**: System MUST maintain referential integrity between users, timeslots, and relationships
+- **FR-041**: System MUST prevent deletion of accounts with future active bookings
+- **FR-042**: System MUST log all booking and relationship changes with timestamps
 
 ### Automated Processes
-- **FR-040**: System MUST automatically mark timeslots as 'completed' after their end time (hourly task)
-- **FR-041**: Clients MUST see only future timeslots in the calendar view
-- **FR-042**: Clients MUST receive flash notifications for confirmed bookings within 3 days
+- **FR-043**: System MUST automatically mark timeslots as 'completed' after their end time (hourly task)
+- **FR-044**: Clients MUST see only future timeslots in the calendar view
+- **FR-045**: Clients MUST receive flash notifications for confirmed bookings within 3 days
 
 ### Timeslots Page
-- **FR-043**: All authenticated users MUST be able to view /timeslots page with role-based filtering
-- **FR-044**: Admins MUST see all timeslots (all statuses) with pagination (50 per page)
-- **FR-045**: ServiceProviders MUST see all their timeslots (all statuses) with pagination (50 per page)
-- **FR-046**: Clients MUST see only their booked timeslots with pagination (50 per page)
-- **FR-047**: All users MUST be able to filter timeslots by status (all, available, booked, cancelled, completed)
-- **FR-048**: All users MUST be able to filter timeslots by date
-- **FR-049**: ServiceProviders MUST be able to filter timeslots by client
-- **FR-050**: ServiceProviders MUST be able to delete available timeslots from the timeslots page
-- **FR-051**: ServiceProviders MUST be able to delete booked timeslots from the timeslots page (force delete)
+- **FR-046**: All authenticated users MUST be able to view /timeslots page with role-based filtering
+- **FR-047**: Admins MUST see all timeslots (all statuses) with pagination (50 per page)
+- **FR-048**: ServiceProviders MUST see all their timeslots (all statuses) with pagination (50 per page)
+- **FR-049**: Clients MUST see only their booked timeslots with pagination (50 per page)
+- **FR-050**: All users MUST be able to filter timeslots by status (all, available, booked, cancelled, completed)
+- **FR-051**: All users MUST be able to filter timeslots by date
+- **FR-052**: ServiceProviders MUST be able to filter timeslots by client
+- **FR-053**: ServiceProviders MUST be able to delete available timeslots from the timeslots page
+- **FR-054**: ServiceProviders MUST be able to delete booked timeslots from the timeslots page (force delete)
 
 ---
 

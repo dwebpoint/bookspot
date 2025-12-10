@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Provider;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Provider\AssignClientRequest;
 use App\Http\Requests\StoreTimeslotRequest;
+use App\Http\Requests\UpdateTimeslotRequest;
 use App\Models\Timeslot;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -41,6 +42,24 @@ class TimeslotController extends Controller
             : 'Timeslot created successfully.';
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Update the specified timeslot in storage.
+     */
+    public function update(UpdateTimeslotRequest $request, Timeslot $timeslot): RedirectResponse
+    {
+        $this->authorize('update', $timeslot);
+
+        // Only allow update if timeslot is in 'available' state
+        if (! $timeslot->is_available) {
+            return back()->with('error', 'Only available timeslots can be updated.');
+        }
+        $timeslot->update([
+            'duration_minutes' => $request->duration_minutes,
+        ]);
+
+        return back()->with('success', 'Timeslot updated successfully.');
     }
 
     /**

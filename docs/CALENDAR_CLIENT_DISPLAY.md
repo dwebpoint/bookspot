@@ -5,6 +5,7 @@ Enhanced the calendar view to display client names for service providers and adm
 - Client assignment through autocomplete selector in timeslot details dialog
 - Optional client assignment during timeslot creation
 - Client reassignment for booked timeslots
+- **Duration editing for available timeslots** (Added 2025-12-10)
 
 ## Timeslot State Diagram
 
@@ -12,12 +13,13 @@ Enhanced the calendar view to display client names for service providers and adm
 stateDiagram-v2
     [*] --> available: Created by provider
     available --> booked: book(clientId)
+    available --> available: update(duration)
     booked --> available: cancel()
     booked --> completed: complete()
     completed --> [*]
 ```
 
-Timeslots follow a simple state machine where booking assigns a client, cancellation makes them available again, and completion marks the appointment as fulfilled.
+Timeslots follow a simple state machine where booking assigns a client, cancellation makes them available again, completion marks the appointment as fulfilled, and duration can be updated while in available state.
 
 ## Changes Made
 
@@ -108,14 +110,22 @@ interface CalendarPageProps extends SharedData {
 - Shows loading state during assignment
 - Resets dialog state on success
 
+**`handleUpdateDuration()`** (Added 2025-12-10)
+- Updates duration of available timeslots only
+- Uses new `provider.timeslots.update` route (PUT method)
+- Validates against overlapping timeslots
+- Shows inline loading state during update
+
 **`handleTimeslotClick(timeslot, date)`**
 - Opens dialog with selected timeslot details
 - Pre-fills client selector if timeslot is already booked
+- Initializes duration edit state with current duration
 - Replaces generic `setSelectedDate` handler
 
 **`handleDialogChange(open)`**
 - Manages dialog open/close state
 - Resets all selection state when dialog closes
+- Resets duration editing state
 
 #### Visual Updates
 
@@ -176,10 +186,19 @@ interface CalendarPageProps extends SharedData {
    - Click "Assign Client" button
    - Timeslot updates to "Booked" with client name
 
-3. **View Booked Slot:**
+3. **Edit Timeslot Duration:** (Added 2025-12-10)
+   - Click available timeslot
+   - Click edit icon next to duration
+   - Select new duration from dropdown (15 min to 4 hours)
+   - Click "Save" to update
+   - System validates no overlaps with other timeslots
+   - Duration updates and end time recalculates
+
+4. **View Booked Slot:**
    - Click booked timeslot
    - See which client has the booking
    - Client selector disabled (read-only view)
+   - Duration is read-only (cannot edit booked timeslots)
 
 ### For Admins
 1. **Calendar View:**
@@ -258,7 +277,7 @@ All components fully typed with TypeScript:
 
 ## Recent Enhancements (December 2025)
 
-### Create Timeslot Modal - Client Assignment
+### 1. Create Timeslot Modal - Client Assignment
 **Feature:** Service providers can now assign clients when creating timeslots
 
 **Implementation:**
@@ -303,7 +322,7 @@ All components fully typed with TypeScript:
    - Select a client → creates booked timeslot with client assigned
 4. Form submission creates timeslot with appropriate status and client_id
 
-### Reassign Client Enhancement
+### 2. Reassign Client Enhancement
 **Feature:** Service providers can now reassign booked timeslots to different clients
 
 **Implementation:**
@@ -329,6 +348,111 @@ All components fully typed with TypeScript:
 
 **Benefits:**
 - More flexibility in managing appointments
+
+### 3. Edit Timeslot Duration (Added 2025-12-10)
+**Feature:** Service providers can edit the duration of available timeslots directly from the calendar timeslot details modal
+
+**Implementation:**
+- Added inline duration editor in timeslot details modal
+- Only visible for service providers/admins viewing available timeslots
+- Displays as read-only for booked timeslots or for clients
+- Edit mode shows dropdown with preset durations (15 min to 4 hours)
+- Real-time validation against overlapping timeslots
+
+**New State Variables:**
+```tsx
+const [isEditingDuration, setIsEditingDuration] = useState(false);
+const [editDuration, setEditDuration] = useState<number>(60);
+const [isUpdating, setIsUpdating] = useState(false);
+```
+
+**UI Components:**
+```tsx
+{canSeeClientNames && selectedTimeslot.is_available ? (
+    isEditingDuration ? (
+        <div className="flex items-center gap-2">
+            <Select value={editDuration.toString()} onValueChange={...}>
+                <SelectContent>
+                    <SelectItem value="15">15 minutes</SelectItem>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="45">45 minutes</SelectItem>
+                    <SelectItem value="60">1 hour</SelectItem>
+                    <SelectItem value="90">1.5 hours</SelectItem>
+                    <SelectItem value="120">2 hours</SelectItem>
+                    <SelectItem value="180">3 hours</SelectItem>
+                    <SelectItem value="240">4 hours</SelectItem>
+                </SelectContent>
+            </Select>
+            <Button size="sm" onClick={handleUpdateDuration}>
+                {isUpdating ? 'Saving...' : 'Save'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                Cancel
+            </Button>
+        </div>
+    ) : (
+        <div className="flex items-center gap-2">
+            <span>{selectedTimeslot.duration_minutes} minutes</span>
+            <Button size="sm" variant="ghost" onClick={enableEdit}>
+                <Edit2 className="h-3 w-3" />
+            </Button>
+        </div>
+    )
+) : (
+    <span>{selectedTimeslot.duration_minutes} minutes</span>
+)}
+```
+
+**Backend Changes:**
+1. **`app/Http/Requests/UpdateTimeslotRequest.php`** (NEW)
+   - Validates `duration_minutes` field (15-480 minutes)
+   - Checks for overlapping timeslots after duration change
+   - Excludes current timeslot from overlap check
+
+2. **`app/Http/Controllers/Provider/TimeslotController.php`**
+   - Added `update()` method
+   - Uses `UpdateTimeslotRequest` for validation
+   - Authorizes via `TimeslotPolicy::update()`
+
+3. **`routes/web.php`**
+   - Added `Route::put('timeslots/{timeslot}', [ProviderTimeslotController::class, 'update'])->name('timeslots.update');`
+
+**Policy Enforcement (`TimeslotPolicy`):**
+```php
+public function update(User $user, Timeslot $timeslot): bool
+{
+    // Cannot update booked timeslots
+    if ($timeslot->is_booked) {
+        return false;
+    }
+
+    return ($user->can('update timeslots') && $user->id === $timeslot->provider_id) 
+        || $user->isAdmin();
+}
+```
+
+**User Flow:**
+1. Service provider clicks on available timeslot in calendar
+2. Timeslot details modal opens
+3. Provider clicks edit icon (pencil) next to duration
+4. Dropdown appears with duration options
+5. Provider selects new duration
+6. Provider clicks "Save"
+7. System validates:
+   - Duration is between 15-480 minutes
+   - New duration doesn't cause overlap with other timeslots
+8. If valid: duration updates, end time recalculates, modal shows updated info
+9. If invalid: error message displays
+
+**Restrictions:**
+- Only available timeslots can be edited (not booked, cancelled, or completed)
+- Only the owning provider or admins can edit
+- Cannot create overlaps with existing timeslots
+
+**Benefits:**
+- Quick duration adjustments without recreating timeslots
+- Reduces friction in schedule management
+- Maintains data integrity with overlap validation
 - Service providers can correct assignment mistakes
 - Enables quick client swaps without cancelling and rebooking
 

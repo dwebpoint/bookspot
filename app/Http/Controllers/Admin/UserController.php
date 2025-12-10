@@ -39,7 +39,7 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->withCount(['timeslots', 'bookings'])
+        $users = $query->withCount(['timeslots'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 

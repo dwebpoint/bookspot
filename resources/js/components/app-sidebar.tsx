@@ -53,7 +53,7 @@ const getMainNavItems = (userRole: string): NavItem[] => {
 
     let items = [...commonItems];
 
-    if (userRole === 'service_provider' || userRole === 'admin') {
+    if (userRole === 'service_provider') {
         items = [...items, ...providerItems];
     }
 
