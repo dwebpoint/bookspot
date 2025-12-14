@@ -191,7 +191,7 @@ class ClientController extends Controller
                     ->pluck('id');
 
                 if ($futureTimeslotIds->isNotEmpty()) {
-                    \App\Models\Booking::whereIn('timeslot_id', $futureTimeslotIds)
+                    \App\Models\Timeslot::whereIn('timeslot_id', $futureTimeslotIds)
                         ->where('client_id', $client->id)
                         ->where('status', 'confirmed')
                         ->update(['status' => 'cancelled']);

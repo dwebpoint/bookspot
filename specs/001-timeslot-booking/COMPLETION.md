@@ -55,8 +55,6 @@ The timeslot booking feature has been fully implemented according to the specifi
 
 #### Routes
 - [x] GET `/timeslots` - browse available
-- [x] GET/POST `/bookings` - view/create bookings
-- [x] DELETE `/bookings/{id}` - cancel booking
 - [x] GET/POST `/provider/timeslots` - view schedule/create timeslot
 - [x] DELETE `/provider/timeslots/{id}` - cancel timeslot
 - [x] Full CRUD routes for `/admin/users`
