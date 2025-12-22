@@ -373,14 +373,10 @@ const [isUpdating, setIsUpdating] = useState(false);
         <div className="flex items-center gap-2">
             <Select value={editDuration.toString()} onValueChange={...}>
                 <SelectContent>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
                     <SelectItem value="45">45 minutes</SelectItem>
                     <SelectItem value="60">1 hour</SelectItem>
                     <SelectItem value="90">1.5 hours</SelectItem>
                     <SelectItem value="120">2 hours</SelectItem>
-                    <SelectItem value="180">3 hours</SelectItem>
-                    <SelectItem value="240">4 hours</SelectItem>
                 </SelectContent>
             </Select>
             <Button size="sm" onClick={handleUpdateDuration}>
