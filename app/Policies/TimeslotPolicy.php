@@ -36,12 +36,17 @@ class TimeslotPolicy
      */
     public function update(User $user, Timeslot $timeslot): bool
     {
+        // Admins can update any timeslot
+        if ($user->isAdmin()) {
+            return true;
+        }
+
         // Cannot update booked timeslots
         if ($timeslot->is_booked) {
             return false;
         }
 
-        return ($user->can('update timeslots') && $user->id === $timeslot->provider_id) || $user->isAdmin();
+        return $user->can('update timeslots') && $user->id === $timeslot->provider_id;
     }
 
     /**
@@ -49,12 +54,22 @@ class TimeslotPolicy
      */
     public function delete(User $user, Timeslot $timeslot): bool
     {
-        // Only allow deletion of available or cancelled timeslots
-        if ($timeslot->is_booked || $timeslot->is_completed) {
-            return false;
+        // Admins can delete any timeslot
+        if ($user->isAdmin()) {
+            return true;
         }
 
-        return ($user->can('delete timeslots') && $user->id === $timeslot->provider_id) || $user->isAdmin();
+        // Service providers can delete their own timeslots (including past ones and completed)
+        if ($user->isServiceProvider() && $user->id === $timeslot->provider_id && $user->can('delete timeslots')) {
+            // Cannot delete booked timeslots (to protect active bookings)
+            if ($timeslot->is_booked) {
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -83,6 +98,11 @@ class TimeslotPolicy
     {
         // Timeslot must be booked
         if (! $timeslot->is_booked) {
+            return false;
+        }
+
+        // Clients cannot cancel bookings for timeslots in the past
+        if ($user->isClient() && $timeslot->start_time->lessThan(now())) {
             return false;
         }
 

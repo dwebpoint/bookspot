@@ -193,8 +193,8 @@ class ClientController extends Controller
                 if ($futureTimeslotIds->isNotEmpty()) {
                     \App\Models\Timeslot::whereIn('timeslot_id', $futureTimeslotIds)
                         ->where('client_id', $client->id)
-                        ->where('status', 'confirmed')
-                        ->update(['status' => 'cancelled']);
+                        ->where('status', 'booked')
+                        ->update(['status' => 'available']);
                 }
 
                 // Remove the relationship

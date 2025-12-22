@@ -46,16 +46,6 @@ class TimeslotFactory extends Factory
     }
 
     /**
-     * Indicate that the timeslot is cancelled.
-     */
-    public function cancelled(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'cancelled',
-        ]);
-    }
-
-    /**
      * Indicate that the timeslot is completed.
      */
     public function completed(?int $clientId = null): static

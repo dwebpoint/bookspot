@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Timeslot extends Model
 {
+    use HasFactory;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -39,7 +42,6 @@ class Timeslot extends Model
         'end_time',
         'is_available',
         'is_booked',
-        'is_cancelled',
         'is_completed',
     ];
 
@@ -74,14 +76,6 @@ class Timeslot extends Model
     public function scopeBooked($query)
     {
         return $query->where('status', 'booked');
-    }
-
-    /**
-     * Scope a query to only include cancelled timeslots.
-     */
-    public function scopeCancelled($query)
-    {
-        return $query->where('status', 'cancelled');
     }
 
     /**
@@ -159,14 +153,6 @@ class Timeslot extends Model
     }
 
     /**
-     * Check if the timeslot is canceled.
-     */
-    public function getIsCancelledAttribute(): bool
-    {
-        return $this->status === 'cancelled';
-    }
-
-    /**
      * Check if the timeslot is completed.
      */
     public function getIsCompletedAttribute(): bool
@@ -190,7 +176,10 @@ class Timeslot extends Model
      */
     public function cancel(): bool
     {
-        return $this->update(['status' => 'available']);
+        return $this->update([
+            'client_id' => null,
+            'status' => 'available',
+        ]);
     }
 
     /**

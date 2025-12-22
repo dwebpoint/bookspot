@@ -5,10 +5,9 @@ export interface Timeslot {
     start_time: string;
     duration_minutes: number;
     end_time: string;
-    status: 'available' | 'booked' | 'cancelled' | 'completed';
+    status: 'available' | 'booked' | 'completed';
     is_available: boolean;
     is_booked: boolean;
-    is_cancelled: boolean;
     is_completed: boolean;
     created_at: string;
     updated_at: string;

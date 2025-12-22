@@ -53,8 +53,6 @@ class TimeslotController extends Controller
                 $query->available();
             } elseif ($status === 'booked') {
                 $query->booked();
-            } elseif ($status === 'cancelled') {
-                $query->cancelled();
             } elseif ($status === 'completed') {
                 $query->completed();
             }

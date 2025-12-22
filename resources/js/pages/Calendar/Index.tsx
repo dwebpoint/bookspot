@@ -40,13 +40,7 @@ import { route } from '@/lib/route-helper';
 import type { SharedData, Timeslot } from '@/types';
 import type { Client, Provider } from '@/types/client';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import {
-    eachDayOfInterval,
-    format,
-    getWeek,
-    isPast,
-    isToday,
-} from 'date-fns';
+import { eachDayOfInterval, format, getWeek, isPast, isToday } from 'date-fns';
 import {
     Calendar as CalendarIcon,
     CheckCircle,
@@ -129,7 +123,8 @@ export default function Calendar() {
     );
 
     const handleWeekNavigation = (direction: 'prev' | 'next') => {
-        const newOffset = direction === 'prev' ? weekOffset - 1 : weekOffset + 1;
+        const newOffset =
+            direction === 'prev' ? weekOffset - 1 : weekOffset + 1;
         setIsNavigating(true);
 
         const params: Record<string, string> = {
@@ -376,303 +371,319 @@ export default function Calendar() {
                             <CarouselContent>
                                 <CarouselItem>
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                            {calendarDays.map((day) => {
-                                const dateKey = format(day, 'yyyy-MM-dd');
-                                const dayTimeslots =
-                                    timeslotsByDate[dateKey] || [];
-                                const hasTimeslots = dayTimeslots.length > 0;
-                                const isDayToday = isToday(day);
-                                const isDayPast = isPast(day) && !isDayToday;
+                                        {calendarDays.map((day) => {
+                                            const dateKey = format(
+                                                day,
+                                                'yyyy-MM-dd',
+                                            );
+                                            const dayTimeslots =
+                                                timeslotsByDate[dateKey] || [];
+                                            const hasTimeslots =
+                                                dayTimeslots.length > 0;
+                                            const isDayToday = isToday(day);
+                                            const isDayPast =
+                                                isPast(day) && !isDayToday;
 
-                                return (
-                                    <Card
-                                        key={day.toISOString()}
-                                        className={isDayPast ? 'opacity-60' : ''}
-                                    >
-                                        <CardContent className="p-4">
-                                            <div className="mb-3">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="text-lg font-semibold">
-                                                        {format(
-                                                            day,
-                                                            'EEE, d MMM',
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {isServiceProvider &&
-                                                            !isDayPast && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="h-6 px-2 text-xs"
-                                                                    onClick={() =>
-                                                                        handleCreateTimeslot(
-                                                                            day,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Plus className="mr-1 h-3 w-3" />
-                                                                    Add
-                                                                </Button>
-                                                            )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {hasTimeslots ? (
-                                                <div className="space-y-2">
-                                                    {/* For clients: show available timeslots first, then booked ones */}
-                                                    {isClient ? (
-                                                        <>
-                                                            {/* Client's own booked timeslots */}
-                                                            {dayTimeslots
-                                                                .filter(
-                                                                    (ts) =>
-                                                                        !ts.is_available &&
-                                                                        ts
-                                                                            .client
-                                                                            ?.id ===
-                                                                            auth
-                                                                                .user
-                                                                                ?.id,
-                                                                )
-                                                                .map(
-                                                                    (
-                                                                        timeslot,
-                                                                    ) => (
-                                                                        <button
-                                                                            key={
-                                                                                timeslot.id
-                                                                            }
-                                                                            onClick={() => {
-                                                                                handleTimeslotClick(
-                                                                                    timeslot,
-                                                                                    day,
-                                                                                );
-                                                                            }}
-                                                                            className="w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-left transition-colors hover:bg-blue-100"
-                                                                        >
-                                                                            <div className="flex items-start justify-between gap-2">
-                                                                                <div className="min-w-0 flex-1">
-                                                                                    <div className="mb-1 flex items-center gap-2">
-                                                                                        <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                                                                                        <span className="text-sm font-medium">
-                                                                                            {format(
-                                                                                                new Date(
-                                                                                                    timeslot.start_time,
-                                                                                                ),
-                                                                                                'HH:mm',
-                                                                                            )}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                                                        <Clock className="h-3 w-3 flex-shrink-0" />
-                                                                                        <span>
-                                                                                            {
-                                                                                                timeslot.duration_minutes
-                                                                                            }{' '}
-                                                                                            min
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    {timeslot.provider && (
-                                                                                        <div className="mt-1 truncate text-xs text-muted-foreground">
-                                                                                            {
-                                                                                                timeslot
-                                                                                                    .provider
-                                                                                                    .name
-                                                                                            }
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                                <span className="flex-shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                                                                                    Your
-                                                                                    Booking
-                                                                                </span>
-                                                                            </div>
-                                                                        </button>
-                                                                    ),
-                                                                )}
-                                                            {/* Available timeslots */}
-                                                            {dayTimeslots
-                                                                .filter(
-                                                                    (ts) =>
-                                                                        ts.is_available,
-                                                                )
-                                                                .map(
-                                                                    (
-                                                                        timeslot,
-                                                                    ) => (
-                                                                        <button
-                                                                            key={
-                                                                                timeslot.id
-                                                                            }
-                                                                            onClick={() => {
-                                                                                handleTimeslotClick(
-                                                                                    timeslot,
-                                                                                    day,
-                                                                                );
-                                                                            }}
-                                                                            className="w-full rounded-lg border border-green-200 bg-green-50 p-3 text-left transition-colors hover:bg-green-100"
-                                                                        >
-                                                                            <div className="flex items-start justify-between gap-2">
-                                                                                <div className="min-w-0 flex-1">
-                                                                                    <div className="mb-1 flex items-center gap-2">
-                                                                                        <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                                                                                        <span className="text-sm font-medium">
-                                                                                            {format(
-                                                                                                new Date(
-                                                                                                    timeslot.start_time,
-                                                                                                ),
-                                                                                                'HH:mm',
-                                                                                            )}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                                                        <Clock className="h-3 w-3 flex-shrink-0" />
-                                                                                        <span>
-                                                                                            {
-                                                                                                timeslot.duration_minutes
-                                                                                            }{' '}
-                                                                                            min
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    {timeslot.provider && (
-                                                                                        <div className="mt-1 truncate text-xs text-muted-foreground">
-                                                                                            {
-                                                                                                timeslot
-                                                                                                    .provider
-                                                                                                    .name
-                                                                                            }
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                                <span className="flex-shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                                                                    Available
-                                                                                </span>
-                                                                            </div>
-                                                                        </button>
-                                                                    ),
-                                                                )}
-                                                        </>
-                                                    ) : (
-                                                        /* For providers and admins: show all timeslots */
-                                                        dayTimeslots.map(
-                                                            (timeslot) => (
-                                                                <button
-                                                                    key={
-                                                                        timeslot.id
-                                                                    }
-                                                                    onClick={() => {
-                                                                        handleTimeslotClick(
-                                                                            timeslot,
-                                                                            day,
-                                                                        );
-                                                                    }}
-                                                                    className={`w-full rounded-lg border p-3 text-left transition-colors ${
-                                                                        timeslot.is_available
-                                                                            ? 'border-green-200 bg-green-50 hover:bg-green-100'
-                                                                            : timeslot.is_completed
-                                                                              ? 'border-gray-200 bg-gray-50 hover:bg-gray-100'
-                                                                              : 'border-blue-200 bg-blue-50 hover:bg-blue-100'
-                                                                    } `}
-                                                                >
-                                                                    <div className="flex items-start justify-between gap-2">
-                                                                        <div className="min-w-0 flex-1">
-                                                                            <div className="mb-1 flex items-center gap-2">
-                                                                                <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                                                                                <span className="text-sm font-medium">
-                                                                                    {format(
-                                                                                        new Date(
-                                                                                            timeslot.start_time,
-                                                                                        ),
-                                                                                        'HH:mm',
-                                                                                    )}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                                                <Clock className="h-3 w-3 flex-shrink-0" />
-                                                                                <span>
-                                                                                    {
-                                                                                        timeslot.duration_minutes
-                                                                                    }{' '}
-                                                                                    min
-                                                                                </span>
-                                                                            </div>
-                                                                            {timeslot.provider &&
-                                                                                !isServiceProvider && (
-                                                                                    <div className="mt-1 truncate text-xs text-muted-foreground">
-                                                                                        {
-                                                                                            timeslot
-                                                                                                .provider
-                                                                                                .name
-                                                                                        }
-                                                                                    </div>
-                                                                                )}
-                                                                            {canSeeClientNames &&
-                                                                                timeslot.client && (
-                                                                                    <div className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground">
-                                                                                        <UserIcon className="h-3 w-3 flex-shrink-0" />
-                                                                                        <span>
-                                                                                            {
-                                                                                                timeslot
-                                                                                                    .client
-                                                                                                    .name
-                                                                                            }
-                                                                                        </span>
-                                                                                    </div>
-                                                                                )}
-                                                                        </div>
-                                                                        <span
-                                                                            className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                                                timeslot.is_available
-                                                                                    ? 'bg-green-100 text-green-700'
-                                                                                    : timeslot.is_completed
-                                                                                      ? 'bg-gray-100 text-gray-700'
-                                                                                      : 'bg-blue-100 text-blue-700'
-                                                                            } `}
-                                                                        >
-                                                                            {timeslot.is_available
-                                                                                ? 'Open'
-                                                                                : timeslot.is_completed
-                                                                                  ? 'Completed'
-                                                                                  : 'Booked'}
-                                                                        </span>
-                                                                    </div>
-                                                                </button>
-                                                            ),
-                                                        )
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="py-4 text-center">
-                                                    {isServiceProvider &&
-                                                    !isDayPast ? (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="text-muted-foreground"
-                                                            onClick={() =>
-                                                                handleCreateTimeslot(
-                                                                    day,
-                                                                )
-                                                            }
-                                                        >
-                                                            <Plus className="mr-2 h-4 w-4" />
-                                                            Add Timeslot
-                                                        </Button>
-                                                    ) : (
-                                                        <div className="text-sm text-muted-foreground">
-                                                            {isClient
-                                                                ? 'No available slots'
-                                                                : 'No timeslots'}
+                                            return (
+                                                <Card
+                                                    key={day.toISOString()}
+                                                    className={
+                                                        isDayPast
+                                                            ? 'opacity-60'
+                                                            : ''
+                                                    }
+                                                >
+                                                    <CardContent className="p-4">
+                                                        <div className="mb-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="text-lg font-semibold">
+                                                                    {format(
+                                                                        day,
+                                                                        'EEE, d MMM',
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    {isServiceProvider &&
+                                                                        !isDayPast && (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                className="h-6 px-2 text-xs"
+                                                                                onClick={() =>
+                                                                                    handleCreateTimeslot(
+                                                                                        day,
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <Plus className="mr-1 h-3 w-3" />
+                                                                                Add
+                                                                            </Button>
+                                                                        )}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
-                        </div>
+                                                        {hasTimeslots ? (
+                                                            <div className="space-y-2">
+                                                                {/* For clients: show available timeslots first, then booked ones */}
+                                                                {isClient ? (
+                                                                    <>
+                                                                        {/* Client's own booked timeslots */}
+                                                                        {dayTimeslots
+                                                                            .filter(
+                                                                                (
+                                                                                    ts,
+                                                                                ) =>
+                                                                                    !ts.is_available &&
+                                                                                    ts
+                                                                                        .client
+                                                                                        ?.id ===
+                                                                                        auth
+                                                                                            .user
+                                                                                            ?.id,
+                                                                            )
+                                                                            .map(
+                                                                                (
+                                                                                    timeslot,
+                                                                                ) => (
+                                                                                    <button
+                                                                                        key={
+                                                                                            timeslot.id
+                                                                                        }
+                                                                                        onClick={() => {
+                                                                                            handleTimeslotClick(
+                                                                                                timeslot,
+                                                                                                day,
+                                                                                            );
+                                                                                        }}
+                                                                                        className="w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-left transition-colors hover:bg-blue-100"
+                                                                                    >
+                                                                                        <div className="flex items-start justify-between gap-2">
+                                                                                            <div className="min-w-0 flex-1">
+                                                                                                <div className="mb-1 flex items-center gap-2">
+                                                                                                    <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                                                                                                    <span className="text-sm font-medium">
+                                                                                                        {format(
+                                                                                                            new Date(
+                                                                                                                timeslot.start_time,
+                                                                                                            ),
+                                                                                                            'HH:mm',
+                                                                                                        )}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                                                    <Clock className="h-3 w-3 flex-shrink-0" />
+                                                                                                    <span>
+                                                                                                        {
+                                                                                                            timeslot.duration_minutes
+                                                                                                        }{' '}
+                                                                                                        min
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                {timeslot.provider && (
+                                                                                                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                                                                                                        {
+                                                                                                            timeslot
+                                                                                                                .provider
+                                                                                                                .name
+                                                                                                        }
+                                                                                                    </div>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <span className="flex-shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                                                                Your
+                                                                                                Booking
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </button>
+                                                                                ),
+                                                                            )}
+                                                                        {/* Available timeslots */}
+                                                                        {dayTimeslots
+                                                                            .filter(
+                                                                                (
+                                                                                    ts,
+                                                                                ) =>
+                                                                                    ts.is_available,
+                                                                            )
+                                                                            .map(
+                                                                                (
+                                                                                    timeslot,
+                                                                                ) => (
+                                                                                    <button
+                                                                                        key={
+                                                                                            timeslot.id
+                                                                                        }
+                                                                                        onClick={() => {
+                                                                                            handleTimeslotClick(
+                                                                                                timeslot,
+                                                                                                day,
+                                                                                            );
+                                                                                        }}
+                                                                                        className="w-full rounded-lg border border-green-200 bg-green-50 p-3 text-left transition-colors hover:bg-green-100"
+                                                                                    >
+                                                                                        <div className="flex items-start justify-between gap-2">
+                                                                                            <div className="min-w-0 flex-1">
+                                                                                                <div className="mb-1 flex items-center gap-2">
+                                                                                                    <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                                                                                                    <span className="text-sm font-medium">
+                                                                                                        {format(
+                                                                                                            new Date(
+                                                                                                                timeslot.start_time,
+                                                                                                            ),
+                                                                                                            'HH:mm',
+                                                                                                        )}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                                                    <Clock className="h-3 w-3 flex-shrink-0" />
+                                                                                                    <span>
+                                                                                                        {
+                                                                                                            timeslot.duration_minutes
+                                                                                                        }{' '}
+                                                                                                        min
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                {timeslot.provider && (
+                                                                                                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                                                                                                        {
+                                                                                                            timeslot
+                                                                                                                .provider
+                                                                                                                .name
+                                                                                                        }
+                                                                                                    </div>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <span className="flex-shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                                                                                Available
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </button>
+                                                                                ),
+                                                                            )}
+                                                                    </>
+                                                                ) : (
+                                                                    /* For providers and admins: show all timeslots */
+                                                                    dayTimeslots.map(
+                                                                        (
+                                                                            timeslot,
+                                                                        ) => (
+                                                                            <button
+                                                                                key={
+                                                                                    timeslot.id
+                                                                                }
+                                                                                onClick={() => {
+                                                                                    handleTimeslotClick(
+                                                                                        timeslot,
+                                                                                        day,
+                                                                                    );
+                                                                                }}
+                                                                                className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                                                                                    timeslot.is_available
+                                                                                        ? 'border-green-200 bg-green-50 hover:bg-green-100'
+                                                                                        : timeslot.is_completed
+                                                                                          ? 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                                                                                          : 'border-blue-200 bg-blue-50 hover:bg-blue-100'
+                                                                                } `}
+                                                                            >
+                                                                                <div className="flex items-start justify-between gap-2">
+                                                                                    <div className="min-w-0 flex-1">
+                                                                                        <div className="mb-1 flex items-center gap-2">
+                                                                                            <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                                                                                            <span className="text-sm font-medium">
+                                                                                                {format(
+                                                                                                    new Date(
+                                                                                                        timeslot.start_time,
+                                                                                                    ),
+                                                                                                    'HH:mm',
+                                                                                                )}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                                            <Clock className="h-3 w-3 flex-shrink-0" />
+                                                                                            <span>
+                                                                                                {
+                                                                                                    timeslot.duration_minutes
+                                                                                                }{' '}
+                                                                                                min
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        {timeslot.provider &&
+                                                                                            !isServiceProvider && (
+                                                                                                <div className="mt-1 truncate text-xs text-muted-foreground">
+                                                                                                    {
+                                                                                                        timeslot
+                                                                                                            .provider
+                                                                                                            .name
+                                                                                                    }
+                                                                                                </div>
+                                                                                            )}
+                                                                                        {canSeeClientNames &&
+                                                                                            timeslot.client && (
+                                                                                                <div className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground">
+                                                                                                    <UserIcon className="h-3 w-3 flex-shrink-0" />
+                                                                                                    <span>
+                                                                                                        {
+                                                                                                            timeslot
+                                                                                                                .client
+                                                                                                                .name
+                                                                                                        }
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            )}
+                                                                                    </div>
+                                                                                    <span
+                                                                                        className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                                                            timeslot.is_available
+                                                                                                ? 'bg-green-100 text-green-700'
+                                                                                                : timeslot.is_completed
+                                                                                                  ? 'bg-gray-100 text-gray-700'
+                                                                                                  : 'bg-blue-100 text-blue-700'
+                                                                                        } `}
+                                                                                    >
+                                                                                        {timeslot.is_available
+                                                                                            ? 'Open'
+                                                                                            : timeslot.is_completed
+                                                                                              ? 'Completed'
+                                                                                              : 'Booked'}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </button>
+                                                                        ),
+                                                                    )
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="py-4 text-center">
+                                                                {isServiceProvider &&
+                                                                !isDayPast ? (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="text-muted-foreground"
+                                                                        onClick={() =>
+                                                                            handleCreateTimeslot(
+                                                                                day,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Plus className="mr-2 h-4 w-4" />
+                                                                        Add
+                                                                        Timeslot
+                                                                    </Button>
+                                                                ) : (
+                                                                    <div className="text-sm text-muted-foreground">
+                                                                        {isClient
+                                                                            ? 'No available slots'
+                                                                            : 'No timeslots'}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })}
+                                    </div>
                                 </CarouselItem>
                             </CarouselContent>
                             <CarouselPrevious
@@ -793,28 +804,36 @@ export default function Calendar() {
                                                                         </SelectTrigger>
                                                                         <SelectContent>
                                                                             <SelectItem value="15">
-                                                                                15 minutes
+                                                                                15
+                                                                                minutes
                                                                             </SelectItem>
                                                                             <SelectItem value="30">
-                                                                                30 minutes
+                                                                                30
+                                                                                minutes
                                                                             </SelectItem>
                                                                             <SelectItem value="45">
-                                                                                45 minutes
+                                                                                45
+                                                                                minutes
                                                                             </SelectItem>
                                                                             <SelectItem value="60">
-                                                                                1 hour
+                                                                                1
+                                                                                hour
                                                                             </SelectItem>
                                                                             <SelectItem value="90">
-                                                                                1.5 hours
+                                                                                1.5
+                                                                                hours
                                                                             </SelectItem>
                                                                             <SelectItem value="120">
-                                                                                2 hours
+                                                                                2
+                                                                                hours
                                                                             </SelectItem>
                                                                             <SelectItem value="180">
-                                                                                3 hours
+                                                                                3
+                                                                                hours
                                                                             </SelectItem>
                                                                             <SelectItem value="240">
-                                                                                4 hours
+                                                                                4
+                                                                                hours
                                                                             </SelectItem>
                                                                         </SelectContent>
                                                                     </Select>
@@ -1160,11 +1179,14 @@ export default function Calendar() {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Available Timeslot</AlertDialogTitle>
+                        <AlertDialogTitle>
+                            Delete Available Timeslot
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
                             Are you sure you want to permanently delete this
-                            available timeslot? This action cannot be undone and will
-                            remove the timeslot entirely from your schedule.
+                            available timeslot? This action cannot be undone and
+                            will remove the timeslot entirely from your
+                            schedule.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -1257,10 +1279,16 @@ export default function Calendar() {
                                     <SelectValue placeholder="Select duration" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="30">30 minutes</SelectItem>
-                                    <SelectItem value="45">45 minutes</SelectItem>
+                                    <SelectItem value="30">
+                                        30 minutes
+                                    </SelectItem>
+                                    <SelectItem value="45">
+                                        45 minutes
+                                    </SelectItem>
                                     <SelectItem value="60">1 hour</SelectItem>
-                                    <SelectItem value="90">1.5 hours</SelectItem>
+                                    <SelectItem value="90">
+                                        1.5 hours
+                                    </SelectItem>
                                     <SelectItem value="120">2 hours</SelectItem>
                                     <SelectItem value="180">3 hours</SelectItem>
                                 </SelectContent>
@@ -1283,7 +1311,9 @@ export default function Calendar() {
                                     <Select
                                         value={
                                             createForm.data.client_id
-                                                ? String(createForm.data.client_id)
+                                                ? String(
+                                                      createForm.data.client_id,
+                                                  )
                                                 : 'none'
                                         }
                                         onValueChange={(value) =>
@@ -1313,8 +1343,9 @@ export default function Calendar() {
                                         </SelectContent>
                                     </Select>
                                     <p className="text-xs text-muted-foreground">
-                                        Assign this timeslot directly to a client,
-                                        or leave it available for booking
+                                        Assign this timeslot directly to a
+                                        client, or leave it available for
+                                        booking
                                     </p>
                                     {createForm.errors.client_id && (
                                         <p className="text-sm text-destructive">

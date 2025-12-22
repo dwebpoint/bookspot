@@ -130,7 +130,7 @@ See `docs/SPATIE_PERMISSIONS.md` for complete permission structure and usage exa
 
 **Key Models:**
 - `User` - HasRoles trait, client/provider relationships via many-to-many
-- `Timeslot` - Belongs to provider, optionally to client, has status (available/booked/cancelled/completed)
+- `Timeslot` - Belongs to provider, optionally to client, has status (available/booked/completed)
 - `ProviderClient` - Pivot table for provider-client relationships
 
 **Note:** The Booking model has been consolidated into the Timeslot model. Timeslots now directly reference clients via `client_id` and track their lifecycle through the `status` field.
@@ -145,7 +145,7 @@ The `Timeslot` model ([app/Models/Timeslot.php](app/Models/Timeslot.php)) repres
 - `client_id` - Foreign key to users table (the client who booked, nullable)
 - `start_time` - DateTime when the slot begins
 - `duration_minutes` - Integer duration of the slot
-- `status` - Enum: 'available', 'booked', 'cancelled', 'completed'
+- `status` - Enum: 'available', 'booked', 'completed'
 - `timestamps` - created_at, updated_at
 
 **Relationships:**
@@ -156,13 +156,11 @@ The `Timeslot` model ([app/Models/Timeslot.php](app/Models/Timeslot.php)) repres
 - `end_time` - Calculated as `start_time + duration_minutes`
 - `is_available` - Boolean: true if status === 'available'
 - `is_booked` - Boolean: true if status === 'booked'
-- `is_cancelled` - Boolean: true if status === 'cancelled'
 - `is_completed` - Boolean: true if status === 'completed'
 
 **Query Scopes:**
 - `available()` - Slots with status 'available' and in the future
 - `booked()` - Slots with status 'booked'
-- `cancelled()` - Slots with status 'cancelled'
 - `completed()` - Slots with status 'completed'
 - `future()` - Slots where start_time > now
 - `forProvider($providerId)` - Slots for specific provider
@@ -172,7 +170,7 @@ The `Timeslot` model ([app/Models/Timeslot.php](app/Models/Timeslot.php)) repres
 
 **Helper Methods:**
 - `book($clientId)` - Book the timeslot for a client (sets client_id, status='booked')
-- `cancel()` - Cancel the timeslot (sets status='cancelled')
+- `cancel()` - Cancel the timeslot (sets status='available')
 - `complete()` - Mark as completed (sets status='completed')
 - `makeAvailable()` - Clear booking and make available (clears client_id, sets status='available')
 
@@ -181,9 +179,9 @@ The `Timeslot` model ([app/Models/Timeslot.php](app/Models/Timeslot.php)) repres
 - `view` - Owner (provider) or admin
 - `create` - service_provider, admin, or 'create timeslots' permission
 - `update` - Owner + 'update timeslots' permission + not booked, or admin
-- `delete` - Owner + 'delete timeslots' permission + not booked/completed, or admin
+- `delete` - Owner + 'delete timeslots' permission + not booked (can delete available and completed timeslots including past ones), or admin
 - `book` - Client + linked to provider + timeslot is available
-- `cancelBooking` - Client who booked + provider + admin
+- `cancelBooking` - Client who booked (only for future timeslots) + provider + admin
 - `assignClient` - Provider or admin + timeslot is available
 
 **Key Patterns:**

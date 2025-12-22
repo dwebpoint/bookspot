@@ -41,7 +41,7 @@ import { useState } from 'react';
 interface TimeslotsIndexProps extends SharedData {
     timeslots: PaginatedResponse<Timeslot>;
     filters: {
-        status?: 'all' | 'available' | 'booked' | 'cancelled' | 'completed';
+        status?: 'all' | 'available' | 'booked' | 'completed';
         date?: string;
         client_id?: number;
     };
@@ -60,7 +60,8 @@ export default function Index() {
     const [selectedTimeslot, setSelectedTimeslot] = useState<number | null>(
         null,
     );
-    const [isAvailableTimeslotDelete, setIsAvailableTimeslotDelete] = useState(false);
+    const [isAvailableTimeslotDelete, setIsAvailableTimeslotDelete] =
+        useState(false);
 
     const isProvider = auth.user?.role === 'service_provider';
     const isAdmin = auth.user?.role === 'admin';
@@ -70,7 +71,10 @@ export default function Index() {
         setShowCancelDialog(true);
     };
 
-    const handleDeleteClick = (timeslotId: number, isAvailable: boolean = false) => {
+    const handleDeleteClick = (
+        timeslotId: number,
+        isAvailable: boolean = false,
+    ) => {
         setSelectedTimeslot(timeslotId);
         setIsAvailableTimeslotDelete(isAvailable);
         setShowDeleteDialog(true);
@@ -207,7 +211,6 @@ export default function Index() {
                             {isProvider ? 'Booked' : 'Upcoming'}
                         </TabsTrigger>
                         <TabsTrigger value="completed">Completed</TabsTrigger>
-                        <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
                     </TabsList>
                 </Tabs>
 
@@ -316,216 +319,253 @@ export default function Index() {
                                 </TableHeader>
                                 <TableBody>
                                     {timeslots.data.map((timeslot) => (
-                                    <TableRow key={timeslot.id}>
-                                        <TableCell className="font-medium">
-                                            {format(
-                                                new Date(timeslot.start_time),
-                                                'd MMM yyyy',
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {format(
-                                                new Date(timeslot.start_time),
-                                                'p',
-                                            )}{' '}
-                                            -{' '}
-                                            {format(
-                                                new Date(timeslot.end_time),
-                                                'p',
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {timeslot.duration_minutes} min
-                                        </TableCell>
-                                        {isAdmin && (
-                                            <TableCell>
-                                                <div>
-                                                    <div className="font-medium">
-                                                        {timeslot.provider
-                                                            ?.name || 'Unknown'}
-                                                    </div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {
-                                                            timeslot.provider
-                                                                ?.email
-                                                        }
-                                                    </div>
-                                                </div>
+                                        <TableRow key={timeslot.id}>
+                                            <TableCell className="font-medium">
+                                                {format(
+                                                    new Date(
+                                                        timeslot.start_time,
+                                                    ),
+                                                    'd MMM yyyy',
+                                                )}
                                             </TableCell>
-                                        )}
-                                        <TableCell>
-                                            {isProvider || isAdmin ? (
-                                                <div>
-                                                    <div className="font-medium">
-                                                        {timeslot.client
-                                                            ?.name || (timeslot.status === 'available' ? 'N/A' : 'Unknown')}
+                                            <TableCell>
+                                                {format(
+                                                    new Date(
+                                                        timeslot.start_time,
+                                                    ),
+                                                    'p',
+                                                )}{' '}
+                                                -{' '}
+                                                {format(
+                                                    new Date(timeslot.end_time),
+                                                    'p',
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {timeslot.duration_minutes} min
+                                            </TableCell>
+                                            {isAdmin && (
+                                                <TableCell>
+                                                    <div>
+                                                        <div className="font-medium">
+                                                            {timeslot.provider
+                                                                ?.name ||
+                                                                'Unknown'}
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {
+                                                                timeslot
+                                                                    .provider
+                                                                    ?.email
+                                                            }
+                                                        </div>
                                                     </div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {timeslot.client?.email}
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <div className="font-medium">
-                                                        {timeslot.provider
-                                                            ?.name || 'Unknown'}
-                                                    </div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {
-                                                            timeslot.provider
-                                                                ?.email
-                                                        }
-                                                    </div>
-                                                </div>
+                                                </TableCell>
                                             )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <StatusBadge
-                                                status={timeslot.status}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                {isProvider && (
-                                                    <>
-                                                        {timeslot.status ===
-                                                            'booked' && (
-                                                            <>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() =>
-                                                                        handleCompleteClick(
-                                                                            timeslot.id,
-                                                                        )
-                                                                    }
-                                                                    disabled={
-                                                                        cancellingId ===
-                                                                            timeslot.id ||
-                                                                        deletingId ===
-                                                                            timeslot.id ||
-                                                                        completingId ===
-                                                                            timeslot.id
-                                                                    }
-                                                                    title="Mark as Completed"
-                                                                >
-                                                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                                                </Button>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() =>
-                                                                        handleCancelClick(
-                                                                            timeslot.id,
-                                                                        )
-                                                                    }
-                                                                    disabled={
-                                                                        cancellingId ===
-                                                                            timeslot.id ||
-                                                                        deletingId ===
-                                                                            timeslot.id ||
-                                                                        completingId ===
-                                                                            timeslot.id
-                                                                    }
-                                                                    title="Cancel Booking (Make Available)"
-                                                                >
-                                                                    <X className="h-4 w-4" />
-                                                                </Button>
+                                            <TableCell>
+                                                {isProvider || isAdmin ? (
+                                                    <div>
+                                                        <div className="font-medium">
+                                                            {timeslot.client
+                                                                ?.name ||
+                                                                (timeslot.status ===
+                                                                'available'
+                                                                    ? 'N/A'
+                                                                    : 'Unknown')}
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {
+                                                                timeslot.client
+                                                                    ?.email
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <div className="font-medium">
+                                                            {timeslot.provider
+                                                                ?.name ||
+                                                                'Unknown'}
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {
+                                                                timeslot
+                                                                    .provider
+                                                                    ?.email
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <StatusBadge
+                                                    status={timeslot.status}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    {isProvider && (
+                                                        <>
+                                                            {timeslot.status ===
+                                                                'booked' && (
+                                                                <>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() =>
+                                                                            handleCompleteClick(
+                                                                                timeslot.id,
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            cancellingId ===
+                                                                                timeslot.id ||
+                                                                            deletingId ===
+                                                                                timeslot.id ||
+                                                                            completingId ===
+                                                                                timeslot.id
+                                                                        }
+                                                                        title="Mark as Completed"
+                                                                    >
+                                                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() =>
+                                                                            handleCancelClick(
+                                                                                timeslot.id,
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            cancellingId ===
+                                                                                timeslot.id ||
+                                                                            deletingId ===
+                                                                                timeslot.id ||
+                                                                            completingId ===
+                                                                                timeslot.id
+                                                                        }
+                                                                        title="Cancel Booking (Make Available)"
+                                                                    >
+                                                                        <X className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() =>
+                                                                            handleDeleteClick(
+                                                                                timeslot.id,
+                                                                                false,
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            cancellingId ===
+                                                                                timeslot.id ||
+                                                                            deletingId ===
+                                                                                timeslot.id ||
+                                                                            completingId ===
+                                                                                timeslot.id
+                                                                        }
+                                                                        title="Delete Timeslot"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                            {timeslot.status ===
+                                                                'available' && (
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
                                                                     onClick={() =>
                                                                         handleDeleteClick(
                                                                             timeslot.id,
-                                                                            false,
+                                                                            true,
                                                                         )
                                                                     }
                                                                     disabled={
-                                                                        cancellingId ===
-                                                                            timeslot.id ||
                                                                         deletingId ===
-                                                                            timeslot.id ||
-                                                                        completingId ===
-                                                                            timeslot.id
+                                                                        timeslot.id
                                                                     }
-                                                                    title="Delete Timeslot"
+                                                                    title="Delete Available Timeslot"
                                                                 >
                                                                     <Trash2 className="h-4 w-4 text-destructive" />
                                                                 </Button>
-                                                            </>
-                                                        )}
-                                                        {timeslot.status ===
-                                                            'available' && (
+                                                            )}
+                                                            {timeslot.status ===
+                                                                'completed' && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() =>
+                                                                        handleDeleteClick(
+                                                                            timeslot.id,
+                                                                            true,
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        deletingId ===
+                                                                        timeslot.id
+                                                                    }
+                                                                    title="Delete Completed Timeslot"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                </Button>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                    {!isProvider &&
+                                                        timeslot.status ===
+                                                            'booked' && (
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 onClick={() =>
-                                                                    handleDeleteClick(
+                                                                    handleCancelClick(
                                                                         timeslot.id,
-                                                                        true,
                                                                     )
                                                                 }
                                                                 disabled={
-                                                                    deletingId ===
+                                                                    cancellingId ===
                                                                     timeslot.id
                                                                 }
-                                                                title="Delete Available Timeslot"
+                                                                title="Cancel Booking"
                                                             >
-                                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                                                <X className="h-4 w-4" />
                                                             </Button>
                                                         )}
-                                                    </>
-                                                )}
-                                                {!isProvider &&
-                                                    timeslot.status ===
-                                                        'booked' && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                handleCancelClick(
-                                                                    timeslot.id,
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                cancellingId ===
-                                                                timeslot.id
-                                                            }
-                                                            title="Cancel Booking"
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    {/* Pagination */}
-                    {timeslots.links.length > 3 && (
-                        <div className="flex items-center justify-center gap-2">
-                            {timeslots.links.map((link, index) => (
-                                <Button
-                                    key={index}
-                                    variant={link.active ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => {
-                                        if (link.url) {
-                                            router.get(link.url);
-                                        }
-                                    }}
-                                    disabled={!link.url}
-                                    dangerouslySetInnerHTML={{
-                                        __html: link.label,
-                                    }}
-                                />
-                            ))}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         </div>
-                    )}
-                </>
+
+                        {/* Pagination */}
+                        {timeslots.links.length > 3 && (
+                            <div className="flex items-center justify-center gap-2">
+                                {timeslots.links.map((link, index) => (
+                                    <Button
+                                        key={index}
+                                        variant={
+                                            link.active ? 'default' : 'outline'
+                                        }
+                                        size="sm"
+                                        onClick={() => {
+                                            if (link.url) {
+                                                router.get(link.url);
+                                            }
+                                        }}
+                                        disabled={!link.url}
+                                        dangerouslySetInnerHTML={{
+                                            __html: link.label,
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 

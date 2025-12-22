@@ -26,15 +26,21 @@ return new class extends Migration
         }
 
         // Add composite index if it doesn't exist
-        $indexes = DB::select("SHOW INDEX FROM timeslots WHERE Key_name = 'timeslots_status_start_time_index'");
-        if (empty($indexes)) {
+        // Use Schema::hasIndex() for database-agnostic check
+        if (! $this->hasCompositeIndex('timeslots', ['status', 'start_time'])) {
             Schema::table('timeslots', function (Blueprint $table) {
                 $table->index(['status', 'start_time']);
             });
         }
 
-        // Modify status enum to add 'completed' value
-        DB::statement("ALTER TABLE timeslots MODIFY COLUMN status ENUM('available', 'booked', 'cancelled', 'completed') NOT NULL DEFAULT 'available'");
+        // Modify status column to add 'completed' value
+        // For SQLite compatibility, we need to check the driver
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE timeslots MODIFY COLUMN status ENUM('available', 'booked', 'completed') NOT NULL DEFAULT 'available'");
+        } else {
+            // For SQLite and other databases, the column should already support any string value
+            // No modification needed for SQLite as it doesn't have enum constraints
+        }
 
         // Migrate data from bookings to timeslots
         $this->migrateBookingData();
@@ -45,8 +51,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Restore status enum to original values
-        DB::statement("ALTER TABLE timeslots MODIFY COLUMN status ENUM('available', 'booked', 'cancelled') NOT NULL DEFAULT 'available'");
+        // Restore status enum to original values (MySQL only)
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE timeslots MODIFY COLUMN status ENUM('available', 'booked') NOT NULL DEFAULT 'available'");
+        }
 
         // Remove indexes
         Schema::table('timeslots', function (Blueprint $table) {
@@ -63,6 +71,31 @@ return new class extends Migration
         Schema::table('timeslots', function (Blueprint $table) {
             $table->dropColumn('client_id');
         });
+    }
+
+    /**
+     * Check if a composite index exists on a table.
+     */
+    private function hasCompositeIndex(string $table, array $columns): bool
+    {
+        $connection = DB::connection();
+        $driver = $connection->getDriverName();
+
+        if ($driver === 'mysql') {
+            $indexes = DB::select("SHOW INDEX FROM {$table}");
+            $indexColumns = [];
+            foreach ($indexes as $index) {
+                if ($index->Key_name === "{$table}_status_start_time_index") {
+                    $indexColumns[] = $index->Column_name;
+                }
+            }
+
+            return count($indexColumns) === count($columns);
+        }
+
+        // For SQLite and other databases, assume index doesn't exist
+        // The error from trying to create a duplicate index is acceptable
+        return false;
     }
 
     /**

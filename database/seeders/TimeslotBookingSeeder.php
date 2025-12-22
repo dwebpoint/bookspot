@@ -53,7 +53,7 @@ class TimeslotBookingSeeder extends Seeder
                 if ($shouldBook) {
                     $client = $clients->random();
                     $timeslotData['client_id'] = $client->id;
-                    $timeslotData['status'] = rand(0, 4) === 0 ? 'cancelled' : 'booked'; // 20% cancelled
+                    $timeslotData['status'] = 'booked';
                 }
 
                 Timeslot::create($timeslotData);
@@ -64,13 +64,11 @@ class TimeslotBookingSeeder extends Seeder
 
         $totalTimeslots = Timeslot::count();
         $bookedTimeslots = Timeslot::where('status', 'booked')->count();
-        $cancelledTimeslots = Timeslot::where('status', 'cancelled')->count();
         $availableTimeslots = Timeslot::where('status', 'available')->count();
 
         $this->command->info("\nSeeding completed successfully!");
         $this->command->info("Total Timeslots: {$totalTimeslots}");
         $this->command->info("  - Available: {$availableTimeslots}");
         $this->command->info("  - Booked: {$bookedTimeslots}");
-        $this->command->info("  - Cancelled: {$cancelledTimeslots}");
     }
 }
