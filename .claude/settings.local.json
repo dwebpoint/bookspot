@@ -1,5 +1,4 @@
 {
-  "model": "sonnet 4.5",
   "permissions": {
     "allow": [
       "Bash(ddev describe:*)",
@@ -22,5 +21,10 @@
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "model": "sonnet 4.5",
+  "enabledMcpjsonServers": [
+    "laravel-boost"
+  ],
+  "enableAllProjectMcpServers": true
 }
