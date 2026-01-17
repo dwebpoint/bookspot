@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -103,7 +104,8 @@ class ClientController extends Controller
                         'status' => 'active',
                     ]);
 
-                    // TODO: Send email with password reset link
+                    // Send password reset link to new client
+                    Password::sendResetLink(['email' => $client->email]);
                 }
             });
 
