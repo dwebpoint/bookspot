@@ -23,6 +23,7 @@ class StoreClientRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
     }
 
@@ -35,6 +36,9 @@ class StoreClientRequest extends FormRequest
             'name.required' => 'Client name is required.',
             'email.required' => 'Client email is required.',
             'email.email' => 'Please provide a valid email address.',
+            'password.required' => 'Password is required.',
+            'password.min' => 'Password must be at least 8 characters.',
+            'password.confirmed' => 'Password confirmation does not match.',
         ];
     }
 }

@@ -92,7 +92,7 @@ class ClientController extends Controller
                     $client = User::create([
                         'name' => $request->name,
                         'email' => $request->email,
-                        'password' => Hash::make(Str::random(32)), // Temporary password
+                        'password' => Hash::make($request->password),
                         'role' => 'client',
                     ]);
 
@@ -105,7 +105,7 @@ class ClientController extends Controller
                     ]);
 
                     // Send password reset link to new client
-                    Password::sendResetLink(['email' => $client->email]);
+                    // Password::sendResetLink(['email' => $client->email]);
                 }
             });
 
