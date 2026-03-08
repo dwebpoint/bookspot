@@ -17,14 +17,16 @@
       "Bash(php artisan:*)",
       "Bash(npm run types:*)",
       "Bash(npm run format:*)",
-      "Bash(./vendor/bin/pint:*)"
+      "Bash(./vendor/bin/pint:*)",
+      "mcp__laravel-boost__browser-logs",
+      "mcp__laravel-boost__last-error"
     ],
     "deny": [],
     "ask": []
   },
   "model": "sonnet 4.5",
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "laravel-boost"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

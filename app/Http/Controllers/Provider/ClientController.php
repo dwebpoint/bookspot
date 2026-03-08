@@ -96,6 +96,8 @@ class ClientController extends Controller
                         'role' => 'client',
                     ]);
 
+                    $client->assignRole('client');
+
                     // Create provider-client relationship
                     ProviderClient::create([
                         'provider_id' => auth()->id(),

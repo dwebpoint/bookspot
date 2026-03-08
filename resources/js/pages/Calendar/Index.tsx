@@ -374,6 +374,23 @@ export default function Calendar() {
 
                         {/* Carousel Week Navigation */}
                         <Carousel className="w-full">
+                            {/* Week Navigation Arrows */}
+                            <div className="mb-3 flex items-center justify-between">
+                                <CarouselPrevious
+                                    onClick={() => handleWeekNavigation('prev')}
+                                    disabled={isNavigating}
+                                    className="static translate-0 rounded-md bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                                />
+                                <span className="text-sm font-medium text-muted-foreground">
+                                    Week {getWeek(calendarDays[0])}
+                                </span>
+                                <CarouselNext
+                                    onClick={() => handleWeekNavigation('next')}
+                                    disabled={isNavigating}
+                                    className="static translate-0 rounded-md bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                                />
+                            </div>
+
                             <CarouselContent>
                                 <CarouselItem>
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -692,14 +709,6 @@ export default function Calendar() {
                                     </div>
                                 </CarouselItem>
                             </CarouselContent>
-                            <CarouselPrevious
-                                onClick={() => handleWeekNavigation('prev')}
-                                disabled={isNavigating}
-                            />
-                            <CarouselNext
-                                onClick={() => handleWeekNavigation('next')}
-                                disabled={isNavigating}
-                            />
                         </Carousel>
                     </CardContent>
                 </Card>
@@ -1293,40 +1302,27 @@ export default function Calendar() {
                                     <Label htmlFor="client_id">
                                         Assign to Client (Optional)
                                     </Label>
-                                    <Select
-                                        value={
-                                            createForm.data.client_id
-                                                ? String(
-                                                      createForm.data.client_id,
-                                                  )
-                                                : 'none'
-                                        }
+                                    <Combobox
+                                        options={[
+                                            { value: 'none', label: 'Leave available' },
+                                            ...clients.map((client) => ({
+                                                value: client.id,
+                                                label: client.name,
+                                            })),
+                                        ]}
+                                        value={createForm.data.client_id ?? 'none'}
                                         onValueChange={(value) =>
                                             createForm.setData(
                                                 'client_id',
                                                 value === 'none'
                                                     ? null
-                                                    : parseInt(value),
+                                                    : (value as number),
                                             )
                                         }
-                                    >
-                                        <SelectTrigger id="client_id">
-                                            <SelectValue placeholder="Leave available" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">
-                                                Leave available
-                                            </SelectItem>
-                                            {clients.map((client) => (
-                                                <SelectItem
-                                                    key={client.id}
-                                                    value={String(client.id)}
-                                                >
-                                                    {client.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                        placeholder="Leave available"
+                                        searchPlaceholder="Search clients..."
+                                        emptyText="No clients found."
+                                    />
                                     <p className="text-xs text-muted-foreground">
                                         Assign this timeslot directly to a
                                         client, or leave it available for
