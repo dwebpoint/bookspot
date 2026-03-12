@@ -11,12 +11,12 @@ import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
+    const { auth } = usePage<SharedData>().props;
+
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
     }
-
-    const { auth } = usePage<SharedData>().props;
     const isAdmin = auth.user?.role === 'admin';
     const currentPath = window.location.pathname;
 

@@ -3,11 +3,18 @@ name: Deploy to Hostinger
 on:
   push:
     branches:
-      # - main
       - develop
+      #- main
+  pull_request:
+    branches:
+      - develop
+      #- main
 
 permissions:
   contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
@@ -15,7 +22,7 @@ jobs:
     name: Build and Deploy
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -26,9 +33,9 @@ jobs:
         run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install Node dependencies
@@ -62,3 +69,4 @@ jobs:
             php artisan route:cache
             php artisan view:cache
             php artisan event:cache
+            ln -s public public_html

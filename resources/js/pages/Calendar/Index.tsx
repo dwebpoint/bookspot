@@ -337,10 +337,6 @@ export default function Calendar() {
                                         {format(rangeStart, 'd MMM')} -{' '}
                                         {format(rangeEnd, 'd MMM yyyy')}
                                     </h2>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        Week {getWeek(rangeStart)}
-                                        {weekOffset === 0 && ' (Current week)'}
-                                    </p>
                                 </div>
                             </div>
                             {showProviderFilter && (
@@ -381,8 +377,9 @@ export default function Calendar() {
                                     disabled={isNavigating}
                                     className="static translate-0 rounded-md bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
                                 />
-                                <span className="text-sm font-medium text-muted-foreground">
-                                    Week {getWeek(calendarDays[0])}
+                                <span className="text-sm font-semibold text-muted-foreground">
+                                    Week {getWeek(rangeStart)}
+                                    {weekOffset === 0 && ' (Current week)'}
                                 </span>
                                 <CarouselNext
                                     onClick={() => handleWeekNavigation('next')}

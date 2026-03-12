@@ -1,3 +1,5 @@
+.claude
+.ddev
 .git
 .github
 .env
@@ -6,6 +8,8 @@
 .env.production
 .gitignore
 .deployignore
+.specify
+.mcp.json
 node_modules
 tests
 pwtests
