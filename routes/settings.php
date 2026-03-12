@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\NotificationsController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -21,4 +22,9 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/appearance');
     })->name('appearance.edit');
+
+    Route::middleware('role:service_provider,client')->group(function () {
+        Route::get('settings/notifications', [NotificationsController::class, 'edit'])->name('notifications.edit');
+        Route::patch('settings/notifications', [NotificationsController::class, 'update'])->name('notifications.update');
+    });
 });

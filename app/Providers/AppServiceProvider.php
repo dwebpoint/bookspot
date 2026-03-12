@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Listeners\SendTimeslotNotifications;
 use App\Models\Booking;
 use App\Models\Timeslot;
 use App\Models\User;
@@ -9,6 +10,7 @@ use App\Policies\BookingPolicy;
 use App\Policies\ProviderClientPolicy;
 use App\Policies\TimeslotPolicy;
 use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -37,5 +39,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('createClient', [ProviderClientPolicy::class, 'create']);
         Gate::define('deleteClient', [ProviderClientPolicy::class, 'delete']);
         Gate::define('assignTimeslotToClient', [ProviderClientPolicy::class, 'assignTimeslot']);
+
+        Event::subscribe(SendTimeslotNotifications::class);
     }
 }

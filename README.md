@@ -49,6 +49,12 @@ Built with Laravel 12, React 19, TypeScript, Tailwind CSS, and [Inertia](https:/
 - Calendar-first interface for timeslot browsing
 - Search and filter capabilities
 
+### 📧 Email Notifications
+- Providers and clients can opt in to email notifications via Settings → Notifications
+- Providers receive an email when a **client** books or cancels a timeslot (provider-initiated assign/remove does not trigger notifications)
+- Event-driven architecture: `TimeslotBooked` / `TimeslotCancelled` events → `SendTimeslotNotifications` subscriber → queued Mailables
+- Setting is disabled by default; each user controls their own preference
+
 ## Quick Start
 
 ### Installation
@@ -112,15 +118,24 @@ See [docs/SPATIE_PERMISSIONS.md](docs/SPATIE_PERMISSIONS.md) for detailed RBAC d
 
 ```
 app/
+├── Events/
+│   ├── TimeslotBooked.php
+│   └── TimeslotCancelled.php
 ├── Http/
 │   ├── Controllers/
 │   │   ├── Admin/          # Admin controllers
 │   │   ├── Provider/       # Service provider controllers
+│   │   ├── Settings/       # Profile, password, appearance, notifications
 │   │   ├── CalendarController.php
 │   │   └── TimeslotController.php
 │   ├── Middleware/
 │   │   └── CheckRole.php   # Role verification middleware
 │   └── Requests/           # Form request validation
+├── Listeners/
+│   └── SendTimeslotNotifications.php
+├── Mail/
+│   ├── TimeslotBooked.php
+│   └── TimeslotCancelled.php
 ├── Models/
 │   ├── User.php           # User model with HasRoles trait
 │   ├── Timeslot.php       # Timeslot with integrated booking status

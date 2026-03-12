@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\TimeslotBooked as TimeslotBookedEvent;
+use App\Events\TimeslotCancelled as TimeslotCancelledEvent;
 use App\Models\Timeslot;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,7 +64,7 @@ class TimeslotController extends Controller
 
         // Filter by date if specified
         if ($request->filled('date')) {
-            $date = \Carbon\Carbon::parse($request->date);
+            $date = Carbon::parse($request->date);
             $query->whereDate('start_time', $date);
         }
 
@@ -89,7 +93,9 @@ class TimeslotController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request) {
+            $bookedTimeslot = null;
+
+            DB::transaction(function () use ($request, &$bookedTimeslot) {
                 // Lock the timeslot row to prevent race conditions
                 $timeslot = Timeslot::where('id', $request->timeslot_id)
                     ->where('status', 'available')
@@ -102,7 +108,13 @@ class TimeslotController extends Controller
 
                 // Book the timeslot
                 $timeslot->book(auth()->id());
+
+                $bookedTimeslot = $timeslot;
             });
+
+            /** @var User $client */
+            $client = auth()->user();
+            TimeslotBookedEvent::dispatch($bookedTimeslot, $client);
 
             return redirect()->back()
                 ->with('success', 'Timeslot booked successfully!');
@@ -120,10 +132,15 @@ class TimeslotController extends Controller
     {
         $this->authorize('cancelBooking', $timeslot);
 
+        /** @var User $client */
+        $client = $timeslot->client;
+
         // Unassign client and make available
         $timeslot->status = 'available';
         $timeslot->client_id = null;
         $timeslot->save();
+
+        TimeslotCancelledEvent::dispatch($timeslot, $client);
 
         return redirect()->back()
             ->with('success', 'Booking cancelled successfully. Timeslot is now available.');

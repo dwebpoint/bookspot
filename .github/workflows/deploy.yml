@@ -3,7 +3,8 @@ name: Deploy to Hostinger
 on:
   push:
     branches:
-      - main
+      # - main
+      - develop
 
 permissions:
   contents: read

@@ -40,6 +40,7 @@ export interface User {
     email: string;
     role: 'admin' | 'service_provider' | 'client';
     timezone: string;
+    email_notifications_enabled: boolean;
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;

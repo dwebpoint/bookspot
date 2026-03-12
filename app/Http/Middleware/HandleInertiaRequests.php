@@ -49,6 +49,7 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'role' => $request->user()->role,
                     'timezone' => $request->user()->timezone,
+                    'email_notifications_enabled' => $request->user()->email_notifications_enabled,
                     'clients_count' => $request->user()->isServiceProvider() || $request->user()->isAdmin()
                         ? $request->user()->clients()->count()
                         : null,

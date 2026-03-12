@@ -126,10 +126,16 @@ See `docs/SPATIE_PERMISSIONS.md` for complete permission structure and usage exa
 - `app/Http/Controllers/Provider/` - Service provider controllers (timeslots, clients)
 - `app/Http/Controllers/BookingController.php` - Booking management
 - `app/Http/Controllers/CalendarController.php` - Calendar views
-- `app/Http/Controllers/Settings/` - User settings and profile
+- `app/Http/Controllers/Settings/` - User settings and profile (profile, password, appearance, notifications)
+
+**Events & Listeners:**
+- `app/Events/TimeslotBooked` - Fired when a client books a timeslot
+- `app/Events/TimeslotCancelled` - Fired when a client cancels a booking
+- `app/Listeners/SendTimeslotNotifications` - Event subscriber; sends booking/cancellation emails to the provider if they have `email_notifications_enabled = true`
+- Subscriber registered in `AppServiceProvider` via `Event::subscribe(SendTimeslotNotifications::class)`
 
 **Key Models:**
-- `User` - HasRoles trait, client/provider relationships via many-to-many
+- `User` - HasRoles trait, client/provider relationships via many-to-many, `email_notifications_enabled` boolean preference (default `false`)
 - `Timeslot` - Belongs to provider, optionally to client, has status (available/booked/completed)
 - `ProviderClient` - Pivot table for provider-client relationships
 
@@ -231,7 +237,7 @@ $endTime = $timeslot->end_time; // Carbon instance
 
 **Routes:**
 - `routes/web.php` - Main application routes with role-based middleware groups
-- `routes/settings.php` - User settings routes
+- `routes/settings.php` - User settings routes (profile, password, appearance, notifications)
 
 ### React Frontend Structure
 
@@ -271,6 +277,8 @@ The application sidebar (`app-sidebar.tsx`) provides role-based navigation:
 
 *Admin Only:*
 - User Management
+
+**Settings sidebar** (`layouts/settings/layout.tsx`) is also role-aware. The "Notifications" tab is visible to `service_provider` and `client` only — admins see Profile, Password, and Appearance but not Notifications.
 
 **Note:** Service providers no longer have a separate "Schedule" menu item. All timeslot management is integrated into the Calendar page through modal-based creation and inline operations.
 
@@ -319,7 +327,7 @@ createForm.post(route('provider.timeslots.store'), {
 ### Database Schema
 
 **Core Tables:**
-- `users` - User accounts with `role` column (legacy), timezone
+- `users` - User accounts with `role` column (legacy), `timezone`, `email_notifications_enabled` (boolean, default false)
 - `timeslots` - Provider's available slots with status
 - `bookings` - Client bookings for timeslots
 - `provider_client` - Many-to-many provider-client relationships
@@ -334,6 +342,41 @@ createForm.post(route('provider.timeslots.store'), {
 
 **Migrations:**
 All schema changes use migrations. Never modify database directly.
+
+### Email Notification System
+
+Providers and clients can opt in to receive email notifications. The system uses a Laravel Event → Subscriber → Mailable chain, keeping notification logic out of controllers.
+
+**Flow:**
+```
+Controller fires Event → AppServiceProvider-registered Subscriber handles it → Queued Mailable dispatched → Provider receives email
+```
+
+**Events (`app/Events/`):**
+- `TimeslotBooked` — carries `$timeslot` and `$client`; fired by `TimeslotController@store` **only when a client books their own slot** (not when a provider assigns a client via the provider interface)
+- `TimeslotCancelled` — carries `$timeslot` and `$client`; fired by `TimeslotController@destroy` **only when a client cancels their own booking** (not when a provider removes a client via the provider interface)
+
+**Subscriber (`app/Listeners/SendTimeslotNotifications`):**
+- Subscribes to both events via the `subscribe(Dispatcher $events): array` method
+- Guards each handler: if `$provider->email_notifications_enabled === false`, returns early without sending
+- Sends `App\Mail\TimeslotBooked` or `App\Mail\TimeslotCancelled` to the provider
+- **Note:** Provider-initiated actions (`Provider\TimeslotController@assignClient` and `@removeClient`) do **not** fire these events, so no email is sent when a provider assigns or removes a client themselves.
+
+**Mailables (`app/Mail/`):**
+- `TimeslotBooked` — subject includes the booking date/time; view `emails/timeslot-booked.blade.php`
+- `TimeslotCancelled` — subject includes the cancelled date/time; view `emails/timeslot-cancelled.blade.php`
+- Both implement `ShouldQueue` — emails are dispatched asynchronously via the queue worker
+
+**User Notification Preference:**
+- `users.email_notifications_enabled` boolean (default `false`)
+- Managed via `GET/PATCH /settings/notifications` (restricted to `service_provider` and `client` roles; admins get 403)
+- Frontend: `resources/js/pages/Settings/notifications.tsx` — checkbox in the Settings sidebar
+
+**Queue requirement:** Email delivery requires the queue worker to be running:
+```bash
+php artisan queue:listen
+```
+For local development, set `QUEUE_CONNECTION=sync` in `.env` to send emails synchronously.
 
 ### Testing Strategy
 
