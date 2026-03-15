@@ -41,7 +41,7 @@ php artisan db:seed --class=RolesAndPermissionsSeeder
 
 This creates:
 - **3 Roles**: admin, service_provider, client
-- **19 Permissions**: timeslot management, booking management, client management, user management, calendar access
+- **18 Permissions**: timeslot management, booking management, client management, user management, calendar access
 
 ### 5. Assign Roles to Existing Users
 
@@ -93,8 +93,7 @@ Has all permissions (superuser)
 - Works seamlessly with existing route middleware: `middleware('role:client,admin')`
 
 ### 3. Policies
-- **TimeslotPolicy**: Added permission checks alongside role checks
-- **BookingPolicy**: Added permission checks alongside role checks
+- **TimeslotPolicy**: Added permission checks alongside role checks (covers all timeslot and booking operations — the Booking model was consolidated into Timeslot)
 - Provides granular control: role + permission + ownership checks
 
 ### 4. New Migrations

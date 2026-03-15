@@ -34,15 +34,16 @@ Timeslots follow a simple state machine where booking assigns a client, cancella
 
 ```php
 // Service providers get their linked clients
-if ($user->role === 'service_provider') {
+if ($user->isServiceProvider()) {
     $clients = $user->clients()
         ->select('users.id', 'users.name')
         ->orderBy('users.name')
         ->get();
 }
 // Admins get all clients
-elseif ($user->role === 'admin') {
-    $clients = User::where('role', 'client')
+elseif ($user->isAdmin()) {
+    $clients = User::query()
+        ->whereHas('roles', fn ($q) => $q->where('name', 'client'))
         ->select('id', 'name')
         ->orderBy('name')
         ->get();
@@ -132,10 +133,10 @@ interface CalendarPageProps extends SharedData {
 **Timeslot Cards (Calendar Grid)**
 - **Added:** Client name display with User icon
   ```tsx
-  {canSeeClientNames && timeslot.booking?.client && (
+  {canSeeClientNames && timeslot.client && (
       <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 truncate">
           <UserIcon className="h-3 w-3 flex-shrink-0" />
-          <span>{timeslot.booking.client.name}</span>
+          <span>{timeslot.client.name}</span>
       </div>
   )}
   ```
@@ -232,7 +233,7 @@ interface CalendarPageProps extends SharedData {
 ### Data Flow
 ```
 CalendarController
-  → Loads timeslots with 'booking.client' relationship
+  → Loads timeslots with 'client' relationship (direct on Timeslot, no Booking model)
   → Loads clients for selector (role-specific)
   ↓
 Calendar Component
@@ -244,7 +245,7 @@ Combobox Component
   ↓
 handleAssignClient()
   → Posts to provider.timeslots.assign
-  → Backend creates Booking record
+  → Backend updates timeslot: sets client_id and status='booked'
   → Calendar refreshes with updated data
 ```
 

@@ -124,7 +124,7 @@ See `docs/SPATIE_PERMISSIONS.md` for complete permission structure and usage exa
 **Controllers:**
 - `app/Http/Controllers/Admin/` - Admin-only controllers (user management)
 - `app/Http/Controllers/Provider/` - Service provider controllers (timeslots, clients)
-- `app/Http/Controllers/BookingController.php` - Booking management
+- `app/Http/Controllers/TimeslotController.php` - Client-facing timeslot operations (book, cancel, force delete, complete)
 - `app/Http/Controllers/CalendarController.php` - Calendar views
 - `app/Http/Controllers/Settings/` - User settings and profile (profile, password, appearance, notifications)
 
@@ -188,7 +188,9 @@ The `Timeslot` model ([app/Models/Timeslot.php](app/Models/Timeslot.php)) repres
 - `delete` - Owner + 'delete timeslots' permission + not booked (can delete available and completed timeslots including past ones), or admin
 - `book` - Client + linked to provider + timeslot is available
 - `cancelBooking` - Client who booked (only for future timeslots) + provider + admin
-- `assignClient` - Provider or admin + timeslot is available
+- `assignClient` - Provider or admin + timeslot is available or booked (allows reassignment)
+- `complete` - Provider (owner) or admin + timeslot is booked with a client assigned
+- `forceDelete` - Provider (own timeslots) or admin — deletes regardless of status
 
 **Key Patterns:**
 ```php
@@ -243,7 +245,7 @@ $endTime = $timeslot->end_time; // Carbon instance
 
 **Organization:**
 - `resources/js/pages/` - Inertia page components (route-level components)
-  - Organized by feature: `Admin/`, `Bookings/`, `Calendar/`, `Settings/`, etc.
+  - Organized by feature: `Admin/`, `Timeslots/`, `Calendar/`, `Settings/`, etc.
   - Note: Service provider timeslot management is integrated into the Calendar page
 - `resources/js/components/` - Reusable UI components (shadcn/ui architecture)
 - `resources/js/layouts/` - Page layouts (authenticated, guest)
@@ -328,16 +330,14 @@ createForm.post(route('provider.timeslots.store'), {
 
 **Core Tables:**
 - `users` - User accounts with `role` column (legacy), `timezone`, `email_notifications_enabled` (boolean, default false)
-- `timeslots` - Provider's available slots with status
-- `bookings` - Client bookings for timeslots
-- `provider_client` - Many-to-many provider-client relationships
+- `timeslots` - Provider's available slots with status; `client_id` is set directly when booked
+- `provider_client` - Many-to-many provider-client relationships; includes `created_by_provider` (boolean) and `status` (enum: 'active'|'inactive') columns
 - `roles`, `permissions`, `model_has_roles`, etc. - Spatie permission tables
 
 **Key Relationships:**
-- User hasMany Timeslots (as provider)
-- User hasMany Bookings (as client)
+- User hasMany Timeslots (as provider via `provider_id`)
+- User hasMany Timeslots (as client via `client_id`, accessor: `bookedTimeslots()`)
 - User belongsToMany User (providers ↔ clients via `provider_client`)
-- Timeslot hasOne Booking
 - Foreign keys enforce referential integrity
 
 **Migrations:**
@@ -445,9 +445,10 @@ Service providers manage their timeslots through the calendar interface with mod
 6. Submit form → redirects back to calendar with success message
 
 **Routes:**
-- `POST /provider/timeslots` - Create new timeslot
-- `DELETE /provider/timeslots/{timeslot}` - Delete timeslot
-- `POST /provider/timeslots/{timeslot}/assign` - Assign client to timeslot
+- `POST /provider/timeslots` - Create new timeslot (optionally assign a client immediately)
+- `PATCH /provider/timeslots/{timeslot}` - Update timeslot duration (available timeslots only)
+- `DELETE /provider/timeslots/{timeslot}` - Delete timeslot (available/completed only)
+- `POST /provider/timeslots/{timeslot}/assign` - Assign or reassign client to timeslot
 - `DELETE /provider/timeslots/{timeslot}/remove` - Remove client from timeslot
 
 **Implementation Details:**
@@ -470,7 +471,7 @@ Clients book timeslots through the calendar or bookings page:
 2. Filter by provider if needed
 3. Click "Book" button on an available timeslot
 4. Confirm booking
-5. View confirmed bookings at `/bookings`
+5. View confirmed bookings at `/timeslots`
 
 ## Common Patterns
 
