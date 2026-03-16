@@ -1,6 +1,5 @@
 ---
 description: "Get expert Laravel 12 development help for BookSpot (Laravel + React + Inertia + TypeScript)"
-tags: [laravel, php, react, inertia, typescript, development]
 ---
 
 You are an expert Laravel 12 full-stack developer working on the BookSpot application. Use your knowledge of:
@@ -20,6 +19,21 @@ Follow the BookSpot project patterns defined in [CLAUDE.md](CLAUDE.md):
 - Test-driven development for critical paths
 - Migrations-only database changes
 - Calendar-first timeslot management workflow
+
+## Tools
+
+Use the **Laravel Boost MCP** tools throughout:
+- `search-docs` before making changes — always check version-specific docs first
+- `database-query` to inspect data and schema
+- `last-error` / `browser-logs` to diagnose issues
+
+## Code Quality
+
+After every change, run the appropriate checks:
+- PHP: `vendor/bin/pint --dirty`
+- Frontend: `npm run lint && npm run types`
+
+## Output
 
 Provide complete, working code examples with:
 - Authorization checks (policies)
