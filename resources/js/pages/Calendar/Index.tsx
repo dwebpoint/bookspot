@@ -488,15 +488,19 @@ export default function Calendar() {
                                                                                                             ),
                                                                                                             'HH:mm',
                                                                                                         )}
+                                                                                                        {' – '}
+                                                                                                        {format(
+                                                                                                            new Date(
+                                                                                                                timeslot.end_time,
+                                                                                                            ),
+                                                                                                            'HH:mm',
+                                                                                                        )}
                                                                                                     </span>
                                                                                                 </div>
                                                                                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                                                                     <Clock className="h-3 w-3 flex-shrink-0" />
                                                                                                     <span>
-                                                                                                        {
-                                                                                                            timeslot.duration_minutes
-                                                                                                        }{' '}
-                                                                                                        min
+                                                                                                        {timeslot.duration_minutes}{' '}min
                                                                                                     </span>
                                                                                                 </div>
                                                                                                 {timeslot.provider && (
@@ -552,15 +556,19 @@ export default function Calendar() {
                                                                                                             ),
                                                                                                             'HH:mm',
                                                                                                         )}
+                                                                                                        {' – '}
+                                                                                                        {format(
+                                                                                                            new Date(
+                                                                                                                timeslot.end_time,
+                                                                                                            ),
+                                                                                                            'HH:mm',
+                                                                                                        )}
                                                                                                     </span>
                                                                                                 </div>
                                                                                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                                                                     <Clock className="h-3 w-3 flex-shrink-0" />
                                                                                                     <span>
-                                                                                                        {
-                                                                                                            timeslot.duration_minutes
-                                                                                                        }{' '}
-                                                                                                        min
+                                                                                                        {timeslot.duration_minutes}{' '}min
                                                                                                     </span>
                                                                                                 </div>
                                                                                                 {timeslot.provider && (
@@ -616,15 +624,19 @@ export default function Calendar() {
                                                                                                     ),
                                                                                                     'HH:mm',
                                                                                                 )}
+                                                                                                {' – '}
+                                                                                                {format(
+                                                                                                    new Date(
+                                                                                                        timeslot.end_time,
+                                                                                                    ),
+                                                                                                    'HH:mm',
+                                                                                                )}
                                                                                             </span>
                                                                                         </div>
                                                                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                                                             <Clock className="h-3 w-3 flex-shrink-0" />
                                                                                             <span>
-                                                                                                {
-                                                                                                    timeslot.duration_minutes
-                                                                                                }{' '}
-                                                                                                min
+                                                                                                {timeslot.duration_minutes}{' '}min
                                                                                             </span>
                                                                                         </div>
                                                                                         {timeslot.provider &&
