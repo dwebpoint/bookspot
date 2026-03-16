@@ -2,9 +2,9 @@
 
 **Project**: Bookspot  
 **Created**: 2025-11-22  
-**Last Updated**: 2025-12-10
+**Last Updated**: 2025-12-11
 **Status**: Active
-**Version**: 2.3.0
+**Version**: 2.4.0
 
 **Consolidated From**:
 - 001-timeslot-booking (Core booking system)
@@ -16,6 +16,7 @@
 - 007-provider-delete-authorization-fix (Bug fix for calendar deletion)
 - 008-available-timeslot-deletion (Enhanced deletion for available timeslots)
 - 009-timeslot-duration-editing (Edit duration for available timeslots from calendar)
+- 010-client-profile-view (Client profile page with appointment history)
 
 ---
 
@@ -79,6 +80,19 @@ A service provider can view all clients they have created or are linked to.
 1. **Given** a service provider has multiple clients, **When** they access the clients page, **Then** they see a list of all their linked clients with names and email addresses
 2. **Given** a service provider views their client list, **When** they search for a specific client, **Then** the list filters to show matching results
 3. **Given** a service provider has no clients yet, **When** they access the clients page, **Then** they see an empty state with a prompt to create their first client
+
+---
+
+#### US-4b: Service Provider Views Client Profile
+
+A service provider can drill into a specific client to see their contact details and full appointment history with that provider.
+
+**Acceptance Scenarios**:
+1. **Given** a service provider views their client list, **When** they click the View (eye) button on a client card, **Then** they are taken to that client's profile page showing name, email, and date added
+2. **Given** a service provider is on a client's profile page, **When** the page loads, **Then** they see a carousel of timeslots they share with that client, defaulting to the "Completed" filter
+3. **Given** a service provider views a client's timeslot history, **When** they switch between All / Booked / Completed filter buttons, **Then** the carousel updates to show only timeslots matching the selected status
+4. **Given** a service provider views timeslot cards on the client profile page, **When** they inspect a card, **Then** they see the time range (HH:mm – HH:mm), duration in minutes, and a colour-coded status badge
+5. **Given** a client has no shared timeslots with the provider in the selected filter, **When** the provider views that filter, **Then** they see an appropriate empty state message
 
 ---
 
@@ -247,6 +261,13 @@ An admin can perform any service provider action on behalf of any provider.
 - **FR-053**: ServiceProviders MUST be able to delete available timeslots from the timeslots page
 - **FR-054**: ServiceProviders MUST be able to delete booked timeslots from the timeslots page (force delete)
 
+### Client Profile Page
+- **FR-055**: ServiceProviders MUST be able to navigate to a client's profile page from the clients list
+- **FR-056**: Client profile page MUST display client contact information (name, email, and date the client was added to the provider's list)
+- **FR-057**: Client profile page MUST display all shared timeslots (all statuses) in a carousel with filter buttons (All / Booked / Completed)
+- **FR-058**: Client profile page MUST default to the "Completed" filter on load
+- **FR-059**: Timeslot cards across all interfaces MUST display the time range in HH:mm – HH:mm format alongside duration in minutes
+
 ---
 
 ## Data Model
@@ -282,6 +303,16 @@ An admin can perform any service provider action on behalf of any provider.
 - **Upcoming Alerts**: Flash notifications for bookings within 3 days
 - **Status Indicators**: Available (green), Booked (blue), Cancelled (hidden)
 - **Persistent View State**: Calendar remembers selected month across sessions
+
+### Client Profile Page
+
+- **Route**: `/provider/clients/{id}` — Accessible to service providers and admins
+- **Header**: Client name, email address, date added to provider's list, Back button to `/provider/clients`
+- **Appointment History Carousel**: Displays all shared timeslots (booked, completed, and any remaining statuses)
+- **Status Filters**: All / Booked / Completed filter buttons with count badges; defaults to "Completed" on load
+- **Timeslot Cards**: Colour-coded by status (blue = booked, gray = completed), showing time range (HH:mm – HH:mm) and duration
+- **Empty State**: Descriptive message when no timeslots match the selected filter
+- **Authorization**: Only the owning service provider (or admin) can access a client's profile; returns 404 if client is not linked
 
 ### Timeslots Page (List View)
 
@@ -369,7 +400,6 @@ stateDiagram-v2
 - Self-service user registration
 - Client approval/invitation workflows
 - Provider-client messaging
-- Detailed client profile management
 - Client groups/categorization
 - Import/export of client lists
 
@@ -383,6 +413,25 @@ The original Booking entity has been consolidated into the Timeslot model. Inste
 - Updated `status` enum: available, booked, cancelled, completed
 
 This simplifies queries and reduces joins while maintaining all functionality.
+
+### Client Profile View (from 010)
+Service providers can view a dedicated profile page for each of their clients at `/provider/clients/{id}`:
+- **Client info card**: Shows name, email, and the date the client was added to the provider's list
+- **Appointment history carousel**: Displays all timeslots shared between the provider and client, filtered by status (All / Booked / Completed)
+- **Default filter**: "Completed" — providers most often review past appointments first
+- **Authorization**: `ClientController::show()` guards access so only the owning provider (or admin) can view the page; linked via `GET clients/{client}` → `provider.clients.show` route
+- **Timeslot card display**: Each card shows `HH:mm – HH:mm` time range, Clock icon, and duration in minutes — consistent with the updated calendar card format
+
+**Route:**
+```
+GET /provider/clients/{client} → Provider\ClientController@show → provider.clients.show
+```
+
+**Files:**
+- `app/Http/Controllers/Provider/ClientController.php` — `show()` method
+- `resources/js/pages/Provider/Clients/Show.tsx` — Profile page component
+- `resources/js/pages/Provider/Clients/Index.tsx` — Eye icon / View button added
+- `resources/js/lib/route-helper.ts` — `provider.clients.show` entry added
 
 ### Modal-Based UX (from 004)
 Timeslot management has been refactored from separate pages to modal dialogs:

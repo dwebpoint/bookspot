@@ -121,7 +121,7 @@ class ClientController extends Controller
     }
 
     /**
-     * Show the specified client's details and completed timeslots.
+     * Show the specified client's details and all timeslots.
      */
     public function show(User $client): Response
     {
@@ -137,9 +137,8 @@ class ClientController extends Controller
             ->first()
             ?->pivot;
 
-        $completedTimeslots = auth()->user()->timeslots()
+        $timeslots = auth()->user()->timeslots()
             ->where('client_id', $client->id)
-            ->where('status', 'completed')
             ->orderBy('start_time', 'desc')
             ->get(['id', 'start_time', 'duration_minutes', 'status']);
 
@@ -148,7 +147,7 @@ class ClientController extends Controller
                 ...$client->only(['id', 'name', 'email', 'created_at']),
                 'added_at' => $pivot?->created_at,
             ],
-            'completedTimeslots' => $completedTimeslots,
+            'timeslots' => $timeslots,
         ]);
     }
 

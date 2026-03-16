@@ -6,6 +6,8 @@ Enhanced the calendar view to display client names for service providers and adm
 - Optional client assignment during timeslot creation
 - Client reassignment for booked timeslots
 - **Duration editing for available timeslots** (Added 2025-12-10)
+- **Timeslot cards display time range (HH:mm – HH:mm) and duration in minutes** (Added 2025-12-11)
+- **Client profile page at `/provider/clients/{id}`** (Added 2025-12-11)
 
 ## Timeslot State Diagram
 
@@ -262,6 +264,10 @@ All components fully typed with TypeScript:
 3. `resources/js/components/ui/combobox.tsx` - NEW: Autocomplete selector
 4. `resources/js/components/ui/popover.tsx` - NEW: Popover wrapper
 5. `resources/js/components/ui/command.tsx` - NEW: Command primitives
+6. `app/Http/Controllers/Provider/ClientController.php` - Added `show()` method (2025-12-11)
+7. `resources/js/pages/Provider/Clients/Show.tsx` - NEW: Client profile page (2025-12-11)
+8. `resources/js/pages/Provider/Clients/Index.tsx` - Added Eye/View button (2025-12-11)
+9. `resources/js/lib/route-helper.ts` - Added `provider.clients.show` entry (2025-12-11)
 
 ## Testing Checklist
 - [ ] Service provider sees client names on their booked timeslots
@@ -550,10 +556,100 @@ public function forceDelete(User $user, Timeslot $timeslot): bool
 3. `resources/js/pages/Timeslots/Index.tsx` - Added conditional routing based on timeslot status
 4. `app/Policies/TimeslotPolicy.php` - No changes (already had proper logic)
 
+### Timeslot Card Time Range Display (Added 2025-12-11)
+**Feature:** All timeslot cards now show `HH:mm – HH:mm` (start to end time) alongside the duration in minutes with a Clock icon.
+
+**Previous format:**
+```
+14:00
+60 min
+```
+
+**New format:**
+```
+14:00 – 15:00
+🕐 60 min
+```
+
+**Implementation (`resources/js/pages/Calendar/Index.tsx`):**
+
+All three timeslot card variants (client-booked blue, client-available green, provider/admin dynamic colour) were updated with the same pattern:
+
+```tsx
+<span className="text-sm font-medium">
+    {format(new Date(timeslot.start_time), 'HH:mm')}
+    {' – '}
+    {format(new Date(timeslot.end_time), 'HH:mm')}
+</span>
+<div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <Clock className="h-3 w-3 flex-shrink-0" />
+    <span>{timeslot.duration_minutes}{' '}min</span>
+</div>
+```
+
+**Data source:** `timeslot.end_time` is a computed attribute appended by the `Timeslot` model (`start_time + duration_minutes`), already available on the `Timeslot` TypeScript interface.
+
+**Applies to all roles:** Clients see the same time-range format as providers and admins.
+
+---
+
+### Client Profile Page (Added 2025-12-11)
+**Feature:** Service providers can navigate to a dedicated profile page for each client at `/provider/clients/{id}`, showing contact details and appointment history.
+
+**Entry point:** Eye icon button added to each client card in `/provider/clients`.
+
+**Page structure:**
+1. Header with Back button (`← Back to Clients`) and client name heading
+2. Info card — name, email, date added to provider's list
+3. Filter buttons (All / Booked / Completed) with count badges; defaults to **Completed**
+4. Carousel of timeslot cards matching the selected filter
+
+**Timeslot cards on the profile page:**
+- Colour-coded: blue for booked, gray for completed (available retained in style map for completeness)
+- Show `HH:mm – HH:mm` time range, Clock icon, and duration in minutes
+- Date formatted as day-of-week + date (e.g. "Mon, 11 Dec 2025")
+
+**Backend (`ClientController::show()`):**
+```php
+public function show(User $client): Response
+{
+    abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
+    if (! auth()->user()->hasClient($client->id)) {
+        abort(404, 'Client not found.');
+    }
+
+    $pivot = auth()->user()->clients()
+        ->where('users.id', $client->id)
+        ->withPivot('created_at')->first()?->pivot;
+
+    $timeslots = auth()->user()->timeslots()
+        ->where('client_id', $client->id)
+        ->orderBy('start_time', 'desc')
+        ->get(['id', 'start_time', 'duration_minutes', 'status']);
+
+    return Inertia::render('Provider/Clients/Show', [
+        'client' => [...$client->only(['id', 'name', 'email', 'created_at']), 'added_at' => $pivot?->created_at],
+        'timeslots' => $timeslots,
+    ]);
+}
+```
+
+**Route:** `GET /provider/clients/{client}` → `provider.clients.show`
+
+**Authorization:** Provider must be linked to the client; returns 404 otherwise. Admins pass through via `isAdmin()` check.
+
+**Files:**
+- `app/Http/Controllers/Provider/ClientController.php` — `show()` method
+- `resources/js/pages/Provider/Clients/Show.tsx` — Profile page component
+- `resources/js/pages/Provider/Clients/Index.tsx` — Eye icon / View button
+- `resources/js/lib/route-helper.ts` — `provider.clients.show` → `/provider/clients/:id`
+
+---
+
 ## Future Enhancements
 - Add "Remove Client" button for booked timeslots
 - Add bulk client assignment
 - Add client details tooltip on hover
 - Add recent clients quick-select
-- Add client profile link from calendar
 - Add client assignment history/audit log
+- Add action links (assign timeslot, edit) from the client profile page
