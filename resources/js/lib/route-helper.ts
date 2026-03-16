@@ -32,6 +32,7 @@ export function route(
         'provider.clients.index': '/provider/clients',
         'provider.clients.create': '/provider/clients/create',
         'provider.clients.store': '/provider/clients',
+        'provider.clients.show': '/provider/clients/:id',
         'provider.clients.edit': '/provider/clients/:id/edit',
         'provider.clients.update': '/provider/clients/:id',
         'provider.clients.destroy': '/provider/clients/:id',

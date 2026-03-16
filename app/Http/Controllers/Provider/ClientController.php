@@ -121,6 +121,38 @@ class ClientController extends Controller
     }
 
     /**
+     * Show the specified client's details and completed timeslots.
+     */
+    public function show(User $client): Response
+    {
+        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
+
+        if (! auth()->user()->hasClient($client->id)) {
+            abort(404, 'Client not found.');
+        }
+
+        $pivot = auth()->user()->clients()
+            ->where('users.id', $client->id)
+            ->withPivot('created_at')
+            ->first()
+            ?->pivot;
+
+        $completedTimeslots = auth()->user()->timeslots()
+            ->where('client_id', $client->id)
+            ->where('status', 'completed')
+            ->orderBy('start_time', 'desc')
+            ->get(['id', 'start_time', 'duration_minutes', 'status']);
+
+        return Inertia::render('Provider/Clients/Show', [
+            'client' => [
+                ...$client->only(['id', 'name', 'email', 'created_at']),
+                'added_at' => $pivot?->created_at,
+            ],
+            'completedTimeslots' => $completedTimeslots,
+        ]);
+    }
+
+    /**
      * Show the form for editing the specified client.
      */
     public function edit(User $client): Response

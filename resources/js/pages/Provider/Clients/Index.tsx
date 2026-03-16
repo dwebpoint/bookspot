@@ -19,7 +19,7 @@ import type { PaginatedResponse, SharedData } from '@/types';
 import type { Client } from '@/types/client';
 import { Head, router, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { Edit, Plus, Search, Trash2, UserPlus, Users } from 'lucide-react';
+import { Edit, Eye, Plus, Search, Trash2, UserPlus, Users } from 'lucide-react';
 import { useState } from 'react';
 
 interface ClientsIndexProps extends SharedData {
@@ -166,6 +166,21 @@ export default function Index() {
                                                 </p>
                                             </div>
                                             <div className="flex gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        router.get(
+                                                            route(
+                                                                'provider.clients.show',
+                                                                client.id,
+                                                            ),
+                                                        )
+                                                    }
+                                                    title="View client"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"

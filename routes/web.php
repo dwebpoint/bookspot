@@ -60,6 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('clients/{client}', [\App\Http\Controllers\Provider\ClientController::class, 'destroy'])->name('clients.destroy');
         Route::get('clients/{client}/edit', [\App\Http\Controllers\Provider\ClientController::class, 'edit'])->name('clients.edit');
         Route::put('clients/{client}', [\App\Http\Controllers\Provider\ClientController::class, 'update'])->name('clients.update');
+        Route::get('clients/{client}', [\App\Http\Controllers\Provider\ClientController::class, 'show'])->name('clients.show');
     });
 
     // Admin routes
