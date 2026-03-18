@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BookSpot is a Laravel 12 + React 19 timeslot booking application using Inertia.js as the bridge between backend and frontend. The application allows service providers to create timeslots, manage clients, and handle bookings through a calendar-first interface.
+BookSpot is a Laravel 13 + React 19 timeslot booking application using Inertia.js as the bridge between backend and frontend. The application allows service providers to create timeslots, manage clients, and handle bookings through a calendar-first interface.
 
 **Tech Stack:**
-- Backend: Laravel 12, PHP 8.4+, Spatie Laravel Permission, Laravel Fortify
+- Backend: Laravel 13, PHP 8.4+, Spatie Laravel Permission, Laravel Fortify
 - Frontend: React 19, TypeScript 5.7+, Tailwind CSS 4.x, shadcn/ui, Radix UI
 - Bridge: Inertia.js 2.x (server-side rendering capable)
 - Build: Vite 7.x with Laravel Wayfinder for type-safe routing
 - Database: SQLite (testing), configurable for production
-- Testing: PHPUnit with RefreshDatabase
+- Testing: PHPUnit 12 with RefreshDatabase
 
 ## Development Commands
 
@@ -631,13 +631,13 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - php - 8.4.14
 - inertiajs/inertia-laravel (INERTIA) - v2
 - laravel/fortify (FORTIFY) - v1
-- laravel/framework (LARAVEL) - v12
+- laravel/framework (LARAVEL) - v13
 - laravel/prompts (PROMPTS) - v0
 - laravel/wayfinder (WAYFINDER) - v0
 - laravel/mcp (MCP) - v0
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
-- phpunit/phpunit (PHPUNIT) - v11
+- phpunit/phpunit (PHPUNIT) - v12
 - @inertiajs/react (INERTIA) - v2
 - react (REACT) - v19
 - tailwindcss (TAILWINDCSS) - v4
@@ -830,14 +830,14 @@ Route::get('/users', function () {
 - If you receive an "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error, you can run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
 
 
-=== laravel/v12 rules ===
+=== laravel/v13 rules ===
 
-## Laravel 12
+## Laravel 13
 
 - Use the `search-docs` tool to get version specific documentation.
 - Since Laravel 11, Laravel has a new streamlined file structure which this project uses.
 
-### Laravel 12 Structure
+### Laravel 13 Structure
 - No middleware files in `app/Http/Middleware/`.
 - `bootstrap/app.php` is the file to register middleware, exceptions, and routing files.
 - `bootstrap/providers.php` contains application specific service providers.
@@ -918,12 +918,16 @@ If your application uses the `<Form>` component from Inertia, you can use Wayfin
 
 ## PHPUnit Core
 
-- This application uses PHPUnit for testing. All tests must be written as PHPUnit classes. Use `php artisan make:test --phpunit {name}` to create a new test.
+- This application uses PHPUnit 12 for testing. All tests must be written as PHPUnit classes. Use `php artisan make:test --phpunit {name}` to create a new test.
 - If you see a test using "Pest", convert it to PHPUnit.
 - Every time a test has been updated, run that singular test.
 - When the tests relating to your feature are passing, ask the user if they would like to also run the entire test suite to make sure everything is still passing.
 - Tests should test all of the happy paths, failure paths, and weird paths.
 - You must not remove any tests or test files from the tests directory without approval. These are not temporary or helper files, these are core to the application.
+
+### PHPUnit 12 Naming Convention
+- **`@test` annotations are no longer supported in PHPUnit 12.** Test methods must use the `test_` prefix (e.g. `public function test_user_can_login()`).
+- Never write `/** @test */` above a method. Always prefix the method name with `test_`.
 
 ### Running Tests
 - Run the minimal number of tests, using an appropriate filter, before finalizing.

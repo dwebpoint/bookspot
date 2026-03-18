@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Timeslot;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -21,10 +22,8 @@ class TimeslotPolicyTest extends TestCase
     {
         parent::setUp();
 
-        // Seed roles and permissions
-        $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+        $this->seed(RolesAndPermissionsSeeder::class);
 
-        // Create users with roles
         $this->admin = User::factory()->create();
         $this->admin->assignRole('admin');
 
@@ -34,12 +33,10 @@ class TimeslotPolicyTest extends TestCase
         $this->client = User::factory()->create();
         $this->client->assignRole('client');
 
-        // Link client to provider
         $this->provider->clients()->attach($this->client->id);
     }
 
-    /** @test */
-    public function client_can_cancel_future_booked_timeslot()
+    public function test_client_can_cancel_future_booked_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -51,8 +48,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->client->can('cancelBooking', $timeslot));
     }
 
-    /** @test */
-    public function client_cannot_cancel_past_booked_timeslot()
+    public function test_client_cannot_cancel_past_booked_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -64,8 +60,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertFalse($this->client->can('cancelBooking', $timeslot));
     }
 
-    /** @test */
-    public function provider_can_cancel_past_booked_timeslot()
+    public function test_provider_can_cancel_past_booked_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -77,8 +72,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->provider->can('cancelBooking', $timeslot));
     }
 
-    /** @test */
-    public function admin_can_cancel_past_booked_timeslot()
+    public function test_admin_can_cancel_past_booked_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -90,8 +84,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->admin->can('cancelBooking', $timeslot));
     }
 
-    /** @test */
-    public function client_cannot_cancel_available_timeslot()
+    public function test_client_cannot_cancel_available_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -102,8 +95,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertFalse($this->client->can('cancelBooking', $timeslot));
     }
 
-    /** @test */
-    public function client_cannot_cancel_another_clients_booking()
+    public function test_client_cannot_cancel_another_clients_booking(): void
     {
         $anotherClient = User::factory()->create();
         $anotherClient->assignRole('client');
@@ -118,8 +110,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertFalse($this->client->can('cancelBooking', $timeslot));
     }
 
-    /** @test */
-    public function client_can_book_available_future_timeslot_from_linked_provider()
+    public function test_client_can_book_available_future_timeslot_from_linked_provider(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -130,8 +121,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->client->can('book', $timeslot));
     }
 
-    /** @test */
-    public function client_cannot_book_timeslot_from_unlinked_provider()
+    public function test_client_cannot_book_timeslot_from_unlinked_provider(): void
     {
         $anotherProvider = User::factory()->create();
         $anotherProvider->assignRole('service_provider');
@@ -145,8 +135,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertFalse($this->client->can('book', $timeslot));
     }
 
-    /** @test */
-    public function provider_can_update_own_available_timeslot()
+    public function test_provider_can_update_own_available_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -157,8 +146,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->provider->can('update', $timeslot));
     }
 
-    /** @test */
-    public function provider_cannot_update_booked_timeslot()
+    public function test_provider_cannot_update_booked_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -170,8 +158,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertFalse($this->provider->can('update', $timeslot));
     }
 
-    /** @test */
-    public function admin_can_update_any_timeslot()
+    public function test_admin_can_update_any_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -183,8 +170,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->admin->can('update', $timeslot));
     }
 
-    /** @test */
-    public function provider_can_delete_own_available_timeslot()
+    public function test_provider_can_delete_own_available_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -195,8 +181,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->provider->can('delete', $timeslot));
     }
 
-    /** @test */
-    public function provider_can_delete_own_past_available_timeslot()
+    public function test_provider_can_delete_own_past_available_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -207,8 +192,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->provider->can('delete', $timeslot));
     }
 
-    /** @test */
-    public function provider_cannot_delete_booked_timeslot()
+    public function test_provider_cannot_delete_booked_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -220,8 +204,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertFalse($this->provider->can('delete', $timeslot));
     }
 
-    /** @test */
-    public function provider_can_delete_completed_timeslot()
+    public function test_provider_can_delete_completed_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -233,8 +216,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->provider->can('delete', $timeslot));
     }
 
-    /** @test */
-    public function provider_cannot_delete_another_providers_timeslot()
+    public function test_provider_cannot_delete_another_providers_timeslot(): void
     {
         $anotherProvider = User::factory()->create();
         $anotherProvider->assignRole('service_provider');
@@ -248,8 +230,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertFalse($this->provider->can('delete', $timeslot));
     }
 
-    /** @test */
-    public function admin_can_delete_any_timeslot()
+    public function test_admin_can_delete_any_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -261,8 +242,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->admin->can('delete', $timeslot));
     }
 
-    /** @test */
-    public function client_cannot_delete_timeslot()
+    public function test_client_cannot_delete_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,

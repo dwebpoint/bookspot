@@ -3,10 +3,8 @@
 namespace App\Providers;
 
 use App\Listeners\SendTimeslotNotifications;
-use App\Models\Booking;
 use App\Models\Timeslot;
 use App\Models\User;
-use App\Policies\BookingPolicy;
 use App\Policies\ProviderClientPolicy;
 use App\Policies\TimeslotPolicy;
 use App\Policies\UserPolicy;
@@ -30,7 +28,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Timeslot::class, TimeslotPolicy::class);
-        Gate::policy(Booking::class, BookingPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
 
         // Register policy for provider-client relationships

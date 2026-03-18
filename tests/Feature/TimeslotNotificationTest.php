@@ -37,8 +37,7 @@ class TimeslotNotificationTest extends TestCase
         $this->provider->clients()->attach($this->client->id);
     }
 
-    /** @test */
-    public function timeslot_booked_event_is_dispatched_when_client_books(): void
+    public function test_timeslot_booked_event_is_dispatched_when_client_books(): void
     {
         Event::fake();
 
@@ -58,8 +57,7 @@ class TimeslotNotificationTest extends TestCase
         });
     }
 
-    /** @test */
-    public function timeslot_cancelled_event_is_dispatched_when_client_cancels(): void
+    public function test_timeslot_cancelled_event_is_dispatched_when_client_cancels(): void
     {
         Event::fake();
 
@@ -80,8 +78,7 @@ class TimeslotNotificationTest extends TestCase
         });
     }
 
-    /** @test */
-    public function subscriber_queues_booking_email_when_provider_has_notifications_enabled(): void
+    public function test_subscriber_queues_booking_email_when_provider_has_notifications_enabled(): void
     {
         Mail::fake();
 
@@ -102,8 +99,7 @@ class TimeslotNotificationTest extends TestCase
         });
     }
 
-    /** @test */
-    public function subscriber_queues_cancellation_email_when_provider_has_notifications_enabled(): void
+    public function test_subscriber_queues_cancellation_email_when_provider_has_notifications_enabled(): void
     {
         Mail::fake();
 
@@ -125,8 +121,7 @@ class TimeslotNotificationTest extends TestCase
         });
     }
 
-    /** @test */
-    public function subscriber_skips_email_when_provider_has_notifications_disabled(): void
+    public function test_subscriber_skips_email_when_provider_has_notifications_disabled(): void
     {
         Mail::fake();
 
@@ -141,8 +136,7 @@ class TimeslotNotificationTest extends TestCase
         Mail::assertNotQueued(TimeslotBookedMail::class);
     }
 
-    /** @test */
-    public function no_event_dispatched_when_booking_fails_due_to_unavailable_timeslot(): void
+    public function test_no_event_dispatched_when_booking_fails_due_to_unavailable_timeslot(): void
     {
         Event::fake();
 
@@ -160,8 +154,7 @@ class TimeslotNotificationTest extends TestCase
         Event::assertNotDispatched(TimeslotBookedEvent::class);
     }
 
-    /** @test */
-    public function no_event_dispatched_when_cancellation_is_unauthorised(): void
+    public function test_no_event_dispatched_when_cancellation_is_unauthorised(): void
     {
         Event::fake();
 
