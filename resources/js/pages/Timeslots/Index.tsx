@@ -46,10 +46,16 @@ interface TimeslotsIndexProps extends SharedData {
         client_id?: number;
     };
     clients: Client[];
+    statusCounts: {
+        all: number;
+        available: number;
+        booked: number;
+        completed: number;
+    };
 }
 
 export default function Index() {
-    const { timeslots, filters, auth, clients } =
+    const { timeslots, filters, auth, clients, statusCounts } =
         usePage<TimeslotsIndexProps>().props;
     const [cancellingId, setCancellingId] = useState<number | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -201,16 +207,40 @@ export default function Index() {
                     onValueChange={handleFilterChange}
                 >
                     <TabsList>
-                        <TabsTrigger value="all">All</TabsTrigger>
+                        <TabsTrigger value="all">
+                            All
+                            {statusCounts.all > 0 && (
+                                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                                    {statusCounts.all}
+                                </span>
+                            )}
+                        </TabsTrigger>
                         {(isAdmin || isProvider) && (
                             <TabsTrigger value="available">
                                 Available
+                                {statusCounts.available > 0 && (
+                                    <span className="ml-1.5 rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                        {statusCounts.available}
+                                    </span>
+                                )}
                             </TabsTrigger>
                         )}
                         <TabsTrigger value="booked">
                             {isProvider ? 'Booked' : 'Upcoming'}
+                            {statusCounts.booked > 0 && (
+                                <span className="ml-1.5 rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                    {statusCounts.booked}
+                                </span>
+                            )}
                         </TabsTrigger>
-                        <TabsTrigger value="completed">Completed</TabsTrigger>
+                        <TabsTrigger value="completed">
+                            Completed
+                            {statusCounts.completed > 0 && (
+                                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                                    {statusCounts.completed}
+                                </span>
+                            )}
+                        </TabsTrigger>
                     </TabsList>
                 </Tabs>
 

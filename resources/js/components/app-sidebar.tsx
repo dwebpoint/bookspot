@@ -13,16 +13,16 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Calendar, Users } from 'lucide-react';
+import { BookOpen, Calendar, LayoutGrid, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const getMainNavItems = (userRole: string): NavItem[] => {
     const commonItems: NavItem[] = [
-        // {
-        //     title: 'Dashboard',
-        //     href: dashboard(),
-        //     icon: LayoutGrid,
-        // },
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
         {
             title: 'Calendar',
             href: '/calendar',

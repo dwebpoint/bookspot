@@ -1,3 +1,4 @@
+import { AmbientBackground } from '@/components/ambient-background';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
@@ -12,9 +13,17 @@ export function AppShell({ children, variant = 'header' }: AppShellProps) {
 
     if (variant === 'header') {
         return (
-            <div className="flex min-h-screen w-full flex-col">{children}</div>
+            <div className="flex min-h-screen w-full flex-col">
+                <AmbientBackground />
+                {children}
+            </div>
         );
     }
 
-    return <SidebarProvider defaultOpen={isOpen}>{children}</SidebarProvider>;
+    return (
+        <SidebarProvider defaultOpen={isOpen}>
+            <AmbientBackground />
+            {children}
+        </SidebarProvider>
+    );
 }

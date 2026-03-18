@@ -1,3 +1,4 @@
+import { CheckCircle2, CircleDot, CalendarCheck } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 interface StatusBadgeProps {
@@ -6,27 +7,28 @@ interface StatusBadgeProps {
 }
 
 export default function StatusBadge({ status, variant }: StatusBadgeProps) {
-    // If custom variant provided, use it with the status as-is
     if (variant) {
         return <Badge variant={variant}>{status}</Badge>;
     }
 
-    // Otherwise use predefined mapping for booking statuses
     const variants = {
         available: {
-            variant: 'default' as const,
-            className: 'bg-green-100 text-green-700 hover:bg-green-100',
+            className:
+                'bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/30',
             label: 'Available',
+            icon: CircleDot,
         },
         booked: {
-            variant: 'default' as const,
-            className: 'bg-blue-100 text-blue-700 hover:bg-blue-100',
+            className:
+                'bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/30',
             label: 'Booked',
+            icon: CalendarCheck,
         },
         completed: {
-            variant: 'secondary' as const,
-            className: 'bg-gray-100 text-gray-700 hover:bg-gray-100',
+            className:
+                'bg-gray-100 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-800',
             label: 'Completed',
+            icon: CheckCircle2,
         },
     };
 
@@ -36,8 +38,14 @@ export default function StatusBadge({ status, variant }: StatusBadgeProps) {
         return <Badge>{status}</Badge>;
     }
 
+    const Icon = config.icon;
+
     return (
-        <Badge variant={config.variant} className={config.className}>
+        <Badge
+            variant="default"
+            className={`inline-flex items-center gap-1 ${config.className}`}
+        >
+            <Icon className="h-3 w-3" />
             {config.label}
         </Badge>
     );

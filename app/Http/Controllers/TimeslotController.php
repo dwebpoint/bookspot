@@ -73,6 +73,22 @@ class TimeslotController extends Controller
             $query->where('client_id', $request->client_id);
         }
 
+        // Count by status (using unfiltered base query for counts)
+        $countQuery = clone $query;
+        $countQuery->when($request->filled('date'), function ($q) use ($request) {
+            $q->whereDate('start_time', Carbon::parse($request->date));
+        });
+        $countQuery->when($user->isServiceProvider() && $request->filled('client_id'), function ($q) use ($request) {
+            $q->where('client_id', $request->client_id);
+        });
+
+        $statusCounts = [
+            'all' => (clone $countQuery)->count(),
+            'available' => (clone $countQuery)->available()->count(),
+            'booked' => (clone $countQuery)->booked()->count(),
+            'completed' => (clone $countQuery)->completed()->count(),
+        ];
+
         // Order and paginate
         $query->latest('start_time');
 
@@ -80,6 +96,7 @@ class TimeslotController extends Controller
             'timeslots' => $query->paginate(50),
             'filters' => $request->only(['status', 'date', 'client_id']),
             'clients' => $clients,
+            'statusCounts' => $statusCounts,
         ]);
     }
 

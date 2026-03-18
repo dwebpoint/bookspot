@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Provider\ClientController;
 use App\Http\Controllers\Provider\TimeslotController as ProviderTimeslotController;
 use App\Http\Controllers\TimeslotController;
 use Illuminate\Support\Facades\Route;
@@ -12,13 +14,13 @@ Route::get('/', function () {
         return redirect()->route('calendar');
     }
 
-    return redirect()->route('login');
+    return Inertia::render('welcome', [
+        'canRegister' => true,
+    ]);
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Calendar - All authenticated users
     Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
@@ -54,13 +56,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('timeslots/{timeslot}/remove', [ProviderTimeslotController::class, 'removeClient'])->name('timeslots.remove');
 
         // Clients
-        Route::get('clients', [\App\Http\Controllers\Provider\ClientController::class, 'index'])->name('clients.index');
-        Route::get('clients/create', [\App\Http\Controllers\Provider\ClientController::class, 'create'])->name('clients.create');
-        Route::post('clients', [\App\Http\Controllers\Provider\ClientController::class, 'store'])->name('clients.store');
-        Route::delete('clients/{client}', [\App\Http\Controllers\Provider\ClientController::class, 'destroy'])->name('clients.destroy');
-        Route::get('clients/{client}/edit', [\App\Http\Controllers\Provider\ClientController::class, 'edit'])->name('clients.edit');
-        Route::put('clients/{client}', [\App\Http\Controllers\Provider\ClientController::class, 'update'])->name('clients.update');
-        Route::get('clients/{client}', [\App\Http\Controllers\Provider\ClientController::class, 'show'])->name('clients.show');
+        Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::get('clients/create', [ClientController::class, 'create'])->name('clients.create');
+        Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
+        Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+        Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
+        Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+        Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
     });
 
     // Admin routes
