@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
+import { edit as editInfo } from '@/routes/info';
 import { edit as editNotifications } from '@/routes/notifications';
 import { edit } from '@/routes/profile';
 import { edit as editPassword } from '@/routes/user-password';
@@ -41,6 +42,15 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                   {
                       title: 'Notifications',
                       href: editNotifications(),
+                      icon: null,
+                  },
+              ]
+            : []),
+        ...(isAdmin
+            ? [
+                  {
+                      title: 'Info',
+                      href: editInfo(),
                       icon: null,
                   },
               ]

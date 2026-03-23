@@ -23,6 +23,12 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('settings/appearance');
     })->name('appearance.edit');
 
+    Route::middleware('role:admin')->group(function () {
+        Route::get('settings/info', function () {
+            return Inertia::render('settings/info');
+        })->name('info.edit');
+    });
+
     Route::middleware('role:service_provider,client')->group(function () {
         Route::get('settings/notifications', [NotificationsController::class, 'edit'])->name('notifications.edit');
         Route::patch('settings/notifications', [NotificationsController::class, 'update'])->name('notifications.update');

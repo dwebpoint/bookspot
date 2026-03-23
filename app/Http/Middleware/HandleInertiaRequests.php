@@ -63,6 +63,30 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'commitHash' => $request->user()?->isAdmin() ? $this->getCommitHash() : null,
         ];
+    }
+
+    private function getCommitHash(): ?string
+    {
+        $hash = config('app.commit_hash');
+
+        if ($hash) {
+            return $hash;
+        }
+
+        $path = base_path('.git/HEAD');
+        if (! file_exists($path)) {
+            return null;
+        }
+
+        $head = trim(file_get_contents($path));
+        if (str_starts_with($head, 'ref: ')) {
+            $refPath = base_path('.git/'.substr($head, 5));
+
+            return file_exists($refPath) ? substr(trim(file_get_contents($refPath)), 0, 8) : null;
+        }
+
+        return substr($head, 0, 8);
     }
 }

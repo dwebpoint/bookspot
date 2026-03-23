@@ -30,6 +30,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Deployed Commit Hash
+    |--------------------------------------------------------------------------
+    |
+    | The git commit hash of the deployed version. Set via CI/CD pipeline.
+    | Falls back to reading from .git directory in development.
+    |
+    */
+
+    'commit_hash' => env('APP_COMMIT_HASH'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Debug Mode
     |--------------------------------------------------------------------------
     |

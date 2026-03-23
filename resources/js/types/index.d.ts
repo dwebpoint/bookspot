@@ -31,6 +31,7 @@ export interface SharedData {
         error?: string;
     };
     sidebarOpen: boolean;
+    commitHash: string | null;
     [key: string]: unknown;
 }
 
