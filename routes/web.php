@@ -68,6 +68,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Admin routes
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
         Route::resource('users', AdminUserController::class);
+        Route::patch('users/{user}/role', [AdminUserController::class, 'updateRole'])->name('users.updateRole');
+        Route::post('users/{user}/attach-provider', [AdminUserController::class, 'attachProvider'])->name('users.attachProvider');
     });
 });
 

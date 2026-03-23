@@ -71,6 +71,11 @@ If you’re uncertain whether something is an issue, don’t comment. False posi
  
 ### What Our CI Checks (`.github/workflows/*.yml`)
 
+- **PHPStan** (level 6 via Larastan) — static analysis on all PHP code
+- **Laravel Pint** — PHP code formatting
+- **ESLint + Prettier** — frontend linting and formatting
+- **PHPUnit** — full test suite
+
 # GitHub Copilot Custom Instructions for Laravel 12 & PHP 8.2/8.4
 
 ## ✅ General Coding Standards

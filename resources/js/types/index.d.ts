@@ -49,6 +49,7 @@ export interface User {
     bookings_count?: number;
     clients_count?: number | null;
     providers_count?: number | null;
+    roles?: Array<{ id: number; name: string }>;
     [key: string]: unknown;
 }
 

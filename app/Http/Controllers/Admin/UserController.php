@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Models\ProviderClient;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,11 +26,13 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $query = User::query();
+        $query = User::query()->with('roles');
 
-        // Filter by role if specified
-        if ($request->role) {
-            $query->where('role', $request->role);
+        // Filter by Spatie role
+        if ($request->role === 'none') {
+            $query->whereDoesntHave('roles');
+        } elseif ($request->role) {
+            $query->role($request->role);
         }
 
         // Search by name or email
@@ -43,14 +47,18 @@ class UserController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
+        $serviceProviders = User::role('service_provider')->orderBy('name')->get(['id', 'name', 'email']);
+
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
             'filters' => $request->only(['role', 'search']),
+            'serviceProviders' => $serviceProviders,
             'stats' => [
                 'total_users' => User::count(),
-                'admins' => User::where('role', 'admin')->count(),
-                'service_providers' => User::where('role', 'service_provider')->count(),
-                'clients' => User::where('role', 'client')->count(),
+                'admins' => User::role('admin')->count(),
+                'service_providers' => User::role('service_provider')->count(),
+                'clients' => User::role('client')->count(),
+                'no_role' => User::whereDoesntHave('roles')->count(),
             ],
         ]);
     }
@@ -79,13 +87,15 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
-        User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'timezone' => $request->timezone ?? 'UTC',
         ]);
+
+        $user->syncRoles([$request->role]);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User created successfully!');
@@ -167,9 +177,71 @@ class UserController extends Controller
         }
 
         $user->update($data);
+        $user->syncRoles([$request->role]);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User updated successfully!');
+    }
+
+    /**
+     * Update a user's role inline (from the index page).
+     */
+    public function updateRole(Request $request, User $user): RedirectResponse
+    {
+        $this->authorize('update', $user);
+
+        $validated = $request->validate([
+            'role' => ['required', 'string', Rule::in(['admin', 'service_provider', 'client'])],
+        ]);
+
+        $user->update(['role' => $validated['role']]);
+        $user->syncRoles([$validated['role']]);
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "Role updated for {$user->name}.");
+    }
+
+    /**
+     * Attach a user (client) to a service provider.
+     */
+    public function attachProvider(Request $request, User $user): RedirectResponse
+    {
+        $this->authorize('update', $user);
+
+        $validated = $request->validate([
+            'provider_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        $provider = User::findOrFail($validated['provider_id']);
+
+        if (! $provider->hasRole('service_provider')) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Selected user is not a service provider.');
+        }
+
+        if ($user->id === $provider->id) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Cannot attach a user to themselves.');
+        }
+
+        $exists = ProviderClient::where('provider_id', $provider->id)
+            ->where('client_id', $user->id)
+            ->exists();
+
+        if ($exists) {
+            return redirect()->route('admin.users.index')
+                ->with('error', "{$user->name} is already linked to {$provider->name}.");
+        }
+
+        ProviderClient::create([
+            'provider_id' => $provider->id,
+            'client_id' => $user->id,
+            'created_by_provider' => false,
+            'status' => 'active',
+        ]);
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "{$user->name} linked to {$provider->name}.");
     }
 
     /**

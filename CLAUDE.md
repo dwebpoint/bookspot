@@ -60,6 +60,9 @@ php artisan test --coverage
 
 ### Code Quality
 ```bash
+# PHP static analysis (PHPStan via Larastan, level 6)
+composer analyse
+
 # PHP formatting (Laravel Pint)
 ./vendor/bin/pint
 
@@ -501,7 +504,7 @@ Clients book timeslots through the calendar or bookings page:
 4. **Testing:**
    - Run tests: `php artisan test`
    - Manually test in browser
-   - Check code quality: `./vendor/bin/pint && npm run lint && npm run types`
+   - Check code quality: `composer analyse && ./vendor/bin/pint && npm run lint && npm run types`
 
 ### Adding a New Role or Permission
 

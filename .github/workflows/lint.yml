@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -31,6 +33,22 @@ jobs:
         run: |
           composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
           npm install
+
+      - name: Run PHPStan on changed files
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=${{ github.event.pull_request.base.sha }}
+          else
+            BASE=${{ github.event.before }}
+          fi
+          FILES=$(git diff --name-only --diff-filter=d "$BASE" HEAD -- '*.php' | grep -E '^(app|database)/' || true)
+          if [ -n "$FILES" ]; then
+            echo "Analysing changed files:"
+            echo "$FILES"
+            echo "$FILES" | xargs vendor/bin/phpstan analyse --no-progress
+          else
+            echo "No PHP files changed in app/ or database/, skipping PHPStan."
+          fi
 
       - name: Run Pint
         run: vendor/bin/pint

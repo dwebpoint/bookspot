@@ -4,5 +4,14 @@ includes:
 parameters:
     paths:
         - app/
-    level: 5
-    
+        - database/factories/
+        - database/seeders/
+    level: 6
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        # Eloquent Attribute accessors not fully recognized by Larastan
+        - identifier: property.notFound
+        # Laravel array vs list covariance on //
+        - identifier: property.phpDocType
+        # Generic type params on HasFactory, BelongsTo, Attribute etc. - low signal for this codebase size
+        - identifier: missingType.generics
