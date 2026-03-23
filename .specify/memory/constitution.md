@@ -111,7 +111,7 @@ abstraction layer adds cognitive load and potential failure points.
 
 ## Technology Constraints
 
-- **Backend**: Laravel 12, PHP 8.4+, Spatie Laravel Permission, Laravel Fortify
+- **Backend**: Laravel 13, PHP 8.4+, Spatie Laravel Permission, Laravel Fortify
 - **Frontend**: React 19, TypeScript 5.7+, Tailwind CSS 4.x, shadcn/ui, Radix UI
 - **Bridge**: Inertia.js 2.x with Laravel Wayfinder for type-safe routing
 - **Build**: Vite 7.x

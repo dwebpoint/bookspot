@@ -56,6 +56,17 @@ class DashboardController extends Controller
 
         $totalClients = $user->clients()->count();
 
+        $yearAgo = now()->subYear()->startOfDay();
+        $completedDaily = Timeslot::forProvider($user->id)
+            ->completed()
+            ->where('start_time', '>=', $yearAgo)
+            ->selectRaw('DATE(start_time) as date, COUNT(*) as count')
+            ->groupByRaw('DATE(start_time)')
+            ->pluck('count', 'date')
+            ->toArray();
+
+        $completedCount = Timeslot::forProvider($user->id)->completed()->count();
+
         return [
             'role' => 'service_provider',
             'today_total' => $todaySlots->count(),
@@ -63,6 +74,8 @@ class DashboardController extends Controller
             'available_this_week' => $availableThisWeek,
             'booked_this_week' => $bookedThisWeek,
             'total_clients' => $totalClients,
+            'completed_count' => $completedCount,
+            'completed_heatmap' => $completedDaily,
             'next_appointment' => $nextAppointment ? [
                 'id' => $nextAppointment->id,
                 'start_time' => $nextAppointment->start_time,

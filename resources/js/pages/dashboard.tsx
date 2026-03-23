@@ -2,7 +2,16 @@ import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { format, formatDistanceToNow } from 'date-fns';
+import {
+    addDays,
+    eachDayOfInterval,
+    endOfDay,
+    format,
+    formatDistanceToNow,
+    getDay,
+    startOfDay,
+    subYears,
+} from 'date-fns';
 import {
     ArrowRight,
     CalendarCheck,
@@ -111,6 +120,157 @@ function NextAppointmentCard({
     );
 }
 
+// ── Completed heatmap ──────────────────────────────────────────────────────────
+
+const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''] as const;
+const CELL_SIZE = 13;
+const CELL_GAP = 3;
+
+function getColorClass(count: number, max: number): string {
+    if (count === 0) return 'bg-muted';
+    const ratio = count / max;
+    if (ratio <= 0.25) return 'bg-blue-300/60 dark:bg-blue-800/60';
+    if (ratio <= 0.5) return 'bg-blue-400/80 dark:bg-blue-700/80';
+    if (ratio <= 0.75) return 'bg-blue-500 dark:bg-blue-600';
+    return 'bg-blue-600 dark:bg-blue-500';
+}
+
+function CompletedHeatmap({
+    data,
+    totalCount,
+}: {
+    data: Record<string, number>;
+    totalCount: number;
+}) {
+    const today = endOfDay(new Date());
+    const yearAgo = startOfDay(subYears(today, 1));
+
+    // Build weeks grid: start from the Sunday on or before yearAgo
+    const startDay = getDay(yearAgo); // 0=Sun
+    const gridStart = addDays(yearAgo, -startDay);
+    const allDays = eachDayOfInterval({ start: gridStart, end: today });
+    const maxCount = Math.max(1, ...Object.values(data));
+
+    // Group into weeks (columns)
+    const weeks: Date[][] = [];
+    for (let i = 0; i < allDays.length; i += 7) {
+        weeks.push(allDays.slice(i, i + 7));
+    }
+
+    const cellStep = CELL_SIZE + CELL_GAP;
+
+    return (
+        <div className="rounded-xl border border-border bg-card p-5">
+            <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold">
+                        {totalCount} completed in the last year
+                    </span>
+                </div>
+                {/* Legend */}
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span>Less</span>
+                    <div
+                        className="rounded-sm bg-muted"
+                        style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                    />
+                    <div
+                        className="rounded-sm bg-blue-300/60 dark:bg-blue-800/60"
+                        style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                    />
+                    <div
+                        className="rounded-sm bg-blue-400/80 dark:bg-blue-700/80"
+                        style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                    />
+                    <div
+                        className="rounded-sm bg-blue-500 dark:bg-blue-600"
+                        style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                    />
+                    <div
+                        className="rounded-sm bg-blue-600 dark:bg-blue-500"
+                        style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                    />
+                    <span>More</span>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto">
+                <div className="flex gap-1">
+                    {/* Day labels column */}
+                    <div
+                        className="shrink-0"
+                        style={{ width: 28, marginTop: 20 }}
+                    >
+                        {DAY_LABELS.map((label, i) => (
+                            <div
+                                key={i}
+                                className="text-[10px] text-muted-foreground"
+                                style={{
+                                    height: cellStep,
+                                    lineHeight: `${CELL_SIZE}px`,
+                                }}
+                            >
+                                {label}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Grid */}
+                    <div className="flex-1 min-w-0">
+                        {/* Month labels row — same flex layout as cells */}
+                        <div className="flex justify-between gap-[3px]" style={{ marginBottom: 4 }}>
+                            {weeks.map((week, wi) => {
+                                const mid = week[Math.min(3, week.length - 1)];
+                                const m = mid.getMonth();
+                                const prevWeek = weeks[wi - 1];
+                                const prevMonth = prevWeek
+                                    ? prevWeek[Math.min(3, prevWeek.length - 1)].getMonth()
+                                    : -1;
+                                return (
+                                    <div
+                                        key={wi}
+                                        className="text-[10px] text-muted-foreground"
+                                        style={{ width: CELL_SIZE, textAlign: 'left' }}
+                                    >
+                                        {m !== prevMonth ? format(mid, 'MMM') : ''}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Cells */}
+                        <div className="flex justify-between gap-[3px]">
+                            {weeks.map((week, wi) => (
+                                <div
+                                    key={wi}
+                                    className="flex flex-col gap-[3px]"
+                                >
+                                    {week.map((day) => {
+                                        const key = format(day, 'yyyy-MM-dd');
+                                        const count = data[key] ?? 0;
+                                        return (
+                                            <div
+                                                key={key}
+                                                className={`rounded-sm ${getColorClass(count, maxCount)}`}
+                                                style={{
+                                                    width: CELL_SIZE,
+                                                    height: CELL_SIZE,
+                                                }}
+                                                title={`${key}: ${count} completed`}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ── Provider dashboard ─────────────────────────────────────────────────────────
 
 interface ProviderStats {
@@ -120,6 +280,8 @@ interface ProviderStats {
     available_this_week: number;
     booked_this_week: number;
     total_clients: number;
+    completed_count: number;
+    completed_heatmap: Record<string, number>;
     next_appointment: {
         id: number;
         start_time: string;
@@ -155,6 +317,11 @@ function ProviderDashboard({ stats }: { stats: ProviderStats }) {
                     icon={Users}
                 />
             </div>
+
+            <CompletedHeatmap
+                data={stats.completed_heatmap}
+                totalCount={stats.completed_count}
+            />
 
             <div className="grid gap-4 md:grid-cols-2">
                 {stats.next_appointment ? (

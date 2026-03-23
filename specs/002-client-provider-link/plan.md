@@ -11,8 +11,8 @@ Implement a many-to-many relationship between service providers and clients, ena
 
 ## Technical Context
 
-**Language/Version**: PHP 8.2+ (Laravel 12), TypeScript (React 19)  
-**Primary Dependencies**: Laravel 12, Inertia.js 2.x, Laravel Fortify, React 19, shadcn/ui, Radix UI, Tailwind CSS 4  
+**Language/Version**: PHP 8.4+ (Laravel 13), TypeScript (React 19)  
+**Primary Dependencies**: Laravel 13, Inertia.js 2.x, Laravel Fortify, React 19, shadcn/ui, Radix UI, Tailwind CSS 4  
 **Storage**: MySQL/PostgreSQL (Laravel Eloquent ORM)  
 **Testing**: PHPUnit (backend feature tests), Laravel's RefreshDatabase trait  
 **Target Platform**: Web application (modern browsers)  

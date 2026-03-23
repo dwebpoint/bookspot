@@ -373,7 +373,7 @@ php artisan test
 ## Technical Highlights
 
 ### Backend
-- **Laravel 12** with PHP 8.2+
+- **Laravel 13** with PHP 8.4+
 - **Eloquent ORM** with relationships, scopes, and accessors
 - **Policy-based authorization** for fine-grained access control
 - **Form Request validation** with custom rules

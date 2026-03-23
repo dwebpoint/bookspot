@@ -1,6 +1,6 @@
-# Laravel 12 Expert Developer Skill
+# Laravel 13 Expert Developer Skill
 
-A custom Claude Code skill/agent for expert Laravel 12 development assistance on the BookSpot project.
+A custom Claude Code skill/agent for expert Laravel 13 development assistance on the BookSpot project.
 
 ## Quick Start
 
@@ -23,7 +23,7 @@ Help me implement a feature for service providers to set recurring timeslots (we
 
 ## What It Helps With
 
-### Backend (Laravel 12)
+### Backend (Laravel 13)
 - ✅ Controller implementation with authorization
 - ✅ Eloquent models, relationships, and scopes
 - ✅ Policy-based authorization (RBAC)
@@ -125,7 +125,7 @@ The agent has deep knowledge of:
 - Validation: Form Requests with typed rules
 
 ### Tech Stack
-- **Backend**: Laravel 12, PHP 8.4+, Spatie Permissions, Fortify
+- **Backend**: Laravel 13, PHP 8.4+, Spatie Permissions, Fortify
 - **Frontend**: React 19, TypeScript 5.7+, Inertia.js 2.x, shadcn/ui
 - **Database**: Migrations, Eloquent ORM, foreign keys
 - **Testing**: PHPUnit, RefreshDatabase trait
@@ -267,6 +267,6 @@ php artisan migrate:fresh --seed
 
 ---
 
-**Ready to build amazing features with Laravel 12 + React 19 + Inertia.js!** 🚀
+**Ready to build amazing features with Laravel 13 + React 19 + Inertia.js!** 🚀
 
 Use `/laravel` for quick questions or `@agent laravel-expert` for comprehensive guidance.

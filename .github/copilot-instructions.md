@@ -65,7 +65,7 @@ If you’re uncertain whether something is an issue, don’t comment. False posi
 
 ## Project-Specific Context
  
-- This is a Laravel 12 project, PHP 8.4
+- This is a Laravel 13 project, PHP 8.4
 
 **Important**: You review PRs immediately, before CI completes. Do not flag issues that CI will catch.
  
@@ -76,7 +76,7 @@ If you’re uncertain whether something is an issue, don’t comment. False posi
 - **ESLint + Prettier** — frontend linting and formatting
 - **PHPUnit** — full test suite
 
-# GitHub Copilot Custom Instructions for Laravel 12 & PHP 8.2/8.4
+# GitHub Copilot Custom Instructions for Laravel 13 & PHP 8.4
 
 ## ✅ General Coding Standards
 
@@ -87,19 +87,21 @@ If you’re uncertain whether something is an issue, don’t comment. False posi
 -   Organize code into small, reusable functions or classes with single responsibility.
 -   Avoid magic numbers or hard-coded strings; use constants or config files.
 
-## ✅ PHP 8.2/8.4 Best Practices
+## ✅ PHP 8.4 Best Practices
 
--   Use **readonly properties** to enforce immutability where applicable.
+-   Use **readonly properties** and **readonly classes** to enforce immutability where applicable.
 -   Use **Enums** instead of string or integer constants.
 -   Utilize **First-class callable syntax** for callbacks.
 -   Leverage **Constructor Property Promotion**.
--   Use **Union Types**, **Intersection Types**, and **true/false return types** for strict typing.
+-   Use **Union Types**, **Intersection Types**, **DNF types**, and **true/false return types** for strict typing.
 -   Apply **Static Return Type** where needed.
 -   Use the **Nullsafe Operator (?->)** for optional chaining.
 -   Adopt **final classes** where extension is not intended.
 -   Use **Named Arguments** for improved clarity when calling functions with multiple parameters.
+-   Use **Property Hooks** (get/set) for computed or validated properties where applicable.
+-   Use **Asymmetric Visibility** (`public private(set)`) for properties that should be publicly readable but privately writable.
 
-## ✅ Laravel 12 Project Structure & Conventions
+## ✅ Laravel 13 Project Structure & Conventions
 
 -   Follow the official Laravel project structure:
 

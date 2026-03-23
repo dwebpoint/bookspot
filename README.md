@@ -18,7 +18,7 @@ A scheduling platform that connects service providers with clients. BookSpot str
 
 ## Tech stack
 
-Built with Laravel 12, React 19, TypeScript, Tailwind CSS, and [Inertia](https://inertiajs.com). Uses [shadcn/ui](https://ui.shadcn.com) and [Radix UI](https://www.radix-ui.com) component libraries.
+Built with Laravel 13, React 19, TypeScript, Tailwind CSS, and [Inertia](https://inertiajs.com). Uses [shadcn/ui](https://ui.shadcn.com) and [Radix UI](https://www.radix-ui.com) component libraries.
 
 ## Features
 

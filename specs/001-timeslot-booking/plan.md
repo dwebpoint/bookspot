@@ -5,14 +5,14 @@
 
 ## Summary
 
-Build a timeslot booking management system with three user roles (Admin, ServiceProvider, Client). Core functionality enables service providers to create available timeslots and clients to book them. The system uses Laravel 12 backend with React 19 frontend via Inertia.js, implementing role-based access control with Laravel Fortify authentication.
+Build a timeslot booking management system with three user roles (Admin, ServiceProvider, Client). Core functionality enables service providers to create available timeslots and clients to book them. The system uses Laravel 13 backend with React 19 frontend via Inertia.js, implementing role-based access control with Laravel Fortify authentication.
 
 **Technical Approach**: Implement role-based authorization using Laravel policies/gates, create database schema with timeslots and bookings tables with proper foreign keys, build RESTful controllers with Inertia responses, develop React components using shadcn/ui for consistent UI, and write feature tests for critical paths (booking, cancellation, authorization).
 
 ## Technical Context
 
-**Language/Version**: PHP 8.2+ (Laravel 12), TypeScript (React 19)  
-**Primary Dependencies**: Laravel 12, Inertia.js 2.x, Laravel Fortify, React 19, shadcn/ui, Radix UI, Tailwind CSS 4  
+**Language/Version**: PHP 8.4+ (Laravel 13), TypeScript (React 19)  
+**Primary Dependencies**: Laravel 13, Inertia.js 2.x, Laravel Fortify, React 19, shadcn/ui, Radix UI, Tailwind CSS 4  
 **Storage**: MySQL/PostgreSQL (Laravel Eloquent ORM)  
 **Testing**: PHPUnit (backend feature tests), Laravel's RefreshDatabase trait  
 **Target Platform**: Web application (modern browsers)  

@@ -63,6 +63,10 @@ php artisan test --coverage
 # PHP static analysis (PHPStan via Larastan, level 6)
 composer analyse
 
+# PHPStan on changed files only (git diff)
+composer analyse:changed
+php artisan phpstan:changed          # Artisan equivalent
+
 # PHP formatting (Laravel Pint)
 ./vendor/bin/pint
 
@@ -127,6 +131,7 @@ See `docs/SPATIE_PERMISSIONS.md` for complete permission structure and usage exa
 **Controllers:**
 - `app/Http/Controllers/Admin/` - Admin-only controllers (user management)
 - `app/Http/Controllers/Provider/` - Service provider controllers (timeslots, clients)
+- `app/Http/Controllers/DashboardController.php` - Role-based dashboard with stats (provider/client/admin)
 - `app/Http/Controllers/TimeslotController.php` - Client-facing timeslot operations (book, cancel, force delete, complete)
 - `app/Http/Controllers/CalendarController.php` - Calendar views
 - `app/Http/Controllers/Settings/` - User settings and profile (profile, password, appearance, notifications)
@@ -242,7 +247,7 @@ $endTime = $timeslot->end_time; // Carbon instance
 
 **Routes:**
 - `routes/web.php` - Main application routes with role-based middleware groups
-- `routes/settings.php` - User settings routes (profile, password, appearance, notifications)
+- `routes/settings.php` - User settings routes (profile, password, appearance, notifications, info [admin-only])
 
 ### React Frontend Structure
 
@@ -274,6 +279,7 @@ $endTime = $timeslot->end_time; // Carbon instance
 The application sidebar (`app-sidebar.tsx`) provides role-based navigation:
 
 *Common (All Users):*
+- Dashboard
 - Calendar
 - Timeslots
 
@@ -283,7 +289,10 @@ The application sidebar (`app-sidebar.tsx`) provides role-based navigation:
 *Admin Only:*
 - User Management
 
-**Settings sidebar** (`layouts/settings/layout.tsx`) is also role-aware. The "Notifications" tab is visible to `service_provider` and `client` only — admins see Profile, Password, and Appearance but not Notifications.
+**Settings sidebar** (`layouts/settings/layout.tsx`) is also role-aware:
+- All users see: Profile, Password, Appearance
+- `service_provider` and `client` also see: Notifications
+- `admin` also sees: Info (displays deployed commit hash)
 
 **Note:** Service providers no longer have a separate "Schedule" menu item. All timeslot management is integrated into the Calendar page through modal-based creation and inline operations.
 
@@ -374,6 +383,13 @@ Controller fires Event → AppServiceProvider-registered Subscriber handles it �
 - `users.email_notifications_enabled` boolean (default `false`)
 - Managed via `GET/PATCH /settings/notifications` (restricted to `service_provider` and `client` roles; admins get 403)
 - Frontend: `resources/js/pages/Settings/notifications.tsx` — checkbox in the Settings sidebar
+
+### Admin Info Page
+
+- Route: `GET /settings/info` (admin-only, middleware `role:admin`)
+- Displays the deployed commit hash read from `config('app.commit_hash')` (env `APP_COMMIT_HASH`) with a fallback that reads `.git/HEAD` at runtime
+- The `commitHash` is shared via Inertia as a shared prop (admin-only) in `HandleInertiaRequests` middleware
+- Frontend: `resources/js/pages/settings/info.tsx`
 
 **Queue requirement:** Email delivery requires the queue worker to be running:
 ```bash
