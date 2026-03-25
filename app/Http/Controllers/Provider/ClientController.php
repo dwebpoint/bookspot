@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Provider;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClientRequest;
 use App\Models\ProviderClient;
+use App\Models\Timeslot;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -12,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,7 +25,7 @@ class ClientController extends Controller
      */
     public function index(Request $request): Response
     {
-        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
+        $this->authorize('viewAnyClients');
 
         $search = $request->input('search');
 
@@ -54,7 +54,7 @@ class ClientController extends Controller
      */
     public function create(): Response
     {
-        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
+        $this->authorize('viewAnyClients');
 
         return Inertia::render('Provider/Clients/Create');
     }
@@ -64,6 +64,8 @@ class ClientController extends Controller
      */
     public function store(StoreClientRequest $request): RedirectResponse
     {
+        $this->authorize('createClient');
+
         try {
             DB::transaction(function () use ($request) {
                 // Check if user with this email already exists
@@ -125,11 +127,7 @@ class ClientController extends Controller
      */
     public function show(User $client): Response
     {
-        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
-
-        if (! auth()->user()->hasClient($client->id)) {
-            abort(404, 'Client not found.');
-        }
+        $this->authorize('viewClient', $client);
 
         $pivot = auth()->user()->clients()
             ->where('users.id', $client->id)
@@ -156,12 +154,7 @@ class ClientController extends Controller
      */
     public function edit(User $client): Response
     {
-        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
-
-        // Verify the relationship exists
-        if (! auth()->user()->hasClient($client->id)) {
-            abort(404, 'Client not found.');
-        }
+        $this->authorize('viewClient', $client);
 
         return Inertia::render('Provider/Clients/Edit', [
             'client' => $client->only(['id', 'name', 'email']),
@@ -173,12 +166,7 @@ class ClientController extends Controller
      */
     public function update(StoreClientRequest $request, User $client): RedirectResponse
     {
-        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
-
-        // Verify the relationship exists
-        if (! auth()->user()->hasClient($client->id)) {
-            abort(404, 'Client not found.');
-        }
+        $this->authorize('updateClient', $client);
 
         try {
             // Check if email is being changed to an existing email
@@ -211,7 +199,7 @@ class ClientController extends Controller
      */
     public function destroy(User $client): RedirectResponse
     {
-        abort_if(! auth()->user()->isServiceProvider() && ! auth()->user()->isAdmin(), 403);
+        $this->authorize('deleteClient', $client);
 
         try {
             DB::transaction(function () use ($client) {
@@ -226,7 +214,7 @@ class ClientController extends Controller
                     ->pluck('id');
 
                 if ($futureTimeslotIds->isNotEmpty()) {
-                    \App\Models\Timeslot::whereIn('timeslot_id', $futureTimeslotIds)
+                    Timeslot::whereIn('id', $futureTimeslotIds)
                         ->where('client_id', $client->id)
                         ->where('status', 'booked')
                         ->update(['status' => 'available']);

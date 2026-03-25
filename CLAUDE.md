@@ -192,7 +192,7 @@ The `Timeslot` model ([app/Models/Timeslot.php](app/Models/Timeslot.php)) repres
 - `viewAny` - service_provider, admin, or 'view timeslots' permission
 - `view` - Owner (provider) or admin
 - `create` - service_provider, admin, or 'create timeslots' permission
-- `update` - Owner + 'update timeslots' permission + not booked, or admin
+- `update` - Owner + 'update timeslots' permission + not completed (available and booked allowed), or admin
 - `delete` - Owner + 'delete timeslots' permission + not booked (can delete available and completed timeslots including past ones), or admin
 - `book` - Client + linked to provider + timeslot is available
 - `cancelBooking` - Client who booked (only for future timeslots) + provider + admin
@@ -465,7 +465,7 @@ Service providers manage their timeslots through the calendar interface with mod
 
 **Routes:**
 - `POST /provider/timeslots` - Create new timeslot (optionally assign a client immediately)
-- `PATCH /provider/timeslots/{timeslot}` - Update timeslot duration (available timeslots only)
+- `PATCH /provider/timeslots/{timeslot}` - Update timeslot start time and/or duration (available and booked timeslots, with overlap validation)
 - `DELETE /provider/timeslots/{timeslot}` - Delete timeslot (available/completed only)
 - `POST /provider/timeslots/{timeslot}/assign` - Assign or reassign client to timeslot
 - `DELETE /provider/timeslots/{timeslot}/remove` - Remove client from timeslot
@@ -476,6 +476,14 @@ Service providers manage their timeslots through the calendar interface with mod
 - Default values: selected date at 9:00 AM, 60 minutes duration
 - Success callback closes modal and resets form
 - All operations redirect to `/calendar` for consistent user experience
+
+**Timeslot Edit Flow:**
+1. Click a timeslot on the calendar to open the details modal
+2. Click the "Edit" button (available for available and booked timeslots, not completed)
+3. Combined edit form shows date, time, and duration fields
+4. On save: modal refreshes with updated data; on validation failure (e.g., overlap): inline error message displayed
+5. Overlap validation checks against all other provider timeslots for the same time range
+6. Provider name is hidden in their own modals (only shown to clients)
 
 **Calendar Page Routing Pattern:**
 When users perform actions on `/calendar` (create/delete timeslots, assign/remove clients, book/cancel), they remain on `/calendar` after the operation completes. Controllers should redirect back to `route('calendar')` after successful operations to maintain user context and provide seamless workflow.

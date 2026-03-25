@@ -51,13 +51,18 @@ class TimeslotController extends Controller
     {
         $this->authorize('update', $timeslot);
 
-        // Only allow update if timeslot is in 'available' state
-        if (! $timeslot->is_available) {
-            return back()->with('error', 'Only available timeslots can be updated.');
+        // Only allow update if timeslot is available or booked
+        if ($timeslot->is_completed) {
+            return back()->with('error', 'Completed timeslots cannot be updated.');
         }
-        $timeslot->update([
-            'duration_minutes' => $request->duration_minutes,
-        ]);
+
+        $data = ['duration_minutes' => $request->duration_minutes];
+
+        if ($request->has('start_time')) {
+            $data['start_time'] = $request->start_time;
+        }
+
+        $timeslot->update($data);
 
         return back()->with('success', 'Timeslot updated successfully.');
     }

@@ -41,11 +41,6 @@ class TimeslotPolicy
             return true;
         }
 
-        // Cannot update booked timeslots
-        if ($timeslot->is_booked) {
-            return false;
-        }
-
         return $user->can('update timeslots') && $user->id === $timeslot->provider_id;
     }
 

@@ -24,6 +24,7 @@ export function route(
         // Provider routes
 
         'provider.timeslots.store': '/provider/timeslots',
+        'provider.timeslots.update': '/provider/timeslots/:id',
         'provider.timeslots.destroy': '/provider/timeslots/:id',
         'provider.timeslots.assign': '/provider/timeslots/:id/assign',
         'provider.timeslots.remove': '/provider/timeslots/:id/remove',

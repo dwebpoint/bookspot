@@ -88,9 +88,12 @@ export default function Calendar() {
     const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showCompleteDialog, setShowCompleteDialog] = useState(false);
-    const [isEditingDuration, setIsEditingDuration] = useState(false);
+    const [isEditingTimeslot, setIsEditingTimeslot] = useState(false);
     const [editDuration, setEditDuration] = useState<number>(60);
+    const [editStartDate, setEditStartDate] = useState('');
+    const [editStartTime, setEditStartTime] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+    const [updateError, setUpdateError] = useState<string | null>(null);
     const [createDate, setCreateDate] = useState('');
     const [createTime, setCreateTime] = useState('');
 
@@ -264,16 +267,40 @@ export default function Calendar() {
         );
     };
 
-    const handleUpdateDuration = () => {
+    const handleUpdateTimeslot = () => {
         if (!selectedTimeslot) return;
 
         setIsUpdating(true);
+        setUpdateError(null);
+        const data: { duration_minutes: number; start_time?: string } = {
+            duration_minutes: editDuration,
+        };
+
+        if (editStartDate && editStartTime) {
+            data.start_time = `${editStartDate}T${editStartTime}`;
+        }
+
         router.patch(
             route('provider.timeslots.update', selectedTimeslot.id),
-            { duration_minutes: editDuration },
+            data,
             {
-                onSuccess: () => {
-                    setIsEditingDuration(false);
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    setIsEditingTimeslot(false);
+                    setUpdateError(null);
+                    // Refresh selectedTimeslot from updated page props
+                    const updatedTimeslots = (page.props as unknown as CalendarPageProps).timeslots;
+                    const updated = updatedTimeslots.find((t) => t.id === selectedTimeslot.id);
+                    if (updated) {
+                        setSelectedTimeslot(updated);
+                        setEditDuration(updated.duration_minutes);
+                        setEditStartDate(format(new Date(updated.start_time), 'yyyy-MM-dd'));
+                        setEditStartTime(format(new Date(updated.start_time), 'HH:mm'));
+                    }
+                },
+                onError: (errors) => {
+                    const message = errors.start_time || errors.duration_minutes || 'Failed to update timeslot.';
+                    setUpdateError(message);
                 },
                 onFinish: () => {
                     setIsUpdating(false);
@@ -287,7 +314,9 @@ export default function Calendar() {
         setSelectedDate(date);
         setSelectedClientId(timeslot.client?.id || null);
         setEditDuration(timeslot.duration_minutes);
-        setIsEditingDuration(false);
+        setEditStartDate(format(new Date(timeslot.start_time), 'yyyy-MM-dd'));
+        setEditStartTime(format(new Date(timeslot.start_time), 'HH:mm'));
+        setIsEditingTimeslot(false);
         setShowDialog(true);
     };
 
@@ -298,7 +327,8 @@ export default function Calendar() {
             setSelectedTimeslot(null);
             setSelectedDate(null);
             setSelectedClientId(null);
-            setIsEditingDuration(false);
+            setIsEditingTimeslot(false);
+            setUpdateError(null);
         }
     };
 
@@ -805,94 +835,96 @@ export default function Calendar() {
                                                     </span>
                                                 </div>
                                                 <div className="text-sm text-muted-foreground">
-                                                    <div className="flex items-center gap-2">
-                                                        <span>Duration:</span>
-                                                        {canSeeClientNames &&
-                                                        selectedTimeslot.is_available ? (
-                                                            isEditingDuration ? (
-                                                                <div className="flex items-center gap-2">
-                                                                    <Select
-                                                                        value={editDuration.toString()}
-                                                                        onValueChange={(
-                                                                            value,
-                                                                        ) =>
-                                                                            setEditDuration(
-                                                                                parseInt(
-                                                                                    value,
-                                                                                ),
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <SelectTrigger className="h-8 w-32">
-                                                                            <SelectValue placeholder="Select duration" />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            <SelectItem value="60">1 hour</SelectItem>
-                                                                            <SelectItem value="80">1 hour 20 minut</SelectItem>
-                                                                            <SelectItem value="120">2 hours</SelectItem>
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        onClick={
-                                                                            handleUpdateDuration
-                                                                        }
-                                                                        disabled={
-                                                                            isUpdating
-                                                                        }
-                                                                    >
-                                                                        {isUpdating
-                                                                            ? 'Saving...'
-                                                                            : 'Save'}
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        onClick={() => {
-                                                                            setIsEditingDuration(
-                                                                                false,
-                                                                            );
-                                                                            setEditDuration(
-                                                                                selectedTimeslot.duration_minutes,
-                                                                            );
-                                                                        }}
-                                                                    >
-                                                                        Cancel
-                                                                    </Button>
+                                                    {canSeeClientNames &&
+                                                    !selectedTimeslot.is_completed &&
+                                                    isEditingTimeslot ? (
+                                                        <div className="space-y-3">
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="space-y-1">
+                                                                    <Label htmlFor="edit_start_date">Date</Label>
+                                                                    <Input
+                                                                        id="edit_start_date"
+                                                                        type="date"
+                                                                        value={editStartDate}
+                                                                        onChange={(e) => setEditStartDate(e.target.value)}
+                                                                    />
                                                                 </div>
-                                                            ) : (
-                                                                <div className="flex items-center gap-2">
-                                                                    <span>
-                                                                        {
-                                                                            selectedTimeslot.duration_minutes
-                                                                        }{' '}
-                                                                        minutes
-                                                                    </span>
+                                                                <div className="space-y-1">
+                                                                    <Label htmlFor="edit_start_time">Time</Label>
+                                                                    <Input
+                                                                        id="edit_start_time"
+                                                                        type="time"
+                                                                        step="900"
+                                                                        value={editStartTime}
+                                                                        onChange={(e) => setEditStartTime(e.target.value)}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label htmlFor="edit_duration">Duration</Label>
+                                                                <Select
+                                                                    value={editDuration.toString()}
+                                                                    onValueChange={(value) => setEditDuration(parseInt(value))}
+                                                                >
+                                                                    <SelectTrigger id="edit_duration">
+                                                                        <SelectValue placeholder="Select duration" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="60">1 hour</SelectItem>
+                                                                        <SelectItem value="80">1 hour 20 minutes</SelectItem>
+                                                                        <SelectItem value="120">2 hours</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            {updateError && (
+                                                                <p className="text-sm text-destructive">
+                                                                    {updateError}
+                                                                </p>
+                                                            )}
+                                                            <div className="flex items-center gap-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    onClick={handleUpdateTimeslot}
+                                                                    disabled={isUpdating}
+                                                                >
+                                                                    {isUpdating ? 'Saving...' : 'Save'}
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    onClick={() => {
+                                                                        setIsEditingTimeslot(false);
+                                                                        setUpdateError(null);
+                                                                        setEditDuration(selectedTimeslot.duration_minutes);
+                                                                        setEditStartDate(format(new Date(selectedTimeslot.start_time), 'yyyy-MM-dd'));
+                                                                        setEditStartTime(format(new Date(selectedTimeslot.start_time), 'HH:mm'));
+                                                                    }}
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <span>
+                                                                Duration: {selectedTimeslot.duration_minutes} minutes
+                                                            </span>
+                                                            {canSeeClientNames &&
+                                                                !selectedTimeslot.is_completed && (
                                                                     <Button
                                                                         size="sm"
                                                                         variant="ghost"
                                                                         className="h-6 w-6 p-0"
-                                                                        onClick={() =>
-                                                                            setIsEditingDuration(
-                                                                                true,
-                                                                            )
-                                                                        }
+                                                                        onClick={() => setIsEditingTimeslot(true)}
                                                                     >
                                                                         <Edit2 className="h-3 w-3" />
                                                                     </Button>
-                                                                </div>
-                                                            )
-                                                        ) : (
-                                                            <span>
-                                                                {
-                                                                    selectedTimeslot.duration_minutes
-                                                                }{' '}
-                                                                minutes
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                                )}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                {selectedTimeslot.provider && (
+                                                {selectedTimeslot.provider &&
+                                                    !canSeeClientNames && (
                                                     <p className="text-sm text-muted-foreground">
                                                         Provider:{' '}
                                                         {

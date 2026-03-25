@@ -35,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewClient', [ProviderClientPolicy::class, 'view']);
         Gate::define('createClient', [ProviderClientPolicy::class, 'create']);
         Gate::define('deleteClient', [ProviderClientPolicy::class, 'delete']);
+        Gate::define('updateClient', [ProviderClientPolicy::class, 'update']);
         Gate::define('assignTimeslotToClient', [ProviderClientPolicy::class, 'assignTimeslot']);
 
         Event::subscribe(SendTimeslotNotifications::class);

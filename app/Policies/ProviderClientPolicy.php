@@ -55,6 +55,22 @@ class ProviderClientPolicy
     }
 
     /**
+     * Determine if the user can update a client.
+     */
+    public function update(User $user, User $client): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isServiceProvider()) {
+            return $user->hasClient($client->id);
+        }
+
+        return false;
+    }
+
+    /**
      * Determine if the user can assign a timeslot to the client.
      */
     public function assignTimeslot(User $user, User $client): bool

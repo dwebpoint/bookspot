@@ -146,7 +146,7 @@ class TimeslotPolicyTest extends TestCase
         $this->assertTrue($this->provider->can('update', $timeslot));
     }
 
-    public function test_provider_cannot_update_booked_timeslot(): void
+    public function test_provider_can_update_own_booked_timeslot(): void
     {
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -155,7 +155,7 @@ class TimeslotPolicyTest extends TestCase
             'status' => 'booked',
         ]);
 
-        $this->assertFalse($this->provider->can('update', $timeslot));
+        $this->assertTrue($this->provider->can('update', $timeslot));
     }
 
     public function test_admin_can_update_any_timeslot(): void
