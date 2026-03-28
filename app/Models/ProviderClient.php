@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ProviderClientStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +34,7 @@ class ProviderClient extends Model
     {
         return [
             'created_by_provider' => 'boolean',
+            'status' => ProviderClientStatus::class,
         ];
     }
 
@@ -54,23 +57,23 @@ class ProviderClient extends Model
     /**
      * Scope to get active relationships.
      */
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
-        return $query->where('status', 'active');
+        return $query->where('status', ProviderClientStatus::Active);
     }
 
     /**
      * Scope to get inactive relationships.
      */
-    public function scopeInactive($query)
+    public function scopeInactive(Builder $query): Builder
     {
-        return $query->where('status', 'inactive');
+        return $query->where('status', ProviderClientStatus::Inactive);
     }
 
     /**
      * Scope to get relationships for a specific provider.
      */
-    public function scopeForProvider($query, int $providerId)
+    public function scopeForProvider(Builder $query, int $providerId): Builder
     {
         return $query->where('provider_id', $providerId);
     }
@@ -78,7 +81,7 @@ class ProviderClient extends Model
     /**
      * Scope to get relationships for a specific client.
      */
-    public function scopeForClient($query, int $clientId)
+    public function scopeForClient(Builder $query, int $clientId): Builder
     {
         return $query->where('client_id', $clientId);
     }

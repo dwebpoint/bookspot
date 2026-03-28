@@ -125,11 +125,11 @@ The agent has deep knowledge of:
 - Validation: Form Requests with typed rules
 
 ### Tech Stack
-- **Backend**: Laravel 13, PHP 8.4+, Spatie Permissions, Fortify
-- **Frontend**: React 19, TypeScript 5.7+, Inertia.js 2.x, shadcn/ui
+- **Backend**: Laravel 13.3, PHP 8.4+, Spatie Permissions, Fortify
+- **Frontend**: React 19, TypeScript 5.9+, Inertia.js 2.x, shadcn/ui
 - **Database**: Migrations, Eloquent ORM, foreign keys
-- **Testing**: PHPUnit, RefreshDatabase trait
-- **Build**: Vite 7.x, Laravel Wayfinder
+- **Testing**: PHPUnit 12, RefreshDatabase trait
+- **Build**: Vite 8.x, Laravel Wayfinder
 
 ## Best Practices Enforced
 

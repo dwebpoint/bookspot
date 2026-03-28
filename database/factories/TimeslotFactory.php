@@ -2,19 +2,21 @@
 
 namespace Database\Factories;
 
+use App\Enums\TimeslotStatus;
 use App\Models\Timeslot;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Timeslot>
+ * @extends Factory<Timeslot>
  */
 class TimeslotFactory extends Factory
 {
     /**
      * The name of the factory's corresponding model.
      *
-     * @var class-string<\Illuminate\Database\Eloquent\Model>
+     * @var class-string<Model>
      */
     protected $model = Timeslot::class;
 
@@ -30,7 +32,7 @@ class TimeslotFactory extends Factory
             'client_id' => null,
             'start_time' => fake()->dateTimeBetween('+1 day', '+30 days'),
             'duration_minutes' => fake()->randomElement([30, 45, 60, 90, 120]),
-            'status' => 'available',
+            'status' => TimeslotStatus::Available,
         ];
     }
 
@@ -41,7 +43,7 @@ class TimeslotFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'client_id' => $clientId ?? User::factory()->state(['role' => 'client']),
-            'status' => 'booked',
+            'status' => TimeslotStatus::Booked,
         ]);
     }
 
@@ -52,7 +54,7 @@ class TimeslotFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'client_id' => $clientId ?? User::factory()->state(['role' => 'client']),
-            'status' => 'completed',
+            'status' => TimeslotStatus::Completed,
             'start_time' => fake()->dateTimeBetween('-30 days', '-1 day'),
         ]);
     }

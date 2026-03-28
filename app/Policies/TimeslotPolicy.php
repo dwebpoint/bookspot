@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\TimeslotStatus;
 use App\Models\Timeslot;
 use App\Models\User;
 
@@ -155,7 +156,7 @@ class TimeslotPolicy
     public function complete(User $user, Timeslot $timeslot): bool
     {
         // Timeslot must have a client assigned (status is 'booked')
-        if ($timeslot->status !== 'booked' || ! $timeslot->client_id) {
+        if ($timeslot->status !== TimeslotStatus::Booked || ! $timeslot->client_id) {
             return false;
         }
 

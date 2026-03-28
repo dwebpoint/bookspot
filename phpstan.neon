@@ -7,7 +7,8 @@ parameters:
         - database/factories/
         - database/seeders/
     excludePaths:
-        - vendor/league/flysystem/src/Local/LocalFilesystemAdapter.php
+        - vendor/league/flysystem/src/Local/*
+    reportUnmatchedIgnoredErrors: false
     level: 6
     treatPhpDocTypesAsCertain: false
     ignoreErrors:

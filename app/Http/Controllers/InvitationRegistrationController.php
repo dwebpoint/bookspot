@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProviderClientStatus;
 use App\Models\Invitation;
 use App\Models\ProviderClient;
 use App\Models\User;
@@ -62,7 +63,7 @@ class InvitationRegistrationController extends Controller
             'provider_id' => $invitation->provider_id,
             'client_id' => $user->id,
             'created_by_provider' => false,
-            'status' => 'active',
+            'status' => ProviderClientStatus::Active,
         ]);
 
         $invitation->delete();

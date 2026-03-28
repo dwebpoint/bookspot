@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TimeslotStatus;
 use App\Models\Timeslot;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,9 +23,9 @@ class CalendarController extends Controller
         $user = auth()->user();
 
         // Date range: single week (Monday to Sunday) based on offset
-        $currentWeekStart = now()->startOfWeek(\Carbon\CarbonInterface::MONDAY);
+        $currentWeekStart = now()->startOfWeek(CarbonInterface::MONDAY);
         $startDate = $currentWeekStart->copy()->addWeeks($weekOffset);
-        $endDate = $startDate->copy()->endOfWeek(\Carbon\CarbonInterface::SUNDAY)->endOfDay();
+        $endDate = $startDate->copy()->endOfWeek(CarbonInterface::SUNDAY)->endOfDay();
 
         // Build query for timeslots
         $query = Timeslot::with(['provider:id,name', 'client:id,name'])
@@ -33,36 +35,29 @@ class CalendarController extends Controller
         if ($user->isClient()) {
             $providerIds = $user->providers()->pluck('users.id');
 
-            // Get timeslots from linked providers
-            $linkedTimeslots = collect();
-            if ($providerIds->isNotEmpty()) {
-                $linkedQuery = clone $query;
-
-                // Apply optional provider filter
-                if ($providerId && $providerIds->contains($providerId)) {
-                    $linkedQuery->where('provider_id', $providerId);
-                } else {
-                    $linkedQuery->whereIn('provider_id', $providerIds);
+            $clientQuery = clone $query;
+            $clientQuery->where(function ($q) use ($user, $providerIds, $providerId) {
+                // Timeslots from linked providers
+                if ($providerIds->isNotEmpty()) {
+                    $q->where(function ($sub) use ($providerIds, $providerId) {
+                        if ($providerId && $providerIds->contains($providerId)) {
+                            $sub->where('provider_id', $providerId);
+                        } else {
+                            $sub->whereIn('provider_id', $providerIds);
+                        }
+                    });
                 }
 
-                $linkedTimeslots = $linkedQuery->orderBy('start_time')->get();
-            }
+                // OR client's own bookings (regardless of provider linkage)
+                $q->orWhere(function ($sub) use ($user, $providerId) {
+                    $sub->where('client_id', $user->id);
+                    if ($providerId) {
+                        $sub->where('provider_id', $providerId);
+                    }
+                });
+            });
 
-            // Get client's own bookings (regardless of provider linkage)
-            $ownBookingsQuery = Timeslot::with(['provider:id,name', 'client:id,name'])
-                ->whereBetween('start_time', [$startDate, $endDate])
-                ->where('client_id', $user->id)
-                ->orderBy('start_time');
-
-            // Apply provider filter to own bookings if selected
-            if ($providerId) {
-                $ownBookingsQuery->where('provider_id', $providerId);
-            }
-
-            $ownBookings = $ownBookingsQuery->get();
-
-            // Merge and deduplicate timeslots
-            $timeslots = $linkedTimeslots->merge($ownBookings)->unique('id')->sortBy('start_time')->values();
+            $timeslots = $clientQuery->orderBy('start_time')->get();
 
             // Get client's linked providers for filter dropdown
             $providers = $user->providers()
@@ -82,13 +77,13 @@ class CalendarController extends Controller
 
         // Get provider's clients for client selector (service providers and admins)
         $clients = collect();
-        if ($user->role === 'service_provider') {
+        if ($user->isServiceProvider()) {
             $clients = $user->clients()
                 ->select('users.id', 'users.name')
                 ->orderBy('users.name')
                 ->get();
-        } elseif ($user->role === 'admin') {
-            $clients = User::where('role', 'client')
+        } elseif ($user->isAdmin()) {
+            $clients = User::role('client')
                 ->select('id', 'name')
                 ->orderBy('name')
                 ->get();
@@ -98,7 +93,7 @@ class CalendarController extends Controller
         if ($user->isClient()) {
             $upcomingBookings = Timeslot::with('provider')
                 ->where('client_id', $user->id)
-                ->where('status', 'booked')
+                ->where('status', TimeslotStatus::Booked)
                 ->whereBetween('start_time', [now(), now()->addDays(3)])
                 ->orderBy('start_time')
                 ->get();

@@ -4,7 +4,9 @@ namespace App\Http\Requests;
 
 use App\Models\Timeslot;
 use Carbon\Carbon;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 
 class StoreTimeslotRequest extends FormRequest
 {
@@ -19,7 +21,7 @@ class StoreTimeslotRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -31,25 +33,29 @@ class StoreTimeslotRequest extends FormRequest
                     // Parse incoming time as app timezone and validate it's in the future
                     $startTime = Carbon::parse($value, config('app.timezone'));
                     $now = Carbon::now(config('app.timezone'));
-                    
+
                     if ($startTime <= $now) {
                         $fail('The start time must be in the future.');
+
                         return;
                     }
-                    
+
                     $endTime = $startTime->copy()->addMinutes($this->duration_minutes);
 
                     // Check for overlapping timeslots for the same provider
-                    $overlap = Timeslot::where('provider_id', auth()->id())
-                        ->get()
-                        ->contains(function ($existing) use ($startTime, $endTime) {
-                            // $existing->start_time is already Carbon in app timezone from model accessor
-                            $existingStart = $existing->start_time;
-                            $existingEnd = $existingStart->copy()->addMinutes($existing->duration_minutes);
+                    $startTimeUtc = $startTime->copy()->utc()->format('Y-m-d H:i:s');
+                    $endTimeUtc = $endTime->copy()->utc()->format('Y-m-d H:i:s');
 
-                            // Overlap if existing slot starts before new slot ends and ends after new slot starts
-                            return $existingStart < $endTime && $existingEnd > $startTime;
-                        });
+                    $overlap = Timeslot::where('provider_id', auth()->id())
+                        ->where('start_time', '<', $endTimeUtc)
+                        ->whereRaw(
+                            match (DB::connection()->getDriverName()) {
+                                'sqlite' => "datetime(start_time, '+' || duration_minutes || ' minutes') > ?",
+                                default => 'DATE_ADD(start_time, INTERVAL duration_minutes MINUTE) > ?',
+                            },
+                            [$startTimeUtc]
+                        )
+                        ->exists();
 
                     if ($overlap) {
                         $fail('This timeslot overlaps with an existing timeslot.');

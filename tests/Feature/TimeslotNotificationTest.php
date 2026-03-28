@@ -78,7 +78,7 @@ class TimeslotNotificationTest extends TestCase
         });
     }
 
-    public function test_subscriber_queues_booking_email_when_provider_has_notifications_enabled(): void
+    public function test_subscriber_sends_booking_email_when_provider_has_notifications_enabled(): void
     {
         Mail::fake();
 
@@ -92,14 +92,14 @@ class TimeslotNotificationTest extends TestCase
 
         TimeslotBookedEvent::dispatch($timeslot, $this->client);
 
-        Mail::assertQueued(TimeslotBookedMail::class, function (TimeslotBookedMail $mail) use ($timeslot) {
+        Mail::assertSent(TimeslotBookedMail::class, function (TimeslotBookedMail $mail) use ($timeslot) {
             return $mail->hasTo($this->provider->email)
                 && $mail->timeslot->id === $timeslot->id
                 && $mail->client->id === $this->client->id;
         });
     }
 
-    public function test_subscriber_queues_cancellation_email_when_provider_has_notifications_enabled(): void
+    public function test_subscriber_sends_cancellation_email_when_provider_has_notifications_enabled(): void
     {
         Mail::fake();
 
@@ -114,7 +114,7 @@ class TimeslotNotificationTest extends TestCase
 
         TimeslotCancelledEvent::dispatch($timeslot, $this->client);
 
-        Mail::assertQueued(TimeslotCancelledMail::class, function (TimeslotCancelledMail $mail) use ($timeslot) {
+        Mail::assertSent(TimeslotCancelledMail::class, function (TimeslotCancelledMail $mail) use ($timeslot) {
             return $mail->hasTo($this->provider->email)
                 && $mail->timeslot->id === $timeslot->id
                 && $mail->client->id === $this->client->id;
@@ -133,7 +133,7 @@ class TimeslotNotificationTest extends TestCase
 
         TimeslotBookedEvent::dispatch($timeslot, $this->client);
 
-        Mail::assertNotQueued(TimeslotBookedMail::class);
+        Mail::assertNotSent(TimeslotBookedMail::class);
     }
 
     public function test_no_event_dispatched_when_booking_fails_due_to_unavailable_timeslot(): void
@@ -170,5 +170,45 @@ class TimeslotNotificationTest extends TestCase
             ->assertForbidden();
 
         Event::assertNotDispatched(TimeslotCancelledEvent::class);
+    }
+
+    public function test_provider_receives_booking_email_when_client_books_timeslot(): void
+    {
+        Mail::fake();
+
+        $this->provider->update(['email_notifications_enabled' => true]);
+
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => now()->addDays(3),
+            'status' => 'available',
+        ]);
+
+        $this->actingAs($this->client)
+            ->post(route('timeslots.store'), ['timeslot_id' => $timeslot->id])
+            ->assertRedirect();
+
+        Mail::assertSent(TimeslotBookedMail::class, function (TimeslotBookedMail $mail) use ($timeslot) {
+            return $mail->hasTo($this->provider->email)
+                && $mail->timeslot->id === $timeslot->id
+                && $mail->client->id === $this->client->id;
+        });
+    }
+
+    public function test_provider_does_not_receive_booking_email_when_notifications_disabled(): void
+    {
+        Mail::fake();
+
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => now()->addDays(3),
+            'status' => 'available',
+        ]);
+
+        $this->actingAs($this->client)
+            ->post(route('timeslots.store'), ['timeslot_id' => $timeslot->id])
+            ->assertRedirect();
+
+        Mail::assertNotSent(TimeslotBookedMail::class);
     }
 }

@@ -4,8 +4,8 @@ namespace Tests\Feature\Admin;
 
 use App\Models\ProviderClient;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class UserControllerTest extends TestCase
@@ -18,7 +18,7 @@ class UserControllerTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+        $this->seed(RolesAndPermissionsSeeder::class);
 
         $this->admin = User::factory()->create(['role' => 'admin']);
         $this->admin->assignRole('admin');
@@ -84,7 +84,6 @@ class UserControllerTest extends TestCase
 
         $response->assertRedirect('/admin/users');
         $user->refresh();
-        $this->assertEquals('service_provider', $user->role);
         $this->assertTrue($user->hasRole('service_provider'));
         $this->assertFalse($user->hasRole('client'));
     }

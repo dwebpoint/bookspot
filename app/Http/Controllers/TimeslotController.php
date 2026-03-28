@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TimeslotStatus;
 use App\Events\TimeslotBooked as TimeslotBookedEvent;
 use App\Events\TimeslotCancelled as TimeslotCancelledEvent;
 use App\Models\Timeslot;
@@ -50,18 +51,6 @@ class TimeslotController extends Controller
             $clients = collect();
         }
 
-        // Filter by status if specified
-        if ($request->filled('status')) {
-            $status = $request->status;
-            if ($status === 'available') {
-                $query->available();
-            } elseif ($status === 'booked') {
-                $query->booked();
-            } elseif ($status === 'completed') {
-                $query->completed();
-            }
-        }
-
         // Filter by date if specified
         if ($request->filled('date')) {
             $date = Carbon::parse($request->date);
@@ -73,14 +62,8 @@ class TimeslotController extends Controller
             $query->where('client_id', $request->client_id);
         }
 
-        // Count by status (using unfiltered base query for counts)
+        // Count by status (clone before status filter is applied)
         $countQuery = clone $query;
-        $countQuery->when($request->filled('date'), function ($q) use ($request) {
-            $q->whereDate('start_time', Carbon::parse($request->date));
-        });
-        $countQuery->when($user->isServiceProvider() && $request->filled('client_id'), function ($q) use ($request) {
-            $q->where('client_id', $request->client_id);
-        });
 
         $statusCounts = [
             'all' => (clone $countQuery)->count(),
@@ -88,6 +71,18 @@ class TimeslotController extends Controller
             'booked' => (clone $countQuery)->booked()->count(),
             'completed' => (clone $countQuery)->completed()->count(),
         ];
+
+        // Filter by status if specified (after cloning for counts)
+        if ($request->filled('status')) {
+            $status = $request->status;
+            if ($status === TimeslotStatus::Available->value) {
+                $query->available();
+            } elseif ($status === TimeslotStatus::Booked->value) {
+                $query->booked();
+            } elseif ($status === TimeslotStatus::Completed->value) {
+                $query->completed();
+            }
+        }
 
         // Order and paginate
         $query->latest('start_time');
@@ -115,7 +110,7 @@ class TimeslotController extends Controller
             DB::transaction(function () use ($request, &$bookedTimeslot) {
                 // Lock the timeslot row to prevent race conditions
                 $timeslot = Timeslot::where('id', $request->timeslot_id)
-                    ->where('status', 'available')
+                    ->where('status', TimeslotStatus::Available)
                     ->where('start_time', '>', now())
                     ->lockForUpdate()
                     ->firstOrFail();
@@ -149,15 +144,16 @@ class TimeslotController extends Controller
     {
         $this->authorize('cancelBooking', $timeslot);
 
-        /** @var User $client */
         $client = $timeslot->client;
 
         // Unassign client and make available
-        $timeslot->status = 'available';
+        $timeslot->status = TimeslotStatus::Available;
         $timeslot->client_id = null;
         $timeslot->save();
 
-        TimeslotCancelledEvent::dispatch($timeslot, $client);
+        if ($client) {
+            TimeslotCancelledEvent::dispatch($timeslot, $client);
+        }
 
         return redirect()->back()
             ->with('success', 'Booking cancelled successfully. Timeslot is now available.');

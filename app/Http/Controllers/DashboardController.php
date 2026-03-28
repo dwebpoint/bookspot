@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TimeslotStatus;
 use App\Models\Timeslot;
 use App\Models\User;
 use Inertia\Inertia;
@@ -33,26 +34,22 @@ class DashboardController extends Controller
         $todayEnd = now()->endOfDay();
         $weekEnd = now()->endOfWeek();
 
-        $todaySlots = Timeslot::forProvider($user->id)
+        $todayCounts = Timeslot::forProvider($user->id)
             ->whereBetween('start_time', [$today, $todayEnd])
-            ->get();
+            ->selectRaw("COUNT(*) as total, SUM(status = 'booked') as booked")
+            ->first();
 
         $nextAppointment = Timeslot::forProvider($user->id)
-            ->where('status', 'booked')
+            ->where('status', TimeslotStatus::Booked)
             ->where('start_time', '>', now())
             ->with('client:id,name,email')
             ->orderBy('start_time')
             ->first();
 
-        $availableThisWeek = Timeslot::forProvider($user->id)
-            ->available()
+        $weekCounts = Timeslot::forProvider($user->id)
             ->whereBetween('start_time', [now(), $weekEnd])
-            ->count();
-
-        $bookedThisWeek = Timeslot::forProvider($user->id)
-            ->booked()
-            ->whereBetween('start_time', [now(), $weekEnd])
-            ->count();
+            ->selectRaw("SUM(status = 'available' AND start_time > ?) as available_count, SUM(status = 'booked') as booked_count", [now()])
+            ->first();
 
         $totalClients = $user->clients()->count();
 
@@ -65,14 +62,14 @@ class DashboardController extends Controller
             ->pluck('count', 'date')
             ->toArray();
 
-        $completedCount = Timeslot::forProvider($user->id)->completed()->count();
+        $completedCount = (int) array_sum($completedDaily) ?: Timeslot::forProvider($user->id)->completed()->count();
 
         return [
             'role' => 'service_provider',
-            'today_total' => $todaySlots->count(),
-            'today_booked' => $todaySlots->where('status', 'booked')->count(),
-            'available_this_week' => $availableThisWeek,
-            'booked_this_week' => $bookedThisWeek,
+            'today_total' => (int) $todayCounts->total,
+            'today_booked' => (int) $todayCounts->booked,
+            'available_this_week' => (int) $weekCounts->available_count,
+            'booked_this_week' => (int) $weekCounts->booked_count,
             'total_clients' => $totalClients,
             'completed_count' => $completedCount,
             'completed_heatmap' => $completedDaily,
@@ -92,27 +89,22 @@ class DashboardController extends Controller
     private function clientStats(User $user): array
     {
         $nextAppointment = Timeslot::forClient($user->id)
-            ->where('status', 'booked')
+            ->where('status', TimeslotStatus::Booked)
             ->where('start_time', '>', now())
             ->with('provider:id,name,email')
             ->orderBy('start_time')
             ->first();
 
-        $upcomingCount = Timeslot::forClient($user->id)
-            ->where('status', 'booked')
-            ->where('start_time', '>', now())
-            ->count();
-
-        $completedCount = Timeslot::forClient($user->id)
-            ->where('status', 'completed')
-            ->count();
+        $counts = Timeslot::forClient($user->id)
+            ->selectRaw("SUM(status = 'booked' AND start_time > ?) as upcoming_count, SUM(status = 'completed') as completed_count", [now()])
+            ->first();
 
         $providerCount = $user->providers()->count();
 
         return [
             'role' => 'client',
-            'upcoming_count' => $upcomingCount,
-            'completed_count' => $completedCount,
+            'upcoming_count' => (int) $counts->upcoming_count,
+            'completed_count' => (int) $counts->completed_count,
             'provider_count' => $providerCount,
             'next_appointment' => $nextAppointment ? [
                 'id' => $nextAppointment->id,
@@ -129,23 +121,26 @@ class DashboardController extends Controller
      */
     private function adminStats(): array
     {
-        $totalUsers = User::count();
-        $totalProviders = User::where('role', 'service_provider')->count();
-        $totalClients = User::where('role', 'client')->count();
-        $activeBookings = Timeslot::where('status', 'booked')->count();
-        $availableSlots = Timeslot::available()->count();
-        $completedToday = Timeslot::where('status', 'completed')
-            ->whereDate('updated_at', today())
-            ->count();
+        $roleTable = config('permission.table_names.roles', 'roles');
+        $modelHasRoles = config('permission.table_names.model_has_roles', 'model_has_roles');
+
+        $roleCounts = User::join($modelHasRoles, 'users.id', '=', "{$modelHasRoles}.model_id")
+            ->join($roleTable, "{$modelHasRoles}.role_id", '=', "{$roleTable}.id")
+            ->where("{$modelHasRoles}.model_type", User::class)
+            ->selectRaw("SUM({$roleTable}.name = 'service_provider') as providers, SUM({$roleTable}.name = 'client') as clients")
+            ->first();
+
+        $timeslotCounts = Timeslot::selectRaw("SUM(status = 'booked') as active_bookings, SUM(status = 'available' AND start_time > ?) as available_slots, SUM(status = 'completed' AND DATE(updated_at) = DATE(?)) as completed_today", [now(), now()])
+            ->first();
 
         return [
             'role' => 'admin',
-            'total_users' => $totalUsers,
-            'total_providers' => $totalProviders,
-            'total_clients' => $totalClients,
-            'active_bookings' => $activeBookings,
-            'available_slots' => $availableSlots,
-            'completed_today' => $completedToday,
+            'total_users' => User::count(),
+            'total_providers' => (int) $roleCounts?->providers,
+            'total_clients' => (int) $roleCounts?->clients,
+            'active_bookings' => (int) $timeslotCounts->active_bookings,
+            'available_slots' => (int) $timeslotCounts->available_slots,
+            'completed_today' => (int) $timeslotCounts->completed_today,
         ];
     }
 }

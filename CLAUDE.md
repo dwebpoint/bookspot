@@ -4,674 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BookSpot is a Laravel 13 + React 19 timeslot booking application using Inertia.js as the bridge between backend and frontend. The application allows service providers to create timeslots, manage clients, and handle bookings through a calendar-first interface.
+BookSpot is a Laravel 13 + React 19 timeslot booking application using Inertia.js as the bridge between backend and frontend. Service providers create timeslots, manage clients, and handle bookings through a calendar-first interface.
 
 **Tech Stack:**
 - Backend: Laravel 13, PHP 8.4+, Spatie Laravel Permission, Laravel Fortify
-- Frontend: React 19, TypeScript 5.7+, Tailwind CSS 4.x, shadcn/ui, Radix UI
-- Bridge: Inertia.js 2.x (server-side rendering capable)
-- Build: Vite 7.x with Laravel Wayfinder for type-safe routing
+- Frontend: React 19, TypeScript 5.9+, Tailwind CSS 4.x, shadcn/ui, Radix UI
+- Bridge: Inertia.js 2.x (SSR-capable)
+- Build: Vite 8.x with Laravel Wayfinder for type-safe routing
 - Database: MariaDB 10.11 (via DDEV), SQLite (testing only)
 - Local Dev: DDEV (site URL: https://bookspot.ddev.site)
 - Testing: PHPUnit 12 with RefreshDatabase
-
-## Development Commands
-
-### Local Environment (DDEV)
-
-This project uses [DDEV](https://ddev.com) for local development. The site runs at **https://bookspot.ddev.site**.
-
-```bash
-# Start the DDEV environment
-ddev start
-
-# Stop the environment
-ddev stop
-
-# Open the site in a browser
-ddev launch
-
-# Run Artisan commands inside DDEV
-ddev exec php artisan <command>
-
-# Run Composer inside DDEV
-ddev composer <command>
-
-# Run npm inside DDEV
-ddev npm <command>
-
-# Open a shell inside the web container
-ddev ssh
-```
-
-### Initial Setup
-```bash
-# Start DDEV
-ddev start
-
-# Full setup (install dependencies, configure, migrate, seed)
-ddev composer setup
-
-# Manual setup steps
-ddev composer install
-ddev npm install
-ddev exec cp .env.example .env
-ddev exec php artisan key:generate
-ddev exec php artisan migrate
-ddev exec php artisan db:seed --class=RolesAndPermissionsSeeder
-ddev exec php artisan db:seed --class=AssignRolesToExistingUsersSeeder
-```
-
-### Development
-```bash
-# Start all development servers (Laravel queue + Vite) inside DDEV
-ddev composer dev
-
-# Start with SSR support
-ddev composer dev:ssr
-
-# Run Vite dev server separately (Vite is exposed on port 5173)
-ddev npm run dev
-```
-
-### Testing
-```bash
-# Run all tests (uses SQLite in-memory, no DDEV needed)
-php artisan test
-composer test
-
-# Run specific test
-php artisan test --filter TestName
-
-# Run tests with coverage
-php artisan test --coverage
-```
-
-### Code Quality
-```bash
-# PHP static analysis (PHPStan via Larastan, level 6)
-ddev exec php c:\work\sites\bookspot\vendor\bin\phpstan.phar analyse --no-progress
-
-# PHPStan on changed files only (git diff)
-ddev composer analyse:changed
-
-# PHP formatting (Laravel Pint)
-ddev exec php vendor/laravel/pint/builds/pint
-
-# TypeScript/React linting and formatting
-ddev npm run lint              # ESLint with auto-fix
-ddev npm run format            # Prettier format
-ddev npm run format:check      # Check formatting only
-ddev npm run types             # TypeScript type checking
-```
-
-### Building
-```bash
-ddev npm run build             # Production build
-ddev npm run build:ssr         # Build with SSR support
-```
-
-### Permission Management
-```bash
-# Clear permission cache after changes
-ddev exec php artisan permission:cache-reset
-
-# Reseed roles and permissions
-ddev exec php artisan db:seed --class=RolesAndPermissionsSeeder
-```
-
-## Architecture
-
-### Role-Based Access Control (Spatie Permissions)
-
-The application uses **Spatie Laravel Permission** for granular RBAC with three core roles:
-
-**Roles:**
-- `admin` - Full system access (superuser)
-- `service_provider` - Manage own timeslots, own clients
-- `client` - Book timeslots, view, cancel own bookings
-
-**Key Patterns:**
-- User model uses `HasRoles` trait from Spatie
-- Helper methods: `isAdmin()`, `isServiceProvider()`, `isClient()` delegate to `hasRole()`
-- Route middleware: `middleware('role:admin')` or `middleware('role:service_provider,admin')`
-- Policies combine role checks + permission checks + ownership verification
-- The legacy `role` column exists for backward compatibility but Spatie's role system is authoritative
-
-**Permission Checks:**
-```php
-// In controllers
-$user->can('create timeslots')
-$user->hasRole('admin')
-$user->hasAnyRole(['admin', 'service_provider'])
-
-// In policies
-return $user->can('delete timeslots') && $timeslot->provider_id === $user->id;
-
-// In middleware
-Route::middleware('permission:create users')->group(...)
-```
-
-See `docs/SPATIE_PERMISSIONS.md` for complete permission structure and usage examples.
-
-### Laravel Backend Structure
-
-**Controllers:**
-- `app/Http/Controllers/Admin/` - Admin-only controllers (user management)
-- `app/Http/Controllers/Provider/` - Service provider controllers (timeslots, clients, invitations)
-- `app/Http/Controllers/DashboardController.php` - Role-based dashboard with stats (provider/client/admin)
-- `app/Http/Controllers/TimeslotController.php` - Client-facing timeslot operations (book, cancel, force delete, complete)
-- `app/Http/Controllers/CalendarController.php` - Calendar views
-- `app/Http/Controllers/InvitationRegistrationController.php` - Public invitation registration (show form, register)
-- `app/Http/Controllers/Settings/` - User settings and profile (profile, password, appearance, notifications)
-
-**Events & Listeners:**
-- `app/Events/TimeslotBooked` - Fired when a client books a timeslot
-- `app/Events/TimeslotCancelled` - Fired when a client cancels a booking
-- `app/Listeners/SendTimeslotNotifications` - Event subscriber; sends booking/cancellation emails to the provider if they have `email_notifications_enabled = true`
-- Subscriber registered in `AppServiceProvider` via `Event::subscribe(SendTimeslotNotifications::class)`
-
-**Key Models:**
-- `User` - HasRoles trait, client/provider relationships via many-to-many, `email_notifications_enabled` boolean preference (default `false`)
-- `Timeslot` - Belongs to provider, optionally to client, has status (available/booked/completed)
-- `ProviderClient` - Pivot table for provider-client relationships
-- `Invitation` - Pending email invitations sent by providers to prospective clients
-
-**Note:** The Booking model has been consolidated into the Timeslot model. Timeslots now directly reference clients via `client_id` and track their lifecycle through the `status` field.
-
-#### Timeslot Model
-
-The `Timeslot` model ([app/Models/Timeslot.php](app/Models/Timeslot.php)) represents time slots that service providers create for clients to book.
-
-**Schema:**
-- `id` - Primary key
-- `provider_id` - Foreign key to users table (the service provider)
-- `client_id` - Foreign key to users table (the client who booked, nullable)
-- `start_time` - DateTime when the slot begins
-- `duration_minutes` - Integer duration of the slot
-- `status` - Enum: 'available', 'booked', 'completed'
-- `timestamps` - created_at, updated_at
-
-**Relationships:**
-- `belongsTo(User::class, 'provider_id')` - The provider who created the slot
-- `belongsTo(User::class, 'client_id')` - The client who booked the slot (if booked)
-
-**Computed Attributes (appended to array/JSON):**
-- `end_time` - Calculated as `start_time + duration_minutes`
-- `is_available` - Boolean: true if status === 'available'
-- `is_booked` - Boolean: true if status === 'booked'
-- `is_completed` - Boolean: true if status === 'completed'
-
-**Query Scopes:**
-- `available()` - Slots with status 'available' and in the future
-- `booked()` - Slots with status 'booked'
-- `completed()` - Slots with status 'completed'
-- `future()` - Slots where start_time > now
-- `forProvider($providerId)` - Slots for specific provider
-- `forClient($clientId)` - Slots for specific client
-- `forClientProviders($client)` - Slots for all of client's linked providers
-- `forProviders($providerIds)` - Slots for multiple provider IDs
-
-**Helper Methods:**
-- `book($clientId)` - Book the timeslot for a client (sets client_id, status='booked')
-- `cancel()` - Cancel the timeslot (sets status='available')
-- `complete()` - Mark as completed (sets status='completed')
-- `makeAvailable()` - Clear booking and make available (clears client_id, sets status='available')
-
-**Authorization (TimeslotPolicy):**
-- `viewAny` - service_provider, admin, or 'view timeslots' permission
-- `view` - Owner (provider) or admin
-- `create` - service_provider, admin, or 'create timeslots' permission
-- `update` - Owner + 'update timeslots' permission + not completed (available and booked allowed), or admin
-- `delete` - Owner + 'delete timeslots' permission + not booked (can delete available and completed timeslots including past ones), or admin
-- `book` - Client + linked to provider + timeslot is available
-- `cancelBooking` - Client who booked (only for future timeslots) + provider + admin
-- `assignClient` - Provider or admin + timeslot is available or booked (allows reassignment)
-- `complete` - Provider (owner) or admin + timeslot is booked with a client assigned
-- `forceDelete` - Provider (own timeslots) or admin — deletes regardless of status
-
-**Key Patterns:**
-```php
-// Create a timeslot
-$timeslot = Timeslot::create([
-    'provider_id' => auth()->id(),
-    'start_time' => '2025-11-26 14:00:00',
-    'duration_minutes' => 60,
-    'status' => 'available',
-]);
-
-// Book a timeslot for a client
-$timeslot->book($clientId);
-
-// Cancel a booking
-$timeslot->cancel();
-
-// Make timeslot available again
-$timeslot->makeAvailable();
-
-// Query available slots for a provider
-$slots = Timeslot::forProvider($providerId)
-    ->available()
-    ->orderBy('start_time')
-    ->get();
-
-// Query booked slots for a client
-$bookings = Timeslot::forClient($clientId)
-    ->booked()
-    ->with('provider')
-    ->orderBy('start_time')
-    ->get();
-
-// Check statuses
-if ($timeslot->is_available) { /* Can be booked */ }
-if ($timeslot->is_booked) { /* Currently booked */ }
-if ($timeslot->is_completed) { /* Past appointment */ }
-
-// Get end time
-$endTime = $timeslot->end_time; // Carbon instance
-```
-
-**Authorization:**
-- Policies in `app/Policies/` (TimeslotPolicy)
-- CheckRole middleware in `app/Http/Middleware/CheckRole.php`
-
-**Routes:**
-- `routes/web.php` - Main application routes with role-based middleware groups
-- `routes/settings.php` - User settings routes (profile, password, appearance, notifications, info [admin-only])
-
-### React Frontend Structure
-
-**Organization:**
-- `resources/js/pages/` - Inertia page components (route-level components)
-  - Organized by feature: `Admin/`, `Timeslots/`, `Calendar/`, `Settings/`, etc.
-  - Note: Service provider timeslot management is integrated into the Calendar page
-- `resources/js/components/` - Reusable UI components (shadcn/ui architecture)
-- `resources/js/layouts/` - Page layouts (authenticated, guest)
-- `resources/js/types/` - TypeScript type definitions
-- `resources/js/lib/` - Utility functions and helpers
-- `resources/js/hooks/` - Custom React hooks
-
-**Key Patterns:**
-- All components are functional with TypeScript strict mode
-- Inertia props are typed via TypeScript interfaces
-- Routes are type-safe via Laravel Wayfinder: `route('calendar')`
-- shadcn/ui components use Radix UI primitives with Tailwind styling
-- Forms use Inertia's `useForm` hook with validation
-- Modal dialogs are used for inline create/edit operations (e.g., timeslot creation)
-
-**TypeScript Configuration:**
-- Strict mode enabled (`strict: true`, `noImplicitAny: true`)
-- Path alias: `@/*` maps to `resources/js/*`
-- JSX: `react-jsx` (automatic React import)
-
-**Navigation Structure:**
-
-The application sidebar (`app-sidebar.tsx`) provides role-based navigation:
-
-*Common (All Users):*
-- Dashboard
-- Calendar
-- Timeslots
-
-*Service Provider Only:*
-- Clients (manage linked clients)
-
-*Admin Only:*
-- User Management
-
-**Settings sidebar** (`layouts/settings/layout.tsx`) is also role-aware:
-- All users see: Profile, Password, Appearance
-- `service_provider` and `client` also see: Notifications
-- `admin` also sees: Info (displays deployed commit hash)
-
-**Note:** Service providers no longer have a separate "Schedule" menu item. All timeslot management is integrated into the Calendar page through modal-based creation and inline operations.
-
-### Inertia.js Bridge
-
-Inertia connects Laravel controllers to React components without building a separate API:
-
-**Controller → Component:**
-```php
-// In controller
-return Inertia::render('Calendar/Index', [
-    'timeslots' => $timeslots,
-    'clients' => $clients,
-]);
-```
-
-**Component receives typed props:**
-```tsx
-// In React component
-interface Props {
-    timeslots: Timeslot[];
-    clients?: Client[];
-}
-
-export default function Index({ timeslots, clients }: Props) { ... }
-```
-
-**Form Submissions:**
-```tsx
-const form = useForm({ name: '', email: '' });
-form.post(route('provider.clients.store'));
-
-// Modal-based form submission (e.g., timeslot creation)
-const createForm = useForm({
-    start_time: '',
-    duration_minutes: 60,
-});
-createForm.post(route('provider.timeslots.store'), {
-    onSuccess: () => {
-        setShowModal(false);
-        createForm.reset();
-    },
-});
-```
-
-### Database Schema
-
-**Core Tables:**
-- `users` - User accounts with `role` column (legacy), `timezone`, `email_notifications_enabled` (boolean, default false)
-- `timeslots` - Provider's available slots with status; `client_id` is set directly when booked
-- `provider_client` - Many-to-many provider-client relationships; includes `created_by_provider` (boolean) and `status` (enum: 'active'|'inactive') columns
-- `invitations` - Pending email invitations; columns: `provider_id`, `email`, `token` (64 chars, unique), `expires_at`; unique constraint on `[provider_id, email]`; deleted when accepted
-- `roles`, `permissions`, `model_has_roles`, etc. - Spatie permission tables
-
-**Key Relationships:**
-- User hasMany Timeslots (as provider via `provider_id`)
-- User hasMany Timeslots (as client via `client_id`, accessor: `bookedTimeslots()`)
-- User belongsToMany User (providers ↔ clients via `provider_client`)
-- Foreign keys enforce referential integrity
-
-**Migrations:**
-All schema changes use migrations. Never modify database directly.
-
-### Email Notification System
-
-Providers and clients can opt in to receive email notifications. The system uses a Laravel Event → Subscriber → Mailable chain, keeping notification logic out of controllers.
-
-**Flow:**
-```
-Controller fires Event → AppServiceProvider-registered Subscriber handles it → Queued Mailable dispatched → Provider receives email
-```
-
-**Events (`app/Events/`):**
-- `TimeslotBooked` — carries `$timeslot` and `$client`; fired by `TimeslotController@store` **only when a client books their own slot** (not when a provider assigns a client via the provider interface)
-- `TimeslotCancelled` — carries `$timeslot` and `$client`; fired by `TimeslotController@destroy` **only when a client cancels their own booking** (not when a provider removes a client via the provider interface)
-
-**Subscriber (`app/Listeners/SendTimeslotNotifications`):**
-- Subscribes to both events via the `subscribe(Dispatcher $events): array` method
-- Guards each handler: if `$provider->email_notifications_enabled === false`, returns early without sending
-- Sends `App\Mail\TimeslotBooked` or `App\Mail\TimeslotCancelled` to the provider
-- **Note:** Provider-initiated actions (`Provider\TimeslotController@assignClient` and `@removeClient`) do **not** fire these events, so no email is sent when a provider assigns or removes a client themselves.
-
-**Mailables (`app/Mail/`):**
-- `TimeslotBooked` — subject includes the booking date/time; view `emails/timeslot-booked.blade.php`
-- `TimeslotCancelled` — subject includes the cancelled date/time; view `emails/timeslot-cancelled.blade.php`
-- Both implement `ShouldQueue` — emails are dispatched asynchronously via the queue worker
-- `ClientInvitation` — sent synchronously when a provider invites a new client; view `emails/client-invitation.blade.php`
-
-**User Notification Preference:**
-- `users.email_notifications_enabled` boolean (default `false`)
-- Managed via `GET/PATCH /settings/notifications` (restricted to `service_provider` and `client` roles; admins get 403)
-- Frontend: `resources/js/pages/Settings/notifications.tsx` — checkbox in the Settings sidebar
-
-### Admin Info Page
-
-- Route: `GET /settings/info` (admin-only, middleware `role:admin`)
-- Displays the deployed commit hash read from `config('app.commit_hash')` (env `APP_COMMIT_HASH`) with a fallback that reads `.git/HEAD` at runtime
-- The `commitHash` is shared via Inertia as a shared prop (admin-only) in `HandleInertiaRequests` middleware
-- Frontend: `resources/js/pages/settings/info.tsx`
-
-**Queue requirement:** Email delivery requires the queue worker to be running:
-```bash
-php artisan queue:listen
-```
-For local development, set `QUEUE_CONNECTION=sync` in `.env` to send emails synchronously.
-
-### Testing Strategy
-
-**Test Organization:**
-- `tests/Feature/` - Feature/integration tests for HTTP routes, policies, business logic
-- `tests/Unit/` - Unit tests for isolated logic
-- `tests/TestCase.php` - Base test case with common setup
-
-**Testing Patterns:**
-- Use `RefreshDatabase` trait to reset DB between tests
-- Test authentication: `$this->actingAs($user)`
-- Test authorization: Verify 403 responses for unauthorized access
-- Test critical paths (auth, data modification, RBAC) before implementation
-- SQLite in-memory database for fast test execution
-
-**Running Specific Tests:**
-```bash
-php artisan test --filter=TimeslotTest
-php artisan test tests/Feature/Provider/TimeslotControllerTest.php
-```
-
-## Development Workflow (SpecKit)
-
-This project follows a structured development workflow using custom agents in `.github/agents/` and `.github/prompts/`:
-
-**SpecKit Agents (invoked via `/speckit.*` commands):**
-1. `/speckit.specify` - Create feature specifications with user stories
-2. `/speckit.clarify` - Resolve ambiguities and edge cases
-3. `/speckit.plan` - Design technical implementation plan
-4. `/speckit.tasks` - Break down into actionable tasks
-5. `/speckit.implement` - Execute implementation with tests
-6. `/speckit.analyze` - Analyze existing features
-7. `/speckit.constitution` - Review constitution compliance
-
-**Constitution:**
-The project follows principles defined in `.specify/memory/constitution.md`:
-- Feature-first development with clear user value
-- Full-stack coherence (backend/frontend contracts)
-- Test-first for critical paths (auth, data modification, RBAC)
-- Type safety across stack (TypeScript strict + PHP types)
-- Component reusability (shadcn/ui patterns)
-- Database integrity (migrations only, foreign keys, validation)
-
-**Feature Specifications:**
-Located in `specs/###-feature-name/`:
-- `spec.md` - User stories and acceptance criteria
-- `plan.md` - Technical implementation plan
-- `tasks.md` - Task breakdown
-- `data-model.md` - Database schema changes
-- `contracts/` - API contract definitions
-
-Examples: `specs/001-timeslot-booking/`, `specs/002-client-provider-link/`
-
-## User Workflows
-
-### Service Provider Timeslot Management
-
-Service providers manage their timeslots through the calendar interface with modal-based creation:
-
-**Timeslot Creation Flow:**
-1. Navigate to `/calendar`
-2. Click "+ Create Timeslot" button or click on a date in the calendar
-3. Modal dialog opens with pre-filled date/time
-4. Select start time (datetime-local input)
-5. Select duration (15 minutes to 4 hours)
-6. Submit form → redirects back to calendar with success message
-
-**Routes:**
-- `POST /provider/timeslots` - Create new timeslot (optionally assign a client immediately)
-- `PATCH /provider/timeslots/{timeslot}` - Update timeslot start time and/or duration (available and booked timeslots, with overlap validation)
-- `DELETE /provider/timeslots/{timeslot}` - Delete timeslot (available/completed only)
-- `POST /provider/timeslots/{timeslot}/assign` - Assign or reassign client to timeslot
-- `DELETE /provider/timeslots/{timeslot}/remove` - Remove client from timeslot
-
-**Implementation Details:**
-- Modal uses shadcn/ui Dialog component
-- Form state managed via Inertia's `useForm` hook
-- Default values: selected date at 9:00 AM, 60 minutes duration
-- Success callback closes modal and resets form
-- All operations redirect to `/calendar` for consistent user experience
-
-**Timeslot Edit Flow:**
-1. Click a timeslot on the calendar to open the details modal
-2. Click the "Edit" button (available for available and booked timeslots, not completed)
-3. Combined edit form shows date, time, and duration fields
-4. On save: modal refreshes with updated data; on validation failure (e.g., overlap): inline error message displayed
-5. Overlap validation checks against all other provider timeslots for the same time range
-6. Provider name is hidden in their own modals (only shown to clients)
-
-**Calendar Page Routing Pattern:**
-When users perform actions on `/calendar` (create/delete timeslots, assign/remove clients, book/cancel), they remain on `/calendar` after the operation completes. Controllers should redirect back to `route('calendar')` after successful operations to maintain user context and provide seamless workflow.
-
-**Note:** There are no separate timeslot index or create pages. All timeslot management happens on the calendar page for a streamlined, context-aware workflow.
-
-### Client Invitation Flow
-
-Providers invite new clients via email from `/provider/clients`:
-
-1. Provider clicks "Invite Client" on the Clients page
-2. Modal dialog opens — provider enters the email address
-3. System checks:
-   - If email belongs to an existing client already linked → flash "already linked"
-   - If email belongs to any existing user → auto-link as client, no email sent
-   - If a pending invitation already exists for that provider+email → flash error (no duplicate)
-   - Otherwise → create `Invitation` record, send `ClientInvitation` email immediately
-4. Pending invitations appear in the "Pending Invitations" section (email, sent date, expires date)
-5. Provider can revoke any pending invitation (deletes the record)
-6. Invitation link expires after 7 days
-
-**Routes:**
-- `POST /provider/invitations` - Send invitation (`provider.invitations.store`)
-- `DELETE /provider/invitations/{invitation}` - Revoke invitation (`provider.invitations.destroy`)
-- `GET /invitation/{token}` - Show registration page (public, guest-only) (`invitation.show`)
-- `POST /invitation/{token}` - Register via invitation (public, guest-only) (`invitation.register`)
-
-**Registration via invitation link:**
-1. Client clicks the email link → `GET /invitation/{token}`
-2. If token is missing or expired → 404 or `Invitation/Invalid` page
-3. Registration form shown with email pre-filled (read-only) and provider name displayed
-4. On submit: user created, assigned `client` role, linked to provider via `provider_client`, invitation record **deleted**, client auto-logged in
-
-**Implementation files:**
-- `app/Models/Invitation.php` — model with `scopePending()`, `isPending()`, `isExpired()`
-- `app/Http/Controllers/Provider/InvitationController.php` — `store()`, `destroy()`
-- `app/Http/Controllers/InvitationRegistrationController.php` — `show()`, `register()`
-- `app/Http/Requests/Provider/StoreInvitationRequest.php` — validates email
-- `app/Mail/ClientInvitation.php` — synchronous mailable
-- `resources/views/emails/client-invitation.blade.php` — email template
-- `resources/js/pages/Provider/Clients/Index.tsx` — invite modal + pending invitations list
-- `resources/js/pages/Invitation/Register.tsx` — public registration page
-- `resources/js/pages/Invitation/Invalid.tsx` — expired link page
-
-### Client Booking Flow
-
-Clients book timeslots through the calendar or bookings page:
-
-1. Browse available timeslots on `/calendar`
-2. Filter by provider if needed
-3. Click "Book" button on an available timeslot
-4. Confirm booking
-5. View confirmed bookings at `/timeslots`
-
-## Common Patterns
-
-### Creating a New Feature
-
-1. **Specification Phase:**
-   - Run `/speckit.specify` to create feature spec in `specs/`
-   - Define user stories and acceptance criteria
-   - Run `/speckit.clarify` if ambiguities exist
-
-2. **Planning Phase:**
-   - Run `/speckit.plan` for technical design
-   - Identify database changes (migrations)
-   - Define backend routes and controller actions
-   - Define Inertia props and React components
-
-3. **Implementation:**
-   - Create migration: `php artisan make:migration create_xyz_table`
-   - Create model with relationships and fillable properties
-   - Create policy: `php artisan make:policy XyzPolicy`
-   - Create controller: `php artisan make:controller XyzController`
-   - Create form request for validation: `php artisan make:request StoreXyzRequest`
-   - Create TypeScript types in `resources/js/types/`
-   - Create React page component in `resources/js/pages/`
-   - Write tests in `tests/Feature/`
-
-4. **Testing:**
-   - Run tests: `php artisan test`
-   - Manually test in browser
-   - Check code quality: `ddev exec php vendor/laravel/pint/builds/pint && ddev npm run lint && ddev npm run types`
-
-### Adding a New Role or Permission
-
-```bash
-# 1. Update RolesAndPermissionsSeeder
-# 2. Clear cache and reseed
-php artisan permission:cache-reset
-php artisan db:seed --class=RolesAndPermissionsSeeder
-
-# 3. Update policies to check new permissions
-# 4. Write tests for new authorization rules
-```
-
-### Type-Safe Routing
-
-**Backend (routes/web.php):**
-```php
-Route::post('provider/timeslots', [TimeslotController::class, 'store'])
-    ->name('provider.timeslots.store');
-```
-
-**Frontend (React):**
-```tsx
-import { router } from '@inertiajs/react';
-
-// Type-safe route generation
-<Link href={route('calendar')}>Calendar</Link>
-
-// Form submission with type-safe routing
-form.post(route('provider.timeslots.store'));
-```
-
-### Form Validation
-
-**Backend (Form Request):**
-```php
-class StoreTimeslotRequest extends FormRequest {
-    public function rules(): array {
-        return [
-            'start_time' => 'required|date',
-            'end_time' => 'required|date|after:start_time',
-        ];
-    }
-}
-```
-
-**Frontend (Inertia Form):**
-```tsx
-const form = useForm({
-    start_time: '',
-    end_time: '',
-});
-
-form.post(route('provider.timeslots.store'));
-
-// Display errors
-{form.errors.start_time && <span>{form.errors.start_time}</span>}
-```
 
 ## Important Constraints
 
 **MUST:**
 - Use Inertia.js for all page rendering (no separate API/SPA)
 - Use Laravel Wayfinder for type-safe routing
-- Use Eloquent ORM for database operations
-- Use PHPUnit RefreshDatabase trait for tests
-- Use shadcn/ui patterns for React components
-- Use functional React components with hooks
-- Declare PHP types for all method signatures
-- Use TypeScript strict mode (no `any` without justification)
+- Use Eloquent ORM for database operations (no `DB::` facade)
+- Use PHPUnit 12 with `RefreshDatabase` trait; test methods use `test_` prefix (no `@test` annotations)
+- Use shadcn/ui patterns for React components; functional components with hooks only
+- Declare PHP types for all method signatures; TypeScript strict mode (no `any` without justification)
 - Use migrations for all schema changes
-- Run Laravel Pint before committing PHP code
-- Run Prettier/ESLint before committing frontend code
+- Use Form Request classes for validation (not inline in controllers)
+- Run Laravel Pint and Prettier/ESLint before committing
 
 **MUST NOT:**
 - Use direct SQL queries (use Eloquent or Query Builder)
@@ -681,43 +36,130 @@ form.post(route('provider.timeslots.store'));
 - Skip tests for critical paths (auth, data modification, RBAC)
 - Use `dangerouslySetInnerHTML` without review
 
+## Development Commands
+
+### Local Environment (DDEV)
+```bash
+ddev start                          # Start environment
+ddev composer setup                 # Full setup (install, configure, migrate, seed)
+ddev composer dev                   # Start dev servers (queue + Vite)
+ddev npm run dev                    # Vite dev server only (port 5173)
+```
+
+### Testing
+```bash
+php artisan test                    # Run all tests (SQLite in-memory, no DDEV needed)
+php artisan test --filter TestName  # Run specific test
+```
+
+### Code Quality
+```bash
+ddev exec php vendor/bin/phpstan analyse --no-progress   # PHPStan (Larastan, level 6)
+ddev exec php vendor/laravel/pint/builds/pint            # Laravel Pint
+ddev npm run lint                                         # ESLint
+ddev npm run types                                        # TypeScript check
+```
+
+## Architecture
+
+### Role-Based Access Control (Spatie Permissions)
+
+Three core roles: `admin`, `service_provider`, `client`.
+
+- User model uses `HasRoles` trait with helpers: `isAdmin()`, `isServiceProvider()`, `isClient()`
+- Route middleware: `middleware('role:admin')` or `middleware('role:service_provider,admin')`
+- Policies combine role checks + permission checks + ownership verification
+- Legacy `role` column exists but Spatie's role system is authoritative
+
+See `docs/SPATIE_PERMISSIONS.md` for complete permission structure.
+
+### Backend Structure
+
+**Controllers:**
+- `app/Http/Controllers/Admin/` — Admin-only (user management)
+- `app/Http/Controllers/Provider/` — Service provider (timeslots, clients, invitations)
+- `app/Http/Controllers/TimeslotController.php` — Client-facing (book, cancel, force delete, complete)
+- `app/Http/Controllers/CalendarController.php` — Calendar views
+- `app/Http/Controllers/InvitationRegistrationController.php` — Public invitation registration
+- `app/Http/Controllers/Settings/` — User settings (profile, password, appearance, notifications)
+
+**Key Models:**
+- `User` — HasRoles trait, client/provider many-to-many, `email_notifications_enabled` (default `false`)
+- `Timeslot` — Belongs to provider, optionally to client via `client_id`, status enum (`available`/`booked`/`completed`). Has scopes (`available()`, `booked()`, `forProvider()`, `forClient()`, etc.), helper methods (`book()`, `cancel()`, `complete()`, `makeAvailable()`), and computed attributes (`end_time`, `is_available`, `is_booked`, `is_completed`). See `app/Models/Timeslot.php` and `app/Policies/TimeslotPolicy.php` for full details.
+- `ProviderClient` — Pivot for provider-client relationships (`created_by_provider`, `status`)
+- `Invitation` — Pending email invitations with `token`, `expires_at`
+
+**Events & Notifications:**
+- `TimeslotBooked` / `TimeslotCancelled` events fired only for client-initiated actions (not provider-initiated)
+- `SendTimeslotNotifications` subscriber checks `email_notifications_enabled` before sending
+- Mailables implement `ShouldQueue`; requires queue worker or `QUEUE_CONNECTION=sync`
+
+**Routes:**
+- `routes/web.php` — Main routes with role-based middleware groups
+- `routes/settings.php` — Settings routes (profile, password, appearance, notifications, info [admin-only])
+
+### Frontend Structure
+
+- `resources/js/pages/` — Inertia page components by feature (`Admin/`, `Calendar/`, `settings/`, etc.)
+- `resources/js/components/` — Reusable shadcn/ui components
+- `resources/js/layouts/` — Page layouts (authenticated, guest)
+- `resources/js/types/` — TypeScript type definitions
+- `resources/js/hooks/` — Custom React hooks
+
+**Navigation:** Role-based sidebar — all users see Dashboard/Calendar/Timeslots; providers also see Clients; admins also see User Management. Settings sidebar: all see Profile/Password/Appearance; providers and clients see Notifications; admins see Info.
+
+### Database Schema
+
+**Core Tables:**
+- `users` — `role` (legacy), `timezone`, `email_notifications_enabled` (boolean, default false)
+- `timeslots` — `provider_id`, `client_id` (nullable), `start_time`, `duration_minutes`, `status`
+- `provider_client` — Many-to-many with `created_by_provider` (boolean) and `status` (active/inactive)
+- `invitations` — `provider_id`, `email`, `token` (unique), `expires_at`; unique on `[provider_id, email]`
+
+## Key Workflows
+
+### Calendar-First Timeslot Management
+
+All timeslot management happens on `/calendar` via modals. There are no separate index or create pages.
+
+**Provider routes:**
+- `POST /provider/timeslots` — Create (optionally assign client)
+- `PATCH /provider/timeslots/{timeslot}` — Update (with overlap validation)
+- `DELETE /provider/timeslots/{timeslot}` — Delete (available/completed only)
+- `POST /provider/timeslots/{timeslot}/assign` — Assign/reassign client
+- `DELETE /provider/timeslots/{timeslot}/remove` — Remove client
+
+Controllers redirect back to `route('calendar')` after operations.
+
+### Client Invitation Flow
+
+From `/provider/clients`: provider enters email → system auto-links existing users or sends `ClientInvitation` email with 7-day expiry token. Registration via `GET/POST /invitation/{token}` creates user, assigns `client` role, links to provider, deletes invitation.
+
+Key files: `app/Models/Invitation.php`, `app/Http/Controllers/Provider/InvitationController.php`, `app/Http/Controllers/InvitationRegistrationController.php`, `resources/js/pages/Provider/Clients/Index.tsx`
+
+### Client Booking Flow
+
+Browse available timeslots on `/calendar` → filter by provider → click "Book" → confirm → view bookings at `/timeslots`.
+
+## Development Workflow (SpecKit)
+
+Feature specs in `specs/###-feature-name/` with `spec.md`, `plan.md`, `tasks.md`. Use SpecKit agents: `/speckit.specify` → `/speckit.clarify` → `/speckit.plan` → `/speckit.tasks` → `/speckit.implement`.
+
 ## Default Credentials (Development)
 
-After running seeders:
-- Provider 1: `provider1@example.com` / `password`
-- Provider 2: `provider2@example.com` / `password`
-- Client 1: `client1@example.com` / `password`
-- Client 2: `client2@example.com` / `password`
-- Client 3: `client3@example.com` / `password`
+- `provider1@example.com` / `provider2@example.com` — password: `password`
+- `client1@example.com` / `client2@example.com` / `client3@example.com` — password: `password`
 
 ## Troubleshooting
 
-### Permission Cache Issues
 ```bash
-php artisan permission:cache-reset
-php artisan cache:clear
-php artisan config:clear
-```
+# Permission cache issues
+php artisan permission:cache-reset && php artisan cache:clear
 
-### Vite HMR Not Working
-DDEV exposes Vite on port 5173 (HTTPS). The `.env` should have:
-```
-VITE_DEV_SERVER_URL=https://bookspot.ddev.site:5173
-```
-If running `ddev npm run dev` and HMR still doesn't work, hard refresh the browser (Ctrl+Shift+R).
+# Vite HMR — ensure .env has: VITE_DEV_SERVER_URL=https://bookspot.ddev.site:5173
 
-### TypeScript Errors
-```bash
-npm run types  # Check for type errors
-```
-
-### Inertia Version Mismatch
-Clear browser cache or hard refresh (Ctrl+Shift+R) after updating Inertia assets.
-
-### DDEV Not Starting
-```bash
-ddev stop --unlist bookspot  # Remove stale project entry
-ddev start                   # Start fresh
+# DDEV not starting
+ddev stop --unlist bookspot && ddev start
 ```
 
 ===
@@ -727,434 +169,219 @@ ddev start                   # Start fresh
 
 # Laravel Boost Guidelines
 
-The Laravel Boost guidelines are specifically curated by Laravel maintainers for this application. These guidelines should be followed closely to enhance the user's satisfaction building Laravel applications.
+The Laravel Boost guidelines are specifically curated by Laravel maintainers for this application. These guidelines should be followed closely to ensure the best experience when building Laravel applications.
 
 ## Foundational Context
+
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
-- php - 8.4.14
-- inertiajs/inertia-laravel (INERTIA) - v2
+- php - 8.4
+- inertiajs/inertia-laravel (INERTIA_LARAVEL) - v3
 - laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v13
 - laravel/prompts (PROMPTS) - v0
 - laravel/wayfinder (WAYFINDER) - v0
+- larastan/larastan (LARASTAN) - v3
+- laravel/boost (BOOST) - v2
 - laravel/mcp (MCP) - v0
+- laravel/pail (PAIL) - v1
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
 - phpunit/phpunit (PHPUNIT) - v12
-- @inertiajs/react (INERTIA) - v2
+- @inertiajs/react (INERTIA_REACT) - v3
 - react (REACT) - v19
 - tailwindcss (TAILWINDCSS) - v4
-- @laravel/vite-plugin-wayfinder (WAYFINDER) - v0
+- @laravel/vite-plugin-wayfinder (WAYFINDER_VITE) - v0
 - eslint (ESLINT) - v9
 - prettier (PRETTIER) - v3
 
+## Skills Activation
+
+This project has domain-specific skills available. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
+
+- `fortify-development` — ACTIVATE when the user works on authentication in Laravel. This includes login, registration, password reset, email verification, two-factor authentication (2FA/TOTP/QR codes/recovery codes), profile updates, password confirmation, or any auth-related routes and controllers. Activate when the user mentions Fortify, auth, authentication, login, register, signup, forgot password, verify email, 2FA, or references app/Actions/Fortify/, CreateNewUser, UpdateUserProfileInformation, FortifyServiceProvider, config/fortify.php, or auth guards. Fortify is the frontend-agnostic authentication backend for Laravel that registers all auth routes and controllers. Also activate when building SPA or headless authentication, customizing login redirects, overriding response contracts like LoginResponse, or configuring login throttling. Do NOT activate for Laravel Passport (OAuth2 API tokens), Socialite (OAuth social login), or non-auth Laravel features.
+- `laravel-best-practices` — Apply this skill whenever writing, reviewing, or refactoring Laravel PHP code. This includes creating or modifying controllers, models, migrations, form requests, policies, jobs, scheduled commands, service classes, and Eloquent queries. Triggers for N+1 and query performance issues, caching strategies, authorization and security patterns, validation, error handling, queue and job configuration, route definitions, and architectural decisions. Also use for Laravel code reviews and refactoring existing Laravel code to follow best practices. Covers any task involving Laravel backend PHP code patterns.
+- `wayfinder-development` — Use this skill for Laravel Wayfinder which auto-generates typed functions for Laravel controllers and routes. ALWAYS use this skill when frontend code needs to call backend routes or controller actions. Trigger when: connecting any React/Vue/Svelte/Inertia frontend to Laravel controllers, routes, building end-to-end features with both frontend and backend, wiring up forms or links to backend endpoints, fixing route-related TypeScript errors, importing from @/actions or @/routes, or running wayfinder:generate. Use Wayfinder route functions instead of hardcoded URLs. Covers: wayfinder() vite plugin, .url()/.get()/.post()/.form(), query params, route model binding, tree-shaking. Do not use for backend-only task
+- `inertia-react-development` — Develops Inertia.js v3 React client-side applications. Activates when creating React pages, forms, or navigation; using <Link>, <Form>, useForm, useHttp, setLayoutProps, or router; working with deferred props, prefetching, optimistic updates, instant visits, or polling; or when user mentions React with Inertia, React pages, React forms, or React navigation.
+- `tailwindcss-development` — Always invoke when the user's message includes 'tailwind' in any form. Also invoke for: building responsive grid layouts (multi-column card grids, product grids), flex/grid page structures (dashboards with sidebars, fixed topbars, mobile-toggle navs), styling UI components (cards, tables, navbars, pricing sections, forms, inputs, badges), adding dark mode variants, fixing spacing or typography, and Tailwind v3/v4 work. The core use case: writing or fixing Tailwind utility classes in HTML templates (Blade, JSX, Vue). Skip for backend PHP logic, database queries, API routes, JavaScript with no HTML/CSS component, CSS file audits, build tool configuration, and vanilla CSS.
+- `laravel-permission-development` — Build and work with Spatie Laravel Permission features, including roles, permissions, middleware, policies, teams, and Blade directives.
+
 ## Conventions
-- You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, naming.
+
+- You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, and naming.
 - Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
 - Check for existing components to reuse before writing a new one.
 
 ## Verification Scripts
-- Do not create verification scripts or tinker when tests cover that functionality and prove it works. Unit and feature tests are more important.
+
+- Do not create verification scripts or tinker when tests cover that functionality and prove they work. Unit and feature tests are more important.
 
 ## Application Structure & Architecture
-- Stick to existing directory structure - don't create new base folders without approval.
+
+- Stick to existing directory structure; don't create new base folders without approval.
 - Do not change the application's dependencies without approval.
 
 ## Frontend Bundling
+
 - If the user doesn't see a frontend change reflected in the UI, it could mean they need to run `npm run build`, `npm run dev`, or `composer run dev`. Ask them.
 
-## Replies
-- Be concise in your explanations - focus on what's important rather than explaining obvious details.
-
 ## Documentation Files
+
 - You must only create documentation files if explicitly requested by the user.
 
+## Replies
+
+- Be concise in your explanations - focus on what's important rather than explaining obvious details.
 
 === boost rules ===
 
-## Laravel Boost
-- Laravel Boost is an MCP server that comes with powerful tools designed specifically for this application. Use them.
+# Laravel Boost
+
+## Tools
+
+- Laravel Boost is an MCP server with tools designed specifically for this application. Prefer Boost tools over manual alternatives like shell commands or file reads.
+- Use `database-query` to run read-only queries against the database instead of writing raw SQL in tinker.
+- Use `database-schema` to inspect table structure before writing migrations or models.
+- Use `get-absolute-url` to resolve the correct scheme, domain, and port for project URLs. Always use this before sharing a URL with the user.
+- Use `browser-logs` to read browser logs, errors, and exceptions. Only recent logs are useful, ignore old entries.
+
+## Searching Documentation (IMPORTANT)
+
+- Always use `search-docs` before making code changes. Do not skip this step. It returns version-specific docs based on installed packages automatically.
+- Pass a `packages` array to scope results when you know which packages are relevant.
+- Use multiple broad, topic-based queries: `['rate limiting', 'routing rate limiting', 'routing']`. Expect the most relevant results first.
+- Do not add package names to queries because package info is already shared. Use `test resource table`, not `filament 4 test resource table`.
+
+### Search Syntax
+
+1. Use words for auto-stemmed AND logic: `rate limit` matches both "rate" AND "limit".
+2. Use `"quoted phrases"` for exact position matching: `"infinite scroll"` requires adjacent words in order.
+3. Combine words and phrases for mixed queries: `middleware "rate limit"`.
+4. Use multiple queries for OR logic: `queries=["authentication", "middleware"]`.
 
 ## Artisan
-- Use the `list-artisan-commands` tool when you need to call an Artisan command to double check the available parameters.
 
-## URLs
-- Whenever you share a project URL with the user you should use the `get-absolute-url` tool to ensure you're using the correct scheme, domain / IP, and port.
+- Run Artisan commands directly via the command line (e.g., `php artisan route:list`). Use `php artisan list` to discover available commands and `php artisan [command] --help` to check parameters.
+- Inspect routes with `php artisan route:list`. Filter with: `--method=GET`, `--name=users`, `--path=api`, `--except-vendor`, `--only-vendor`.
+- Read configuration values using dot notation: `php artisan config:show app.name`, `php artisan config:show database.default`. Or read config files directly from the `config/` directory.
+- To check environment variables, read the `.env` file directly.
 
-## Tinker / Debugging
-- You should use the `tinker` tool when you need to execute PHP to debug code or query Eloquent models directly.
-- Use the `database-query` tool when you only need to read from the database.
+## Tinker
 
-## Reading Browser Logs With the `browser-logs` Tool
-- You can read browser logs, errors, and exceptions using the `browser-logs` tool from Boost.
-- Only recent browser logs will be useful - ignore old logs.
-
-## Searching Documentation (Critically Important)
-- Boost comes with a powerful `search-docs` tool you should use before any other approaches. This tool automatically passes a list of installed packages and their versions to the remote Boost API, so it returns only version-specific documentation specific for the user's circumstance. You should pass an array of packages to filter on if you know you need docs for particular packages.
-- The 'search-docs' tool is perfect for all Laravel related packages, including Laravel, Inertia, Livewire, Filament, Tailwind, Pest, Nova, Nightwatch, etc.
-- You must use this tool to search for Laravel-ecosystem documentation before falling back to other approaches.
-- Search the documentation before making code changes to ensure we are taking the correct approach.
-- Use multiple, broad, simple, topic based queries to start. For example: `['rate limiting', 'routing rate limiting', 'routing']`.
-- Do not add package names to queries - package information is already shared. For example, use `test resource table`, not `filament 4 test resource table`.
-
-### Available Search Syntax
-- You can and should pass multiple queries at once. The most relevant results will be returned first.
-
-1. Simple Word Searches with auto-stemming - query=authentication - finds 'authenticate' and 'auth'
-2. Multiple Words (AND Logic) - query=rate limit - finds knowledge containing both "rate" AND "limit"
-3. Quoted Phrases (Exact Position) - query="infinite scroll" - Words must be adjacent and in that order
-4. Mixed Queries - query=middleware "rate limit" - "middleware" AND exact phrase "rate limit"
-5. Multiple Queries - queries=["authentication", "middleware"] - ANY of these terms
-
+- Execute PHP in app context for debugging and testing code. Do not create models without user approval, prefer tests with factories instead. Prefer existing Artisan commands over custom tinker code.
+- Always use single quotes to prevent shell expansion: `php artisan tinker --execute 'Your::code();'`
+  - Double quotes for PHP strings inside: `php artisan tinker --execute 'User::where("active", true)->count();'`
 
 === php rules ===
 
-## PHP
+# PHP
 
-- Always use curly braces for control structures, even if it has one line.
-
-### Constructors
-- Use PHP 8 constructor property promotion in `__construct()`.
-    - <code-snippet>public function __construct(public GitHub $github) { }</code-snippet>
-- Do not allow empty `__construct()` methods with zero parameters.
-
-### Type Declarations
-- Always use explicit return type declarations for methods and functions.
-- Use appropriate PHP type hints for method parameters.
-
-<code-snippet name="Explicit Return Types and Method Params" lang="php">
-protected function isAccessible(User $user, ?string $path = null): bool
-{
-    ...
-}
-</code-snippet>
-
-## Comments
-- Prefer PHPDoc blocks over comments. Never use comments within the code itself unless there is something _very_ complex going on.
-
-## PHPDoc Blocks
-- Add useful array shape type definitions for arrays when appropriate.
-
-## Enums
-- Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
-
+- Always use curly braces for control structures, even for single-line bodies.
+- Use PHP 8 constructor property promotion: `public function __construct(public GitHub $github) { }`. Do not leave empty zero-parameter `__construct()` methods unless the constructor is private.
+- Use explicit return type declarations and type hints for all method parameters: `function isAccessible(User $user, ?string $path = null): bool`
+- Use TitleCase for Enum keys: `FavoritePerson`, `BestLake`, `Monthly`.
+- Prefer PHPDoc blocks over inline comments. Only add inline comments for exceptionally complex logic.
+- Use array shape type definitions in PHPDoc blocks.
 
 === tests rules ===
 
-## Test Enforcement
+# Test Enforcement
 
 - Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
-- Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test` with a specific filename or filter.
-
+- Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test --compact` with a specific filename or filter.
 
 === inertia-laravel/core rules ===
 
-## Inertia Core
+# Inertia
 
-- Inertia.js components should be placed in the `resources/js/Pages` directory unless specified differently in the JS bundler (vite.config.js).
-- Use `Inertia::render()` for server-side routing instead of traditional Blade views.
-- Use `search-docs` for accurate guidance on all things Inertia.
+- Inertia creates fully client-side rendered SPAs without modern SPA complexity, leveraging existing server-side patterns.
+- Components live in `resources/js/pages` (unless specified in `vite.config.js`). Use `Inertia::render()` for server-side routing instead of Blade views.
+- ALWAYS use `search-docs` tool for version-specific Inertia documentation and updated code examples.
+- IMPORTANT: Activate `inertia-react-development` when working with Inertia client-side patterns.
 
-<code-snippet lang="php" name="Inertia::render Example">
-// routes/web.php example
-Route::get('/users', function () {
-    return Inertia::render('Users/Index', [
-        'users' => User::all()
-    ]);
-});
-</code-snippet>
+# Inertia v3
 
-
-=== inertia-laravel/v2 rules ===
-
-## Inertia v2
-
-- Make use of all Inertia features from v1 & v2. Check the documentation before making any changes to ensure we are taking the correct approach.
-
-### Inertia v2 New Features
-- Polling
-- Prefetching
-- Deferred props
-- Infinite scrolling using merging props and `WhenVisible`
-- Lazy loading data on scroll
-
-### Deferred Props & Empty States
-- When using deferred props on the frontend, you should add a nice empty state with pulsing / animated skeleton.
-
-### Inertia Form General Guidance
-- The recommended way to build forms when using Inertia is with the `<Form>` component - a useful example is below. Use `search-docs` with a query of `form component` for guidance.
-- Forms can also be built using the `useForm` helper for more programmatic control, or to follow existing conventions. Use `search-docs` with a query of `useForm helper` for guidance.
-- `resetOnError`, `resetOnSuccess`, and `setDefaultsOnSuccess` are available on the `<Form>` component. Use `search-docs` with a query of 'form component resetting' for guidance.
-
+- Use all Inertia features from v1, v2, and v3. Check the documentation before making changes to ensure the correct approach.
+- New v3 features: standalone HTTP requests (`useHttp` hook), optimistic updates with automatic rollback, layout props (`useLayoutProps` hook), instant visits, simplified SSR via `@inertiajs/vite` plugin, custom exception handling for error pages.
+- Carried over from v2: deferred props, infinite scroll, merging props, polling, prefetching, once props, flash data.
+- When using deferred props, add an empty state with a pulsing or animated skeleton.
+- Axios has been removed. Use the built-in XHR client with interceptors, or install Axios separately if needed.
+- `Inertia::lazy()` / `LazyProp` has been removed. Use `Inertia::optional()` instead.
+- Prop types (`Inertia::optional()`, `Inertia::defer()`, `Inertia::merge()`) work inside nested arrays with dot-notation paths.
+- SSR works automatically in Vite dev mode with `@inertiajs/vite` - no separate Node.js server needed during development.
+- Event renames: `invalid` is now `httpException`, `exception` is now `networkError`.
+- `router.cancel()` replaced by `router.cancelAll()`.
+- The `future` configuration namespace has been removed - all v2 future options are now always enabled.
 
 === laravel/core rules ===
 
-## Do Things the Laravel Way
+# Do Things the Laravel Way
 
-- Use `php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using the `list-artisan-commands` tool.
+- Use `php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using `php artisan list` and check their parameters with `php artisan [command] --help`.
 - If you're creating a generic PHP class, use `php artisan make:class`.
 - Pass `--no-interaction` to all Artisan commands to ensure they work without user input. You should also pass the correct `--options` to ensure correct behavior.
 
-### Database
-- Always use proper Eloquent relationship methods with return type hints. Prefer relationship methods over raw queries or manual joins.
-- Use Eloquent models and relationships before suggesting raw database queries
-- Avoid `DB::`; prefer `Model::query()`. Generate code that leverages Laravel's ORM capabilities rather than bypassing them.
-- Generate code that prevents N+1 query problems by using eager loading.
-- Use Laravel's query builder for very complex database operations.
-
 ### Model Creation
-- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `list-artisan-commands` to check the available options to `php artisan make:model`.
 
-### APIs & Eloquent Resources
+- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `php artisan make:model --help` to check the available options.
+
+## APIs & Eloquent Resources
+
 - For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.
 
-### Controllers & Validation
-- Always create Form Request classes for validation rather than inline validation in controllers. Include both validation rules and custom error messages.
-- Check sibling Form Requests to see if the application uses array or string based validation rules.
+## URL Generation
 
-### Queues
-- Use queued jobs for time-consuming operations with the `ShouldQueue` interface.
-
-### Authentication & Authorization
-- Use Laravel's built-in authentication and authorization features (gates, policies, Sanctum, etc.).
-
-### URL Generation
 - When generating links to other pages, prefer named routes and the `route()` function.
 
-### Configuration
-- Use environment variables only in configuration files - never use the `env()` function directly outside of config files. Always use `config('app.name')`, not `env('APP_NAME')`.
+## Testing
 
-### Testing
 - When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
 - Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
 - When creating tests, make use of `php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
 
-### Vite Error
+## Vite Error
+
 - If you receive an "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error, you can run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
 
+## Deployment
 
-=== laravel/v13 rules ===
-
-## Laravel 13
-
-- Use the `search-docs` tool to get version specific documentation.
-- Since Laravel 11, Laravel has a new streamlined file structure which this project uses.
-
-### Laravel 13 Structure
-- No middleware files in `app/Http/Middleware/`.
-- `bootstrap/app.php` is the file to register middleware, exceptions, and routing files.
-- `bootstrap/providers.php` contains application specific service providers.
-- **No app\Console\Kernel.php** - use `bootstrap/app.php` or `routes/console.php` for console configuration.
-- **Commands auto-register** - files in `app/Console/Commands/` are automatically available and do not require manual registration.
-
-### Database
-- When modifying a column, the migration must include all of the attributes that were previously defined on the column. Otherwise, they will be dropped and lost.
-- Laravel 11 allows limiting eagerly loaded records natively, without external packages: `$query->latest()->limit(10);`.
-
-### Models
-- Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
-
+- Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
 
 === wayfinder/core rules ===
 
-## Laravel Wayfinder
+# Laravel Wayfinder
 
-Wayfinder generates TypeScript functions and types for Laravel controllers and routes which you can import into your client side code. It provides type safety and automatic synchronization between backend routes and frontend code.
-
-### Development Guidelines
-- Always use `search-docs` to check wayfinder correct usage before implementing any features.
-- Always Prefer named imports for tree-shaking (e.g., `import { show } from '@/actions/...'`)
-- Avoid default controller imports (prevents tree-shaking)
-- Run `php artisan wayfinder:generate` after route changes if Vite plugin isn't installed
-
-### Feature Overview
-- Form Support: Use `.form()` with `--with-form` flag for HTML form attributes — `<form {...store.form()}>` → `action="/posts" method="post"`
-- HTTP Methods: Call `.get()`, `.post()`, `.patch()`, `.put()`, `.delete()` for specific methods — `show.head(1)` → `{ url: "/posts/1", method: "head" }`
-- Invokable Controllers: Import and invoke directly as functions. For example, `import StorePost from '@/actions/.../StorePostController'; StorePost()`
-- Named Routes: Import from `@/routes/` for non-controller routes. For example, `import { show } from '@/routes/post'; show(1)` for route name `post.show`
-- Parameter Binding: Detects route keys (e.g., `{post:slug}`) and accepts matching object properties — `show("my-post")` or `show({ slug: "my-post" })`
-- Query Merging: Use `mergeQuery` to merge with `window.location.search`, set values to `null` to remove — `show(1, { mergeQuery: { page: 2, sort: null } })`
-- Query Parameters: Pass `{ query: {...} }` in options to append params — `show(1, { query: { page: 1 } })` → `"/posts/1?page=1"`
-- Route Objects: Functions return `{ url, method }` shaped objects — `show(1)` → `{ url: "/posts/1", method: "get" }`
-- URL Extraction: Use `.url()` to get URL string — `show.url(1)` → `"/posts/1"`
-
-### Example Usage
-
-<code-snippet name="Wayfinder Basic Usage" lang="typescript">
-    // Import controller methods (tree-shakable)
-    import { show, store, update } from '@/actions/App/Http/Controllers/PostController'
-
-    // Get route object with URL and method...
-    show(1) // { url: "/posts/1", method: "get" }
-
-    // Get just the URL...
-    show.url(1) // "/posts/1"
-
-    // Use specific HTTP methods...
-    show.get(1) // { url: "/posts/1", method: "get" }
-    show.head(1) // { url: "/posts/1", method: "head" }
-
-    // Import named routes...
-    import { show as postShow } from '@/routes/post' // For route name 'post.show'
-    postShow(1) // { url: "/posts/1", method: "get" }
-</code-snippet>
-
-
-### Wayfinder + Inertia
-If your application uses the `<Form>` component from Inertia, you can use Wayfinder to generate form action and method automatically.
-<code-snippet name="Wayfinder Form Component (React)" lang="typescript">
-
-<Form {...store.form()}><input name="title" /></Form>
-
-</code-snippet>
-
+Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `@/actions/` (controllers) or `@/routes/` (named routes).
 
 === pint/core rules ===
 
-## Laravel Pint Code Formatter
+# Laravel Pint Code Formatter
 
-- You must run `vendor/bin/pint --dirty` before finalizing changes to ensure your code matches the project's expected style.
-- Do not run `vendor/bin/pint --test`, simply run `vendor/bin/pint` to fix any formatting issues.
-
+- If you have modified any PHP files, you must run `vendor/bin/pint --dirty --format agent` before finalizing changes to ensure your code matches the project's expected style.
+- Do not run `vendor/bin/pint --test --format agent`, simply run `vendor/bin/pint --format agent` to fix any formatting issues.
 
 === phpunit/core rules ===
 
-## PHPUnit Core
+# PHPUnit
 
-- This application uses PHPUnit 12 for testing. All tests must be written as PHPUnit classes. Use `php artisan make:test --phpunit {name}` to create a new test.
+- This application uses PHPUnit for testing. All tests must be written as PHPUnit classes. Use `php artisan make:test --phpunit {name}` to create a new test.
 - If you see a test using "Pest", convert it to PHPUnit.
 - Every time a test has been updated, run that singular test.
 - When the tests relating to your feature are passing, ask the user if they would like to also run the entire test suite to make sure everything is still passing.
-- Tests should test all of the happy paths, failure paths, and weird paths.
-- You must not remove any tests or test files from the tests directory without approval. These are not temporary or helper files, these are core to the application.
+- Tests should cover all happy paths, failure paths, and edge cases.
+- You must not remove any tests or test files from the tests directory without approval. These are not temporary or helper files; these are core to the application.
 
-### PHPUnit 12 Naming Convention
-- **`@test` annotations are no longer supported in PHPUnit 12.** Test methods must use the `test_` prefix (e.g. `public function test_user_can_login()`).
-- Never write `/** @test */` above a method. Always prefix the method name with `test_`.
+## Running Tests
 
-### Running Tests
 - Run the minimal number of tests, using an appropriate filter, before finalizing.
-- To run all tests: `php artisan test`.
-- To run all tests in a file: `php artisan test tests/Feature/ExampleTest.php`.
-- To filter on a particular test name: `php artisan test --filter=testName` (recommended after making a change to a related file).
-
+- To run all tests: `php artisan test --compact`.
+- To run all tests in a file: `php artisan test --compact tests/Feature/ExampleTest.php`.
+- To filter on a particular test name: `php artisan test --compact --filter=testName` (recommended after making a change to a related file).
 
 === inertia-react/core rules ===
 
-## Inertia + React
+# Inertia + React
 
-- Use `router.visit()` or `<Link>` for navigation instead of traditional links.
+- IMPORTANT: Activate `inertia-react-development` when working with Inertia React client-side patterns.
 
-<code-snippet name="Inertia Client Navigation" lang="react">
-
-import { Link } from '@inertiajs/react'
-<Link href="/">Home</Link>
-
-</code-snippet>
-
-
-=== inertia-react/v2/forms rules ===
-
-## Inertia + React Forms
-
-<code-snippet name="`<Form>` Component Example" lang="react">
-
-import { Form } from '@inertiajs/react'
-
-export default () => (
-    <Form action="/users" method="post">
-        {({
-            errors,
-            hasErrors,
-            processing,
-            wasSuccessful,
-            recentlySuccessful,
-            clearErrors,
-            resetAndClearErrors,
-            defaults
-        }) => (
-        <>
-        <input type="text" name="name" />
-
-        {errors.name && <div>{errors.name}</div>}
-
-        <button type="submit" disabled={processing}>
-            {processing ? 'Creating...' : 'Create User'}
-        </button>
-
-        {wasSuccessful && <div>User created successfully!</div>}
-        </>
-    )}
-    </Form>
-)
-
-</code-snippet>
-
-
-=== tailwindcss/core rules ===
-
-## Tailwind Core
-
-- Use Tailwind CSS classes to style HTML, check and use existing tailwind conventions within the project before writing your own.
-- Offer to extract repeated patterns into components that match the project's conventions (i.e. Blade, JSX, Vue, etc..)
-- Think through class placement, order, priority, and defaults - remove redundant classes, add classes to parent or child carefully to limit repetition, group elements logically
-- You can use the `search-docs` tool to get exact examples from the official documentation when needed.
-
-### Spacing
-- When listing items, use gap utilities for spacing, don't use margins.
-
-    <code-snippet name="Valid Flex Gap Spacing Example" lang="html">
-        <div class="flex gap-8">
-            <div>Superior</div>
-            <div>Michigan</div>
-            <div>Erie</div>
-        </div>
-    </code-snippet>
-
-
-### Dark Mode
-- If existing pages and components support dark mode, new pages and components must support dark mode in a similar way, typically using `dark:`.
-
-
-=== tailwindcss/v4 rules ===
-
-## Tailwind 4
-
-- Always use Tailwind CSS v4 - do not use the deprecated utilities.
-- `corePlugins` is not supported in Tailwind v4.
-- In Tailwind v4, configuration is CSS-first using the `@theme` directive — no separate `tailwind.config.js` file is needed.
-<code-snippet name="Extending Theme in CSS" lang="css">
-@theme {
-  --color-brand: oklch(0.72 0.11 178);
-}
-</code-snippet>
-
-- In Tailwind v4, you import Tailwind using a regular CSS `@import` statement, not using the `@tailwind` directives used in v3:
-
-<code-snippet name="Tailwind v4 Import Tailwind Diff" lang="diff">
-   - @tailwind base;
-   - @tailwind components;
-   - @tailwind utilities;
-   + @import "tailwindcss";
-</code-snippet>
-
-
-### Replaced Utilities
-- Tailwind v4 removed deprecated utilities. Do not use the deprecated option - use the replacement.
-- Opacity values are still numeric.
-
-| Deprecated |	Replacement |
-|------------+--------------|
-| bg-opacity-* | bg-black/* |
-| text-opacity-* | text-black/* |
-| border-opacity-* | border-black/* |
-| divide-opacity-* | divide-black/* |
-| ring-opacity-* | ring-black/* |
-| placeholder-opacity-* | placeholder-black/* |
-| flex-shrink-* | shrink-* |
-| flex-grow-* | grow-* |
-| overflow-ellipsis | text-ellipsis |
-| decoration-slice | box-decoration-slice |
-| decoration-clone | box-decoration-clone |
 </laravel-boost-guidelines>

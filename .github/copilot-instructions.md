@@ -65,7 +65,7 @@ If you’re uncertain whether something is an issue, don’t comment. False posi
 
 ## Project-Specific Context
  
-- This is a Laravel 13 project, PHP 8.4
+- This is a Laravel 13.3 project, PHP 8.4
 
 **Important**: You review PRs immediately, before CI completes. Do not flag issues that CI will catch.
  
@@ -189,11 +189,18 @@ If you’re uncertain whether something is an issue, don’t comment. False posi
 
 ## ✅ Modern Laravel Features to Use
 
--   Use **Job batching** for complex queue workflows.
+-   Use **Job batching** for complex queue workflows; listen for `BatchStarted` event when needed.
 -   Use **Event Broadcasting** if real-time updates are needed.
 -   Use **Laravel Scout** and **Full-text search** if search functionality is required.
 -   Use **Rate Limiting** for API routes.
 -   Consider **Laravel Vapor** or **Octane** for serverless or high-performance applications (optional).
+-   Use **PHP attributes** (`#[Middleware]`, `#[Authorize]`) on controllers instead of `HasMiddleware` for declarative, colocated middleware and policy checks.
+-   Use **queue job attributes** (`#[Tries]`, `#[Backoff]`, `#[Timeout]`, `#[FailOnTimeout]`) on job classes instead of class properties.
+-   Use **`Queue::route()`** in `AppServiceProvider::boot()` to centrally define default connections and queues for specific job classes.
+-   Use **`Cache::touch()`** to extend cache TTLs without retrieving or re-storing values.
+-   Use **JSON:API resources** (`php artisan make:json-api-resource`) when building JSON:API-compliant endpoints.
+-   Use **`#[UnitTest]` attribute** (PHPUnit 12 / Laravel 13.3) to mark unit test classes declaratively.
+-   Access validated uploaded files via **`$request->safe()->file('field')`** in controllers.
 
 ## ✅ Additional Copilot Behavior Preferences
 

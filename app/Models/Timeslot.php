@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\TimeslotStatus;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,23 +28,27 @@ class Timeslot extends Model
     ];
 
     /**
-     * The attributes that should be cast.
+     * Get the attributes that should be cast.
      *
-     * @var array<string, string>
+     * @return array<string, string>
      */
-    protected $casts = [
-        'duration_minutes' => 'integer',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'duration_minutes' => 'integer',
+            'status' => TimeslotStatus::class,
+        ];
+    }
 
     /**
      * Get the start_time attribute with proper timezone handling.
      * DB stores UTC, accessor converts to app timezone.
      */
-    protected function startTime(): \Illuminate\Database\Eloquent\Casts\Attribute
+    protected function startTime(): Attribute
     {
-        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
-            get: fn ($value) => \Carbon\Carbon::parse($value, 'UTC')->setTimezone(config('app.timezone')),
-            set: fn ($value) => \Carbon\Carbon::parse($value, config('app.timezone'))->utc()->format('Y-m-d H:i:s'),
+        return Attribute::make(
+            get: fn ($value) => Carbon::parse($value, 'UTC')->setTimezone(config('app.timezone')),
+            set: fn ($value) => Carbon::parse($value, config('app.timezone'))->utc()->format('Y-m-d H:i:s'),
         );
     }
 
@@ -49,9 +57,9 @@ class Timeslot extends Model
      */
     protected function serializeDate(\DateTimeInterface $date): string
     {
-        return \Carbon\Carbon::instance($date)->setTimezone(config('app.timezone'))->toIso8601String();
+        return Carbon::instance($date)->setTimezone(config('app.timezone'))->toIso8601String();
     }
-  
+
     /**
      * The accessors to append to the model's array form.
      *
@@ -83,32 +91,32 @@ class Timeslot extends Model
     /**
      * Scope a query to only include available timeslots.
      */
-    public function scopeAvailable($query)
+    public function scopeAvailable(Builder $query): Builder
     {
-        return $query->where('status', 'available')
+        return $query->where('status', TimeslotStatus::Available)
             ->where('start_time', '>', now());
     }
 
     /**
      * Scope a query to only include booked timeslots.
      */
-    public function scopeBooked($query)
+    public function scopeBooked(Builder $query): Builder
     {
-        return $query->where('status', 'booked');
+        return $query->where('status', TimeslotStatus::Booked);
     }
 
     /**
      * Scope a query to only include completed timeslots.
      */
-    public function scopeCompleted($query)
+    public function scopeCompleted(Builder $query): Builder
     {
-        return $query->where('status', 'completed');
+        return $query->where('status', TimeslotStatus::Completed);
     }
 
     /**
      * Scope a query to only include future timeslots.
      */
-    public function scopeFuture($query)
+    public function scopeFuture(Builder $query): Builder
     {
         return $query->where('start_time', '>', now());
     }
@@ -116,7 +124,7 @@ class Timeslot extends Model
     /**
      * Scope a query to only include timeslots for a specific provider.
      */
-    public function scopeForProvider($query, int $providerId)
+    public function scopeForProvider(Builder $query, int $providerId): Builder
     {
         return $query->where('provider_id', $providerId);
     }
@@ -124,7 +132,7 @@ class Timeslot extends Model
     /**
      * Scope a query to only include timeslots for a specific client.
      */
-    public function scopeForClient($query, int $clientId)
+    public function scopeForClient(Builder $query, int $clientId): Builder
     {
         return $query->where('client_id', $clientId);
     }
@@ -132,7 +140,7 @@ class Timeslot extends Model
     /**
      * Scope a query to only include timeslots for client's linked providers.
      */
-    public function scopeForClientProviders($query, User $client)
+    public function scopeForClientProviders(Builder $query, User $client): Builder
     {
         $providerIds = $client->providers()->pluck('users.id');
 
@@ -142,7 +150,7 @@ class Timeslot extends Model
     /**
      * Scope a query to filter by multiple provider IDs.
      */
-    public function scopeForProviders($query, array $providerIds)
+    public function scopeForProviders(Builder $query, array $providerIds): Builder
     {
         return $query->whereIn('provider_id', $providerIds);
     }
@@ -160,7 +168,7 @@ class Timeslot extends Model
      */
     public function getIsAvailableAttribute(): bool
     {
-        return $this->status === 'available';
+        return $this->status === TimeslotStatus::Available;
     }
 
     /**
@@ -168,7 +176,7 @@ class Timeslot extends Model
      */
     public function getIsBookedAttribute(): bool
     {
-        return $this->status === 'booked';
+        return $this->status === TimeslotStatus::Booked;
     }
 
     /**
@@ -176,7 +184,7 @@ class Timeslot extends Model
      */
     public function getIsCompletedAttribute(): bool
     {
-        return $this->status === 'completed';
+        return $this->status === TimeslotStatus::Completed;
     }
 
     /**
@@ -186,7 +194,7 @@ class Timeslot extends Model
     {
         return $this->update([
             'client_id' => $clientId,
-            'status' => 'booked',
+            'status' => TimeslotStatus::Booked,
         ]);
     }
 
@@ -195,7 +203,7 @@ class Timeslot extends Model
      */
     public function revert(): bool
     {
-        return $this->update(['status' => 'booked']);
+        return $this->update(['status' => TimeslotStatus::Booked]);
     }
 
     /**
@@ -205,7 +213,7 @@ class Timeslot extends Model
     {
         return $this->update([
             'client_id' => null,
-            'status' => 'available',
+            'status' => TimeslotStatus::Available,
         ]);
     }
 
@@ -214,7 +222,7 @@ class Timeslot extends Model
      */
     public function complete(): bool
     {
-        return $this->update(['status' => 'completed']);
+        return $this->update(['status' => TimeslotStatus::Completed]);
     }
 
     /**
@@ -224,7 +232,7 @@ class Timeslot extends Model
     {
         return $this->update([
             'client_id' => null,
-            'status' => 'available',
+            'status' => TimeslotStatus::Available,
         ]);
     }
 }

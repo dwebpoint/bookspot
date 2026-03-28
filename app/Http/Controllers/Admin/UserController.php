@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ProviderClientStatus;
+use App\Enums\TimeslotStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
@@ -91,7 +93,6 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
             'timezone' => $request->timezone ?? 'UTC',
         ]);
 
@@ -133,7 +134,7 @@ class UserController extends Controller
                 ->get();
             $data['stats'] = [
                 'total_bookings' => $user->bookedTimeslots()->count(),
-                'active_bookings' => $user->bookedTimeslots()->where('status', 'booked')->count(),
+                'active_bookings' => $user->bookedTimeslots()->where('status', TimeslotStatus::Booked)->count(),
             ];
         }
 
@@ -168,7 +169,6 @@ class UserController extends Controller
         $data = [
             'name' => $request->name,
             'email' => $request->email,
-            'role' => $request->role,
             'timezone' => $request->timezone ?? $user->timezone,
         ];
 
@@ -194,7 +194,6 @@ class UserController extends Controller
             'role' => ['required', 'string', Rule::in(['admin', 'service_provider', 'client'])],
         ]);
 
-        $user->update(['role' => $validated['role']]);
         $user->syncRoles([$validated['role']]);
 
         return redirect()->route('admin.users.index')
@@ -237,7 +236,7 @@ class UserController extends Controller
             'provider_id' => $provider->id,
             'client_id' => $user->id,
             'created_by_provider' => false,
-            'status' => 'active',
+            'status' => ProviderClientStatus::Active,
         ]);
 
         return redirect()->route('admin.users.index')

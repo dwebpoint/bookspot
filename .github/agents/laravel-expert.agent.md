@@ -53,6 +53,11 @@ Cache::funnel('provider-sync')
 Cache::withoutOverlapping('import', fn () => ..., lockFor: 120, waitFor: 5);
 ```
 
+**`Cache::touch()`** — extend an existing cache item's TTL without retrieving or re-storing its value:
+```php
+Cache::touch('provider-data', seconds: 3600);
+```
+
 ### New Eloquent Casts
 Three new built-in cast types available in the `casts()` method:
 ```php
@@ -86,15 +91,131 @@ pagination::bootstrap-3          // was: pagination::default
 pagination::simple-bootstrap-3   // was: pagination::simple-default
 ```
 
+### Expanded PHP Attributes
+Laravel 13 adds PHP attribute support across controllers, queues, and more — declarative and colocated with classes:
+
+**Controller middleware and authorization:**
+```php
+use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
+
+#[Middleware('auth')]
+class TimeslotController
+{
+    #[Middleware('subscribed')]
+    #[Authorize('create', [Timeslot::class, 'provider'])]
+    public function store(StoreTimeslotRequest $request): RedirectResponse { ... }
+
+    #[Authorize('delete', 'timeslot')]
+    public function destroy(Timeslot $timeslot): RedirectResponse { ... }
+}
+```
+
+**Queue job attributes:**
+```php
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\Backoff;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\FailOnTimeout;
+
+#[Tries(5)]
+#[Backoff([1, 5, 10])]   // exponential backoff in seconds
+#[Timeout(120)]
+#[FailOnTimeout]
+class SendNotificationJob implements ShouldQueue { ... }
+```
+
+**PHPUnit unit test attribute (13.3):**
+```php
+use PHPUnit\Framework\Attributes\UnitTest;
+
+#[UnitTest]
+class TimeslotHelperTest extends TestCase { ... }
+```
+
+### Queue Routing by Class
+Define default connection/queue for specific job classes in a central place (e.g., `AppServiceProvider::boot()`):
+```php
+use Illuminate\Support\Facades\Queue;
+
+Queue::route(SendTimeslotBooked::class, connection: 'redis', queue: 'notifications');
+Queue::route(SendTimeslotCancelled::class, queue: 'notifications');
+
+// Route multiple jobs at once
+Queue::route([
+    SendTimeslotBooked::class   => ['notifications', 'redis'],
+    SendTimeslotCancelled::class => 'notifications',
+]);
+```
+
+### JSON:API Resources
+Laravel 13 includes first-party JSON:API compliant resource classes:
+```bash
+php artisan make:json-api-resource TimeslotResource
+```
+These handle resource serialization, relationship inclusion, sparse fieldsets, links, and compliant response headers automatically.
+
+### BatchStarted Event (13.3)
+A `BatchStarted` event is now fired when a job batch is dispatched, allowing you to hook into the batch lifecycle:
+```php
+use Illuminate\Bus\Events\BatchStarted;
+use Illuminate\Support\Facades\Event;
+
+Event::listen(BatchStarted::class, function (BatchStarted $event) {
+    // $event->batch
+});
+```
+
+### Request Safe File Method (13.3)
+Access uploaded files from a validated request via `safe()`:
+```php
+public function store(StoreTimeslotRequest $request): RedirectResponse
+{
+    $file = $request->safe()->file('attachment');
+    // ...
+}
+```
+
+### Uri Class Improvements (13.3)
+```php
+use Illuminate\Support\Uri;
+
+$uri = Uri::of('https://bookspot.ddev.site/calendar#upcoming');
+
+$uri->isNotEmpty();       // true
+$uri->withoutFragment();  // https://bookspot.ddev.site/calendar
+```
+
+### Mailable Testing Helpers (13.3)
+```php
+use Illuminate\Support\Facades\Mail;
+
+Mail::fake();
+// ...
+Mail::assertSent(TimeslotBooked::class, function ($mail) {
+    $mail->assertHasNoAttachments();
+    return true;
+});
+```
+
+### Enum Support in Queue and Log Managers (13.3)
+Pass enum values directly to queue connection and log channel methods:
+```php
+enum QueueConnection: string { case Redis = 'redis'; case Database = 'database'; }
+
+Queue::connection(QueueConnection::Redis)->push(new SendNotificationJob($timeslot));
+Log::channel(LogChannel::Slack)->info('Timeslot booked');
+```
+
 ## Your Expertise
 
 ### Backend (Laravel 13 + PHP 8.4+)
-- **Framework**: Laravel 13 — `PreventRequestForgery` middleware, `Concurrency` facade, `Cache::funnel()`, new Eloquent casts (`AsUri`, `AsFluent`, `AsBinary`)
+- **Framework**: Laravel 13.3 — `PreventRequestForgery` middleware, `Concurrency` facade, `Cache::funnel()`, `Cache::touch()`, new Eloquent casts (`AsUri`, `AsFluent`, `AsBinary`), PHP attributes (`#[Middleware]`, `#[Authorize]`, `#[Tries]`, `#[Backoff]`, `#[Timeout]`, `#[FailOnTimeout]`), queue routing via `Queue::route()`, JSON:API resources, `BatchStarted` event
 - **Authorization**: Spatie Laravel Permission (role-based access control, policies)
 - **Authentication**: Laravel Fortify (login, registration, password reset)
-- **ORM**: Eloquent relationships, query scopes, model events, accessors/mutators
-- **Validation**: Form Requests, custom validation rules
-- **Testing**: PHPUnit with RefreshDatabase, feature tests, policy tests
+- **ORM**: Eloquent relationships, query scopes, model events, accessors/mutators, variadic model attribute args
+- **Validation**: Form Requests, custom validation rules, `$request->safe()->file()`
+- **Testing**: PHPUnit 12 with RefreshDatabase, feature tests, policy tests, `#[UnitTest]` attribute, `assertHasNoAttachments()`
 - **Database**: Migrations, seeders, foreign key constraints
 - **Code Quality**: Laravel Pint (PSR-12), strict types, typed properties
 

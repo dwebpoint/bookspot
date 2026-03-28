@@ -20,7 +20,7 @@ class SendTimeslotNotifications
         }
 
         Mail::to($event->timeslot->provider)
-            ->sendNow(new TimeslotBookedMail($event->timeslot, $event->client));
+            ->send(new TimeslotBookedMail($event->timeslot, $event->client));
     }
 
     public function onTimeslotCancelled(TimeslotCancelled $event): void
@@ -32,7 +32,7 @@ class SendTimeslotNotifications
         }
 
         Mail::to($event->timeslot->provider)
-            ->sendNow(new TimeslotCancelledMail($event->timeslot, $event->client));
+            ->send(new TimeslotCancelledMail($event->timeslot, $event->client));
     }
 
     public function subscribe(Dispatcher $events): array

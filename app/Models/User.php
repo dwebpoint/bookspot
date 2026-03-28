@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\ProviderClientStatus;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -55,7 +58,7 @@ class User extends Authenticatable
     /**
      * Get the timeslots created by this provider.
      */
-    public function timeslots(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function timeslots(): HasMany
     {
         return $this->hasMany(Timeslot::class, 'provider_id');
     }
@@ -63,7 +66,7 @@ class User extends Authenticatable
     /**
      * Get the timeslots booked by this client.
      */
-    public function bookedTimeslots(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function bookedTimeslots(): HasMany
     {
         return $this->hasMany(Timeslot::class, 'client_id');
     }
@@ -96,24 +99,24 @@ class User extends Authenticatable
      * Get the clients linked to this provider.
      * (For service_provider role)
      */
-    public function clients(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function clients(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'provider_client', 'provider_id', 'client_id')
             ->withPivot('created_by_provider', 'status')
             ->withTimestamps()
-            ->wherePivot('status', 'active');
+            ->wherePivot('status', ProviderClientStatus::Active);
     }
 
     /**
      * Get the providers linked to this client.
      * (For client role)
      */
-    public function providers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function providers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'provider_client', 'client_id', 'provider_id')
             ->withPivot('created_by_provider', 'status')
             ->withTimestamps()
-            ->wherePivot('status', 'active');
+            ->wherePivot('status', ProviderClientStatus::Active);
     }
 
     /**

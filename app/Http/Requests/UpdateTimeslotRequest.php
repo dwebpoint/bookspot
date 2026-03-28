@@ -6,6 +6,7 @@ use App\Models\Timeslot;
 use Carbon\Carbon;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Validator;
 
 class UpdateTimeslotRequest extends FormRequest
@@ -67,15 +68,20 @@ class UpdateTimeslotRequest extends FormRequest
             $durationMinutes = $this->duration_minutes;
             $endTime = $startTime->copy()->addMinutes($durationMinutes);
 
+            $startTimeUtc = $startTime->copy()->utc()->format('Y-m-d H:i:s');
+            $endTimeUtc = $endTime->copy()->utc()->format('Y-m-d H:i:s');
+
             $overlap = Timeslot::where('provider_id', $timeslot->provider_id)
                 ->where('id', '!=', $timeslot->id)
-                ->get()
-                ->contains(function ($existing) use ($startTime, $endTime) {
-                    $existingStart = $existing->start_time;
-                    $existingEnd = $existingStart->copy()->addMinutes($existing->duration_minutes);
-
-                    return $existingStart < $endTime && $existingEnd > $startTime;
-                });
+                ->where('start_time', '<', $endTimeUtc)
+                ->whereRaw(
+                    match (DB::connection()->getDriverName()) {
+                        'sqlite' => "datetime(start_time, '+' || duration_minutes || ' minutes') > ?",
+                        default => 'DATE_ADD(start_time, INTERVAL duration_minutes MINUTE) > ?',
+                    },
+                    [$startTimeUtc]
+                )
+                ->exists();
 
             if ($overlap) {
                 $validator->errors()->add('start_time', 'This timeslot would overlap with an existing timeslot.');

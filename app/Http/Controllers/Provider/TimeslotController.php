@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Provider;
 
+use App\Enums\TimeslotStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Provider\AssignClientRequest;
 use App\Http\Requests\StoreTimeslotRequest;
@@ -30,9 +31,9 @@ class TimeslotController extends Controller
         // If client_id is provided, assign immediately
         if ($request->filled('client_id')) {
             $data['client_id'] = $request->client_id;
-            $data['status'] = 'booked';
+            $data['status'] = TimeslotStatus::Booked;
         } else {
-            $data['status'] = 'available';
+            $data['status'] = TimeslotStatus::Available;
         }
 
         Timeslot::create($data);

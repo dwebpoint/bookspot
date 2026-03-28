@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Provider;
 
+use App\Enums\ProviderClientStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Provider\StoreInvitationRequest;
 use App\Mail\ClientInvitation;
@@ -38,7 +39,7 @@ class InvitationController extends Controller
                 'provider_id' => $provider->id,
                 'client_id' => $existingUser->id,
                 'created_by_provider' => true,
-                'status' => 'active',
+                'status' => ProviderClientStatus::Active,
             ]);
 
             return redirect()->back()

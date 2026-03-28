@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Provider;
 
+use App\Enums\ProviderClientStatus;
+use App\Enums\TimeslotStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClientRequest;
 use App\Models\Invitation;
@@ -94,7 +96,7 @@ class ClientController extends Controller
                         'provider_id' => auth()->id(),
                         'client_id' => $existingUser->id,
                         'created_by_provider' => true,
-                        'status' => 'active',
+                        'status' => ProviderClientStatus::Active,
                     ]);
                 } else {
                     // Create new client user
@@ -102,7 +104,6 @@ class ClientController extends Controller
                         'name' => $request->name,
                         'email' => $request->email,
                         'password' => Hash::make($request->password),
-                        'role' => 'client',
                     ]);
 
                     $client->assignRole('client');
@@ -112,7 +113,7 @@ class ClientController extends Controller
                         'provider_id' => auth()->id(),
                         'client_id' => $client->id,
                         'created_by_provider' => true,
-                        'status' => 'active',
+                        'status' => ProviderClientStatus::Active,
                     ]);
 
                     // Send password reset link to new client
@@ -223,8 +224,8 @@ class ClientController extends Controller
                 if ($futureTimeslotIds->isNotEmpty()) {
                     Timeslot::whereIn('id', $futureTimeslotIds)
                         ->where('client_id', $client->id)
-                        ->where('status', 'booked')
-                        ->update(['status' => 'available']);
+                        ->where('status', TimeslotStatus::Booked)
+                        ->update(['status' => TimeslotStatus::Available, 'client_id' => null]);
                 }
 
                 // Remove the relationship

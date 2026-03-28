@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Provider;
 
+use App\Enums\TimeslotStatus;
 use App\Models\Timeslot;
 use App\Models\User;
 use Carbon\Carbon;
@@ -164,7 +165,7 @@ class TimeslotControllerUpdateTest extends TestCase
         $response->assertSessionHas('success');
         $timeslot->refresh();
         $this->assertEquals(120, $timeslot->duration_minutes);
-        $this->assertEquals('booked', $timeslot->status);
+        $this->assertEquals(TimeslotStatus::Booked, $timeslot->status);
     }
 
     public function test_provider_cannot_update_completed_timeslot(): void
@@ -340,6 +341,43 @@ class TimeslotControllerUpdateTest extends TestCase
 
         $response = $this->actingAs($this->provider)
             ->patch(route('provider.timeslots.update', $timeslot), [
+                'start_time' => Carbon::now()->addDays(3)->setTime(15, 0)->format('Y-m-d\TH:i'),
+                'duration_minutes' => 60,
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+    }
+
+    public function test_provider_cannot_create_overlapping_timeslot(): void
+    {
+        Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => Carbon::now()->addDays(3)->setTime(14, 0),
+            'duration_minutes' => 60,
+            'status' => 'available',
+        ]);
+
+        $response = $this->actingAs($this->provider)
+            ->post(route('provider.timeslots.store'), [
+                'start_time' => Carbon::now()->addDays(3)->setTime(14, 30)->format('Y-m-d\TH:i'),
+                'duration_minutes' => 60,
+            ]);
+
+        $response->assertSessionHasErrors('start_time');
+    }
+
+    public function test_provider_can_create_adjacent_non_overlapping_timeslot(): void
+    {
+        Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => Carbon::now()->addDays(3)->setTime(14, 0),
+            'duration_minutes' => 60,
+            'status' => 'available',
+        ]);
+
+        $response = $this->actingAs($this->provider)
+            ->post(route('provider.timeslots.store'), [
                 'start_time' => Carbon::now()->addDays(3)->setTime(15, 0)->format('Y-m-d\TH:i'),
                 'duration_minutes' => 60,
             ]);

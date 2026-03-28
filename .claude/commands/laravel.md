@@ -5,8 +5,8 @@ description: "Get expert Laravel 13 development help for BookSpot (Laravel + Rea
 You are an expert Laravel 13 full-stack developer working on the BookSpot application. Use your knowledge of:
 
 - Laravel 13 + PHP 8.4+ (Eloquent, migrations, policies, Form Requests)
-- React 19 + TypeScript 5.7+ (functional components, hooks, strict types)
-- Inertia.js 2.x (SSR-capable bridge, type-safe props)
+- React 19 + TypeScript 5.9+ (functional components, hooks, strict types)
+- Inertia.js 3.x (SSR-capable bridge, type-safe props)
 - Spatie Laravel Permission (RBAC with roles and permissions)
 - shadcn/ui + Tailwind CSS 4.x (component library)
 - Laravel Wayfinder (type-safe routing)
@@ -20,81 +20,23 @@ Follow the BookSpot project patterns defined in [CLAUDE.md](CLAUDE.md):
 - Migrations-only database changes
 - Calendar-first timeslot management workflow
 
-## Laravel 13 Key Changes
+## Testing
 
-### CSRF Middleware Renamed (Breaking)
-`VerifyCsrfToken` is now `PreventRequestForgery`. It adds origin-aware verification via the `Sec-Fetch-Site` header before falling back to token validation. Update test helpers and route exclusions:
-```php
-// Laravel 13
-->withoutMiddleware([PreventRequestForgery::class]);
-```
-
-### Concurrency Facade
-Run closures in parallel child processes — useful for aggregating data from multiple sources:
-```php
-use Illuminate\Support\Facades\Concurrency;
-
-[$userCount, $timeslotCount] = Concurrency::run([
-    fn () => User::count(),
-    fn () => Timeslot::available()->count(),
-]);
-```
-Drivers: `process` (default), `fork` (CLI only, faster), `sync` (testing).
-
-### Cache Concurrency Helpers
-Limit concurrent executions with `funnel()` or ensure single-instance execution with `withoutOverlapping()`:
-```php
-// Max 3 concurrent executions
-Cache::funnel('booking')->limit(3)->releaseAfter(60)->block(10)->then(fn () => ...);
-
-// Single instance with timeout
-Cache::withoutOverlapping('sync', fn () => ..., lockFor: 120, waitFor: 5);
-```
-
-### New Eloquent Casts
-Built-in cast types added in Laravel 13:
-- `AsUri::class` — casts attribute to/from a URI object
-- `AsFluent::class` — casts attribute to a fluent object
-- `AsBinary::uuid()` / `AsBinary::ulid()` — binary UUID/ULID columns
-
-```php
-protected function casts(): array
-{
-    return [
-        'profile_url' => AsUri::class,
-        'metadata'    => AsFluent::class,
-        'uuid'        => AsBinary::uuid(),
-    ];
-}
-```
-
-### `Table` Attribute `dateFormat`
-Set the DB date storage format via the `#[Table]` attribute:
-```php
-use Illuminate\Database\Eloquent\Attributes\Table;
-
-#[Table(dateFormat: 'U')]
-class Timeslot extends Model {}
-```
-
-### Pagination View Name Changes
-Bootstrap 3 pagination views renamed — update any direct references:
-```
-pagination::bootstrap-3        // was: pagination::default
-pagination::simple-bootstrap-3 // was: pagination::simple-default
-```
+- PHPUnit 12: test methods **must** use the `test_` prefix — `@test` annotations are not supported
+- Use factories and `RefreshDatabase` trait
+- Always use `search-docs` to verify Laravel 13-specific APIs before implementing
 
 ## Tools
 
 Use the **Laravel Boost MCP** tools throughout:
 - `search-docs` before making changes — always check version-specific docs first
 - `database-query` to inspect data and schema
-- `last-error` / `browser-logs` to diagnose issues
+- `browser-logs` to diagnose frontend issues
 
 ## Code Quality
 
 After every change, run the appropriate checks:
-- PHP: `vendor/bin/pint --dirty`
+- PHP: `vendor/bin/pint --dirty` (or `php vendor/laravel/pint/builds/pint` inside DDEV)
 - Frontend: `npm run lint && npm run types`
 
 ## Output
