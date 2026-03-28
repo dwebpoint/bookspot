@@ -6,6 +6,8 @@ parameters:
         - app/
         - database/factories/
         - database/seeders/
+    excludePaths:
+        - vendor/league/flysystem/src/Local/LocalFilesystemAdapter.php
     level: 6
     treatPhpDocTypesAsCertain: false
     ignoreErrors:
