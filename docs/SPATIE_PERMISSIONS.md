@@ -23,7 +23,7 @@ php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvid
 Run all migrations including the new role column migration and Spatie's permission tables:
 
 ```bash
-php artisan migrate
+ddev exec php artisan migrate
 ```
 
 This will create the following tables:
@@ -36,7 +36,7 @@ This will create the following tables:
 ### 4. Seed Roles and Permissions
 
 ```bash
-php artisan db:seed --class=RolesAndPermissionsSeeder
+ddev exec php artisan db:seed --class=RolesAndPermissionsSeeder
 ```
 
 This creates:
@@ -46,7 +46,7 @@ This creates:
 ### 5. Assign Roles to Existing Users
 
 ```bash
-php artisan db:seed --class=AssignRolesToExistingUsersSeeder
+ddev exec php artisan db:seed --class=AssignRolesToExistingUsersSeeder
 ```
 
 This migrates existing users from the `role` column to Spatie's role system.

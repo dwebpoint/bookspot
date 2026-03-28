@@ -188,4 +188,17 @@ class TimeslotController extends Controller
         return redirect()->back()
             ->with('success', 'Timeslot marked as completed successfully.');
     }
+
+    /**
+     * Revert a completed timeslot back to booked status (service provider only).
+     */
+    public function revert(Timeslot $timeslot): RedirectResponse
+    {
+        $this->authorize('revertCompletion', $timeslot);
+
+        $timeslot->revert();
+
+        return redirect()->back()
+            ->with('success', 'Timeslot reverted to booked status.');
+    }
 }

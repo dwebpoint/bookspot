@@ -55,7 +55,7 @@ class User extends Authenticatable
     /**
      * Get the timeslots created by this provider.
      */
-    public function timeslots()
+    public function timeslots(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Timeslot::class, 'provider_id');
     }
@@ -63,7 +63,7 @@ class User extends Authenticatable
     /**
      * Get the timeslots booked by this client.
      */
-    public function bookedTimeslots()
+    public function bookedTimeslots(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Timeslot::class, 'client_id');
     }
@@ -96,7 +96,7 @@ class User extends Authenticatable
      * Get the clients linked to this provider.
      * (For service_provider role)
      */
-    public function clients()
+    public function clients(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(User::class, 'provider_client', 'provider_id', 'client_id')
             ->withPivot('created_by_provider', 'status')
@@ -108,7 +108,7 @@ class User extends Authenticatable
      * Get the providers linked to this client.
      * (For client role)
      */
-    public function providers()
+    public function providers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(User::class, 'provider_client', 'client_id', 'provider_id')
             ->withPivot('created_by_provider', 'status')

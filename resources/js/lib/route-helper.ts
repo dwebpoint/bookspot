@@ -19,6 +19,7 @@ export function route(
         'timeslots.store': '/timeslots',
         'timeslots.destroy': '/timeslots/:id',
         'timeslots.complete': '/timeslots/:id/complete',
+        'timeslots.revert': '/timeslots/:id/revert',
         'timeslots.forceDelete': '/timeslots/:id/force-delete',
 
         // Provider routes
@@ -37,6 +38,14 @@ export function route(
         'provider.clients.edit': '/provider/clients/:id/edit',
         'provider.clients.update': '/provider/clients/:id',
         'provider.clients.destroy': '/provider/clients/:id',
+
+        // Provider invitation routes
+        'provider.invitations.store': '/provider/invitations',
+        'provider.invitations.destroy': '/provider/invitations/:id',
+
+        // Public invitation routes
+        'invitation.show': '/invitation/:id',
+        'invitation.register': '/invitation/:id',
 
         // Admin routes
         'admin.users.index': '/admin/users',

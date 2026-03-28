@@ -3,7 +3,9 @@
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InvitationRegistrationController;
 use App\Http\Controllers\Provider\ClientController;
+use App\Http\Controllers\Provider\InvitationController;
 use App\Http\Controllers\Provider\TimeslotController as ProviderTimeslotController;
 use App\Http\Controllers\TimeslotController;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +48,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('timeslots.complete')
         ->middleware('role:service_provider,admin');
 
+    // Revert completed timeslot back to booked - Service Provider or Admin only
+    Route::patch('timeslots/{timeslot}/revert', [TimeslotController::class, 'revert'])
+        ->name('timeslots.revert')
+        ->middleware('role:service_provider,admin');
+
     // Provider routes
     Route::prefix('provider')->name('provider.')->middleware('role:service_provider,admin')->group(function () {
         // Timeslots
@@ -63,6 +70,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
         Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
         Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
+
+        // Client invitations
+        Route::post('invitations', [InvitationController::class, 'store'])->name('invitations.store');
+        Route::delete('invitations/{invitation}', [InvitationController::class, 'destroy'])->name('invitations.destroy');
     });
 
     // Admin routes
@@ -71,6 +82,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('users/{user}/role', [AdminUserController::class, 'updateRole'])->name('users.updateRole');
         Route::post('users/{user}/attach-provider', [AdminUserController::class, 'attachProvider'])->name('users.attachProvider');
     });
+});
+
+// Public invitation registration routes (guest only)
+Route::middleware('guest')->group(function () {
+    Route::get('invitation/{token}', [InvitationRegistrationController::class, 'show'])->name('invitation.show');
+    Route::post('invitation/{token}', [InvitationRegistrationController::class, 'register'])->name('invitation.register');
 });
 
 require __DIR__.'/settings.php';

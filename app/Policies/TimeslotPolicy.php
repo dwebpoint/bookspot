@@ -137,6 +137,19 @@ class TimeslotPolicy
     }
 
     /**
+     * Determine whether the user can revert a completed timeslot back to booked.
+     */
+    public function revertCompletion(User $user, Timeslot $timeslot): bool
+    {
+        if (! $timeslot->is_completed) {
+            return false;
+        }
+
+        return ($user->id === $timeslot->provider_id && $user->isServiceProvider())
+            || $user->isAdmin();
+    }
+
+    /**
      * Determine whether the user can mark the timeslot as completed.
      */
     public function complete(User $user, Timeslot $timeslot): bool

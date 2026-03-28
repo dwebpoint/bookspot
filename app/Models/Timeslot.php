@@ -191,6 +191,14 @@ class Timeslot extends Model
     }
 
     /**
+     * Revert a completed timeslot back to booked status.
+     */
+    public function revert(): bool
+    {
+        return $this->update(['status' => 'booked']);
+    }
+
+    /**
      * Cancel this timeslot's booking.
      */
     public function cancel(): bool

@@ -11,43 +11,72 @@ BookSpot is a Laravel 13 + React 19 timeslot booking application using Inertia.j
 - Frontend: React 19, TypeScript 5.7+, Tailwind CSS 4.x, shadcn/ui, Radix UI
 - Bridge: Inertia.js 2.x (server-side rendering capable)
 - Build: Vite 7.x with Laravel Wayfinder for type-safe routing
-- Database: SQLite (testing), configurable for production
+- Database: MariaDB 10.11 (via DDEV), SQLite (testing only)
+- Local Dev: DDEV (site URL: https://bookspot.ddev.site)
 - Testing: PHPUnit 12 with RefreshDatabase
 
 ## Development Commands
 
+### Local Environment (DDEV)
+
+This project uses [DDEV](https://ddev.com) for local development. The site runs at **https://bookspot.ddev.site**.
+
+```bash
+# Start the DDEV environment
+ddev start
+
+# Stop the environment
+ddev stop
+
+# Open the site in a browser
+ddev launch
+
+# Run Artisan commands inside DDEV
+ddev exec php artisan <command>
+
+# Run Composer inside DDEV
+ddev composer <command>
+
+# Run npm inside DDEV
+ddev npm <command>
+
+# Open a shell inside the web container
+ddev ssh
+```
+
 ### Initial Setup
 ```bash
+# Start DDEV
+ddev start
+
 # Full setup (install dependencies, configure, migrate, seed)
-composer setup
+ddev composer setup
 
 # Manual setup steps
-composer install
-npm install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
-php artisan db:seed --class=RolesAndPermissionsSeeder
-php artisan db:seed --class=AssignRolesToExistingUsersSeeder
+ddev composer install
+ddev npm install
+ddev exec cp .env.example .env
+ddev exec php artisan key:generate
+ddev exec php artisan migrate
+ddev exec php artisan db:seed --class=RolesAndPermissionsSeeder
+ddev exec php artisan db:seed --class=AssignRolesToExistingUsersSeeder
 ```
 
 ### Development
 ```bash
-# Start all development servers (Laravel, queue, Vite)
-composer dev
+# Start all development servers (Laravel queue + Vite) inside DDEV
+ddev composer dev
 
 # Start with SSR support
-composer dev:ssr
+ddev composer dev:ssr
 
-# Alternative: Run individually
-php artisan serve          # Laravel server (port 8000)
-npm run dev                # Vite dev server (port 5173)
-php artisan queue:listen   # Queue worker
+# Run Vite dev server separately (Vite is exposed on port 5173)
+ddev npm run dev
 ```
 
 ### Testing
 ```bash
-# Run all tests
+# Run all tests (uses SQLite in-memory, no DDEV needed)
 php artisan test
 composer test
 
@@ -61,35 +90,34 @@ php artisan test --coverage
 ### Code Quality
 ```bash
 # PHP static analysis (PHPStan via Larastan, level 6)
-composer analyse
+ddev exec php c:\work\sites\bookspot\vendor\bin\phpstan.phar analyse --no-progress
 
 # PHPStan on changed files only (git diff)
-composer analyse:changed
-php artisan phpstan:changed          # Artisan equivalent
+ddev composer analyse:changed
 
 # PHP formatting (Laravel Pint)
-./vendor/bin/pint
+ddev exec php vendor/laravel/pint/builds/pint
 
 # TypeScript/React linting and formatting
-npm run lint              # ESLint with auto-fix
-npm run format            # Prettier format
-npm run format:check      # Check formatting only
-npm run types             # TypeScript type checking
+ddev npm run lint              # ESLint with auto-fix
+ddev npm run format            # Prettier format
+ddev npm run format:check      # Check formatting only
+ddev npm run types             # TypeScript type checking
 ```
 
 ### Building
 ```bash
-npm run build             # Production build
-npm run build:ssr         # Build with SSR support
+ddev npm run build             # Production build
+ddev npm run build:ssr         # Build with SSR support
 ```
 
 ### Permission Management
 ```bash
 # Clear permission cache after changes
-php artisan permission:cache-reset
+ddev exec php artisan permission:cache-reset
 
 # Reseed roles and permissions
-php artisan db:seed --class=RolesAndPermissionsSeeder
+ddev exec php artisan db:seed --class=RolesAndPermissionsSeeder
 ```
 
 ## Architecture
@@ -130,10 +158,11 @@ See `docs/SPATIE_PERMISSIONS.md` for complete permission structure and usage exa
 
 **Controllers:**
 - `app/Http/Controllers/Admin/` - Admin-only controllers (user management)
-- `app/Http/Controllers/Provider/` - Service provider controllers (timeslots, clients)
+- `app/Http/Controllers/Provider/` - Service provider controllers (timeslots, clients, invitations)
 - `app/Http/Controllers/DashboardController.php` - Role-based dashboard with stats (provider/client/admin)
 - `app/Http/Controllers/TimeslotController.php` - Client-facing timeslot operations (book, cancel, force delete, complete)
 - `app/Http/Controllers/CalendarController.php` - Calendar views
+- `app/Http/Controllers/InvitationRegistrationController.php` - Public invitation registration (show form, register)
 - `app/Http/Controllers/Settings/` - User settings and profile (profile, password, appearance, notifications)
 
 **Events & Listeners:**
@@ -146,6 +175,7 @@ See `docs/SPATIE_PERMISSIONS.md` for complete permission structure and usage exa
 - `User` - HasRoles trait, client/provider relationships via many-to-many, `email_notifications_enabled` boolean preference (default `false`)
 - `Timeslot` - Belongs to provider, optionally to client, has status (available/booked/completed)
 - `ProviderClient` - Pivot table for provider-client relationships
+- `Invitation` - Pending email invitations sent by providers to prospective clients
 
 **Note:** The Booking model has been consolidated into the Timeslot model. Timeslots now directly reference clients via `client_id` and track their lifecycle through the `status` field.
 
@@ -344,6 +374,7 @@ createForm.post(route('provider.timeslots.store'), {
 - `users` - User accounts with `role` column (legacy), `timezone`, `email_notifications_enabled` (boolean, default false)
 - `timeslots` - Provider's available slots with status; `client_id` is set directly when booked
 - `provider_client` - Many-to-many provider-client relationships; includes `created_by_provider` (boolean) and `status` (enum: 'active'|'inactive') columns
+- `invitations` - Pending email invitations; columns: `provider_id`, `email`, `token` (64 chars, unique), `expires_at`; unique constraint on `[provider_id, email]`; deleted when accepted
 - `roles`, `permissions`, `model_has_roles`, etc. - Spatie permission tables
 
 **Key Relationships:**
@@ -378,6 +409,7 @@ Controller fires Event → AppServiceProvider-registered Subscriber handles it �
 - `TimeslotBooked` — subject includes the booking date/time; view `emails/timeslot-booked.blade.php`
 - `TimeslotCancelled` — subject includes the cancelled date/time; view `emails/timeslot-cancelled.blade.php`
 - Both implement `ShouldQueue` — emails are dispatched asynchronously via the queue worker
+- `ClientInvitation` — sent synchronously when a provider invites a new client; view `emails/client-invitation.blade.php`
 
 **User Notification Preference:**
 - `users.email_notifications_enabled` boolean (default `false`)
@@ -490,6 +522,44 @@ When users perform actions on `/calendar` (create/delete timeslots, assign/remov
 
 **Note:** There are no separate timeslot index or create pages. All timeslot management happens on the calendar page for a streamlined, context-aware workflow.
 
+### Client Invitation Flow
+
+Providers invite new clients via email from `/provider/clients`:
+
+1. Provider clicks "Invite Client" on the Clients page
+2. Modal dialog opens — provider enters the email address
+3. System checks:
+   - If email belongs to an existing client already linked → flash "already linked"
+   - If email belongs to any existing user → auto-link as client, no email sent
+   - If a pending invitation already exists for that provider+email → flash error (no duplicate)
+   - Otherwise → create `Invitation` record, send `ClientInvitation` email immediately
+4. Pending invitations appear in the "Pending Invitations" section (email, sent date, expires date)
+5. Provider can revoke any pending invitation (deletes the record)
+6. Invitation link expires after 7 days
+
+**Routes:**
+- `POST /provider/invitations` - Send invitation (`provider.invitations.store`)
+- `DELETE /provider/invitations/{invitation}` - Revoke invitation (`provider.invitations.destroy`)
+- `GET /invitation/{token}` - Show registration page (public, guest-only) (`invitation.show`)
+- `POST /invitation/{token}` - Register via invitation (public, guest-only) (`invitation.register`)
+
+**Registration via invitation link:**
+1. Client clicks the email link → `GET /invitation/{token}`
+2. If token is missing or expired → 404 or `Invitation/Invalid` page
+3. Registration form shown with email pre-filled (read-only) and provider name displayed
+4. On submit: user created, assigned `client` role, linked to provider via `provider_client`, invitation record **deleted**, client auto-logged in
+
+**Implementation files:**
+- `app/Models/Invitation.php` — model with `scopePending()`, `isPending()`, `isExpired()`
+- `app/Http/Controllers/Provider/InvitationController.php` — `store()`, `destroy()`
+- `app/Http/Controllers/InvitationRegistrationController.php` — `show()`, `register()`
+- `app/Http/Requests/Provider/StoreInvitationRequest.php` — validates email
+- `app/Mail/ClientInvitation.php` — synchronous mailable
+- `resources/views/emails/client-invitation.blade.php` — email template
+- `resources/js/pages/Provider/Clients/Index.tsx` — invite modal + pending invitations list
+- `resources/js/pages/Invitation/Register.tsx` — public registration page
+- `resources/js/pages/Invitation/Invalid.tsx` — expired link page
+
 ### Client Booking Flow
 
 Clients book timeslots through the calendar or bookings page:
@@ -528,7 +598,7 @@ Clients book timeslots through the calendar or bookings page:
 4. **Testing:**
    - Run tests: `php artisan test`
    - Manually test in browser
-   - Check code quality: `composer analyse && ./vendor/bin/pint && npm run lint && npm run types`
+   - Check code quality: `ddev exec php vendor/laravel/pint/builds/pint && ddev npm run lint && ddev npm run types`
 
 ### Adding a New Role or Permission
 
@@ -630,10 +700,11 @@ php artisan config:clear
 ```
 
 ### Vite HMR Not Working
-Check that Vite dev server is running on port 5173 and Laravel `.env` has:
+DDEV exposes Vite on port 5173 (HTTPS). The `.env` should have:
 ```
-VITE_DEV_SERVER_URL=http://localhost:5173
+VITE_DEV_SERVER_URL=https://bookspot.ddev.site:5173
 ```
+If running `ddev npm run dev` and HMR still doesn't work, hard refresh the browser (Ctrl+Shift+R).
 
 ### TypeScript Errors
 ```bash
@@ -642,6 +713,12 @@ npm run types  # Check for type errors
 
 ### Inertia Version Mismatch
 Clear browser cache or hard refresh (Ctrl+Shift+R) after updating Inertia assets.
+
+### DDEV Not Starting
+```bash
+ddev stop --unlist bookspot  # Remove stale project entry
+ddev start                   # Start fresh
+```
 
 ===
 

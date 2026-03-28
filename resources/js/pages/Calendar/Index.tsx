@@ -88,6 +88,7 @@ export default function Calendar() {
     const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+    const [showRevertDialog, setShowRevertDialog] = useState(false);
     const [isEditingTimeslot, setIsEditingTimeslot] = useState(false);
     const [editDuration, setEditDuration] = useState<number>(60);
     const [editStartDate, setEditStartDate] = useState('');
@@ -267,6 +268,22 @@ export default function Calendar() {
         );
     };
 
+    const handleRevertTimeslot = () => {
+        if (!selectedTimeslot) return;
+
+        router.patch(
+            route('timeslots.revert', selectedTimeslot.id),
+            {},
+            {
+                onSuccess: () => {
+                    setShowDialog(false);
+                    setShowRevertDialog(false);
+                    setSelectedTimeslot(null);
+                },
+            },
+        );
+    };
+
     const handleUpdateTimeslot = () => {
         if (!selectedTimeslot) return;
 
@@ -329,6 +346,7 @@ export default function Calendar() {
             setSelectedClientId(null);
             setIsEditingTimeslot(false);
             setUpdateError(null);
+            setShowRevertDialog(false);
         }
     };
 
@@ -1053,6 +1071,25 @@ export default function Calendar() {
                                                 </div>
                                             )}
 
+                                        {/* Revert button for completed timeslots (service providers/admins) */}
+                                        {canSeeClientNames &&
+                                            selectedTimeslot.is_completed && (
+                                                <div className="border-t pt-3">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            setShowRevertDialog(
+                                                                true,
+                                                            )
+                                                        }
+                                                        className="w-full border-blue-600 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                                    >
+                                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                                        Revert to Booked
+                                                    </Button>
+                                                </div>
+                                            )}
+
                                         {/* Book button for clients - available timeslots */}
                                         {!canSeeClientNames &&
                                             selectedTimeslot.is_available && (
@@ -1249,6 +1286,31 @@ export default function Calendar() {
                             className="bg-green-600 text-white hover:bg-green-700"
                         >
                             Yes, mark as completed
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Revert Completed Timeslot Confirmation Dialog */}
+            <AlertDialog
+                open={showRevertDialog}
+                onOpenChange={setShowRevertDialog}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Revert to Booked</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to revert this timeslot back
+                            to booked status? The client will remain assigned.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleRevertTimeslot}
+                            className="bg-blue-600 text-white hover:bg-blue-700"
+                        >
+                            Yes, revert to booked
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

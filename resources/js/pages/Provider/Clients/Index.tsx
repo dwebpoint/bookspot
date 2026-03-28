@@ -11,27 +11,41 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { route } from '@/lib/route-helper';
 import type { PaginatedResponse, SharedData } from '@/types';
-import type { Client } from '@/types/client';
-import { Head, router, usePage } from '@inertiajs/react';
+import type { Client, Invitation } from '@/types/client';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { Edit, Eye, Plus, Search, Trash2, UserPlus, Users } from 'lucide-react';
+import { Clock, Edit, Eye, Mail, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { useState } from 'react';
 
 interface ClientsIndexProps extends SharedData {
     clients: PaginatedResponse<Client>;
     search?: string;
+    pendingInvitations: Invitation[];
 }
 
 export default function Index() {
-    const { clients, search: initialSearch } =
+    const { clients, search: initialSearch, pendingInvitations } =
         usePage<ClientsIndexProps>().props;
     const [search, setSearch] = useState(initialSearch || '');
     const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+    const [invitationToRevoke, setInvitationToRevoke] = useState<Invitation | null>(null);
+    const [showInviteModal, setShowInviteModal] = useState(false);
+
+    const inviteForm = useForm({ email: '' });
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,6 +66,26 @@ export default function Index() {
         });
     };
 
+    const handleSendInvitation = (e: React.FormEvent) => {
+        e.preventDefault();
+        inviteForm.post(route('provider.invitations.store'), {
+            onSuccess: () => {
+                setShowInviteModal(false);
+                inviteForm.reset();
+            },
+        });
+    };
+
+    const handleRevokeInvitation = () => {
+        if (!invitationToRevoke) return;
+
+        router.delete(route('provider.invitations.destroy', invitationToRevoke.id), {
+            onSuccess: () => {
+                setInvitationToRevoke(null);
+            },
+        });
+    };
+
     return (
         <AppLayout>
             <Head title="My Clients" />
@@ -67,15 +101,74 @@ export default function Index() {
                             Manage your client relationships
                         </p>
                     </div>
-                    <Button
-                        onClick={() =>
-                            router.get(route('provider.clients.create'))
-                        }
-                    >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Client
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowInviteModal(true)}
+                        >
+                            <Mail className="mr-2 h-4 w-4" />
+                            Invite Client
+                        </Button>
+                        <Button
+                            onClick={() =>
+                                router.get(route('provider.clients.create'))
+                            }
+                        >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Client
+                        </Button>
+                    </div>
                 </div>
+
+                {pendingInvitations.length > 0 && (
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                Pending Invitations
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <ul className="divide-y">
+                                {pendingInvitations.map((invitation) => (
+                                    <li
+                                        key={invitation.id}
+                                        className="flex items-center justify-between px-6 py-3"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-medium">
+                                                {invitation.email}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Sent{' '}
+                                                {format(
+                                                    new Date(invitation.created_at),
+                                                    'd MMM yyyy',
+                                                )}{' '}
+                                                &middot; Expires{' '}
+                                                {format(
+                                                    new Date(invitation.expires_at),
+                                                    'd MMM yyyy',
+                                                )}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="ml-4 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                            title="Revoke invitation"
+                                            onClick={() =>
+                                                setInvitationToRevoke(invitation)
+                                            }
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card>
                     <CardContent className="p-2">
@@ -121,7 +214,7 @@ export default function Index() {
                             <p className="mb-4 max-w-md text-center text-sm text-muted-foreground">
                                 {initialSearch
                                     ? 'Try adjusting your search terms'
-                                    : 'Start building your client base by adding your first client'}
+                                    : 'Start building your client base by adding or inviting your first client'}
                             </p>
                             {!initialSearch && (
                                 <Button
@@ -285,6 +378,62 @@ export default function Index() {
                 )}
             </div>
 
+            {/* Invite Client Modal */}
+            <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Invite a client</DialogTitle>
+                        <DialogDescription>
+                            Enter the client's email address. They'll receive an invitation link to register and will be automatically linked to your profile.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSendInvitation}>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="invite-email">
+                                    Email address
+                                </Label>
+                                <Input
+                                    id="invite-email"
+                                    type="email"
+                                    placeholder="client@example.com"
+                                    value={inviteForm.data.email}
+                                    onChange={(e) =>
+                                        inviteForm.setData('email', e.target.value)
+                                    }
+                                    autoFocus
+                                />
+                                {inviteForm.errors.email && (
+                                    <p className="text-destructive text-sm">
+                                        {inviteForm.errors.email}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setShowInviteModal(false);
+                                    inviteForm.reset();
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={inviteForm.processing}
+                            >
+                                <Mail className="mr-2 h-4 w-4" />
+                                Send invitation
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Remove Client Confirmation */}
             <AlertDialog
                 open={!!clientToDelete}
                 onOpenChange={(open) => !open && setClientToDelete(null)}
@@ -310,6 +459,34 @@ export default function Index() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Revoke Invitation Confirmation */}
+            <AlertDialog
+                open={!!invitationToRevoke}
+                onOpenChange={(open) => !open && setInvitationToRevoke(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Revoke invitation?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The invitation sent to{' '}
+                            <strong>{invitationToRevoke?.email}</strong> will be
+                            cancelled and the link in their email will no longer
+                            work.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive hover:bg-destructive/90"
+                            onClick={handleRevokeInvitation}
+                        >
+                            Revoke invitation
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </AppLayout>
     );
 }
+

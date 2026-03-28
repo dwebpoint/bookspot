@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Provider;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClientRequest;
+use App\Models\Invitation;
 use App\Models\ProviderClient;
 use App\Models\Timeslot;
 use App\Models\User;
@@ -43,9 +44,15 @@ class ClientController extends Controller
 
         $clients = $query->orderBy('provider_client.created_at', 'desc')->paginate(15);
 
+        $pendingInvitations = Invitation::where('provider_id', auth()->id())
+            ->pending()
+            ->orderByDesc('created_at')
+            ->get(['id', 'email', 'created_at', 'expires_at']);
+
         return Inertia::render('Provider/Clients/Index', [
             'clients' => $clients,
             'search' => $search,
+            'pendingInvitations' => $pendingInvitations,
         ]);
     }
 
