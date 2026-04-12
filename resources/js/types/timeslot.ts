@@ -6,6 +6,7 @@ export interface Timeslot {
     duration_minutes: number;
     end_time: string;
     status: 'available' | 'booked' | 'completed';
+    comment: string | null;
     is_available: boolean;
     is_booked: boolean;
     is_completed: boolean;

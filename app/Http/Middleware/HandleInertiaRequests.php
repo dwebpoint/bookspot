@@ -62,6 +62,13 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
             ],
+            'notifications' => $request->user() && ($request->user()->isServiceProvider() || $request->user()->isAdmin())
+                ? $request->user()->unreadNotifications()->latest()->take(20)->get()->map(fn ($n) => [
+                    'id' => $n->id,
+                    'data' => $n->data,
+                    'created_at' => $n->created_at->toIso8601String(),
+                ])->values()->all()
+                : [],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'commitHash' => $request->user()?->isAdmin() ? $this->getCommitHash() : null,
         ];

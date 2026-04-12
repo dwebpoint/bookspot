@@ -25,6 +25,7 @@ class Timeslot extends Model
         'start_time',
         'duration_minutes',
         'status',
+        'comment',
     ];
 
     /**
@@ -192,10 +193,16 @@ class Timeslot extends Model
      */
     public function book(int $clientId): bool
     {
-        return $this->update([
+        $data = [
             'client_id' => $clientId,
             'status' => TimeslotStatus::Booked,
-        ]);
+        ];
+
+        if ($this->client_id !== null && $this->client_id !== $clientId) {
+            $data['comment'] = null;
+        }
+
+        return $this->update($data);
     }
 
     /**
@@ -214,6 +221,7 @@ class Timeslot extends Model
         return $this->update([
             'client_id' => null,
             'status' => TimeslotStatus::Available,
+            'comment' => null,
         ]);
     }
 
@@ -233,6 +241,7 @@ class Timeslot extends Model
         return $this->update([
             'client_id' => null,
             'status' => TimeslotStatus::Available,
+            'comment' => null,
         ]);
     }
 }

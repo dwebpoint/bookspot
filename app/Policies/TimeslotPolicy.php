@@ -165,4 +165,22 @@ class TimeslotPolicy
         return ($user->id === $timeslot->provider_id && $user->isServiceProvider())
             || $user->isAdmin();
     }
+
+    /**
+     * Determine whether the user can update the comment on this timeslot.
+     */
+    public function updateComment(User $user, Timeslot $timeslot): bool
+    {
+        // Provider who owns the timeslot
+        if ($user->id === $timeslot->provider_id) {
+            return true;
+        }
+
+        // Client who is assigned to the timeslot
+        if ($user->id === $timeslot->client_id) {
+            return true;
+        }
+
+        return $user->isAdmin();
+    }
 }

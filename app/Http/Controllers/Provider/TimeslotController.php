@@ -26,6 +26,7 @@ class TimeslotController extends Controller
             'provider_id' => auth()->id(),
             'start_time' => $request->start_time,
             'duration_minutes' => $request->duration_minutes,
+            'comment' => $request->comment,
         ];
 
         // If client_id is provided, assign immediately
@@ -61,6 +62,10 @@ class TimeslotController extends Controller
 
         if ($request->has('start_time')) {
             $data['start_time'] = $request->start_time;
+        }
+
+        if ($request->has('comment')) {
+            $data['comment'] = $request->comment;
         }
 
         $timeslot->update($data);

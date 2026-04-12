@@ -22,6 +22,20 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface AppNotification {
+    id: string;
+    data: {
+        timeslot_id: number;
+        timeslot_start_time: string;
+        timeslot_duration_minutes: number;
+        client_id: number;
+        client_name: string;
+        client_email: string;
+        action: 'booked' | 'cancelled';
+    };
+    created_at: string;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
@@ -30,6 +44,7 @@ export interface SharedData {
         success?: string;
         error?: string;
     };
+    notifications: AppNotification[];
     sidebarOpen: boolean;
     commitHash: string | null;
     [key: string]: unknown;

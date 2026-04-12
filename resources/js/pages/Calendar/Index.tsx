@@ -35,6 +35,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { route } from '@/lib/route-helper';
 import type { SharedData, Timeslot } from '@/types';
@@ -47,6 +48,7 @@ import {
     Clock,
     Edit2,
     Plus,
+    StickyNote,
     Trash2,
     User as UserIcon,
     X,
@@ -76,6 +78,7 @@ export default function Calendar() {
     } = usePage<CalendarPageProps>().props;
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [isSavingComment, setIsSavingComment] = useState(false);
     const [showDialog, setShowDialog] = useState(false);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(
@@ -95,6 +98,7 @@ export default function Calendar() {
     const [editStartTime, setEditStartTime] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
     const [updateError, setUpdateError] = useState<string | null>(null);
+    const [editComment, setEditComment] = useState('');
     const [createDate, setCreateDate] = useState('');
     const [createTime, setCreateTime] = useState('');
 
@@ -102,6 +106,7 @@ export default function Calendar() {
         start_time: '',
         duration_minutes: 80,
         client_id: null as number | null,
+        comment: '' as string,
     });
 
     const isServiceProvider = auth.user?.role === 'service_provider';
@@ -162,6 +167,7 @@ export default function Calendar() {
         createForm.setData({
             start_time: defaultDateTime,
             duration_minutes: 80,
+            comment: '',
         });
         setShowCreateDialog(true);
     };
@@ -289,8 +295,9 @@ export default function Calendar() {
 
         setIsUpdating(true);
         setUpdateError(null);
-        const data: { duration_minutes: number; start_time?: string } = {
+        const data: { duration_minutes: number; start_time?: string; comment?: string } = {
             duration_minutes: editDuration,
+            comment: editComment,
         };
 
         if (editStartDate && editStartTime) {
@@ -313,6 +320,7 @@ export default function Calendar() {
                         setEditDuration(updated.duration_minutes);
                         setEditStartDate(format(new Date(updated.start_time), 'yyyy-MM-dd'));
                         setEditStartTime(format(new Date(updated.start_time), 'HH:mm'));
+                        setEditComment(updated.comment ?? '');
                     }
                 },
                 onError: (errors) => {
@@ -333,6 +341,7 @@ export default function Calendar() {
         setEditDuration(timeslot.duration_minutes);
         setEditStartDate(format(new Date(timeslot.start_time), 'yyyy-MM-dd'));
         setEditStartTime(format(new Date(timeslot.start_time), 'HH:mm'));
+        setEditComment(timeslot.comment ?? '');
         setIsEditingTimeslot(false);
         setShowDialog(true);
     };
@@ -347,7 +356,32 @@ export default function Calendar() {
             setIsEditingTimeslot(false);
             setUpdateError(null);
             setShowRevertDialog(false);
+            setIsSavingComment(false);
         }
+    };
+
+    const handleSaveComment = () => {
+        if (!selectedTimeslot) return;
+
+        setIsSavingComment(true);
+        router.patch(
+            route('timeslots.updateComment', selectedTimeslot.id),
+            { comment: editComment || null },
+            {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    const updatedTimeslots = (page.props as unknown as CalendarPageProps).timeslots;
+                    const updated = updatedTimeslots.find((t) => t.id === selectedTimeslot.id);
+                    if (updated) {
+                        setSelectedTimeslot(updated);
+                        setEditComment(updated.comment ?? '');
+                    }
+                },
+                onFinish: () => {
+                    setIsSavingComment(false);
+                },
+            },
+        );
     };
 
     const selectedDateTimeslots = selectedDate
@@ -507,7 +541,8 @@ export default function Calendar() {
                                                                                         ?.id ===
                                                                                         auth
                                                                                             .user
-                                                                                            ?.id,
+                                                                                            ?.id &&
+                                                                                    !ts.is_completed,
                                                                             )
                                                                             .map(
                                                                                 (
@@ -566,6 +601,12 @@ export default function Calendar() {
                                                                                                 Booking
                                                                                             </span>
                                                                                         </div>
+                                                                                        {timeslot.comment && (
+                                                                                            <div className="mt-1 flex items-start gap-1.5 text-xs italic text-muted-foreground">
+                                                                                                <StickyNote className="mt-px h-3 w-3 flex-shrink-0" />
+                                                                                                <span className="whitespace-pre-wrap">{timeslot.comment}</span>
+                                                                                            </div>
+                                                                                        )}
                                                                                     </button>
                                                                                 ),
                                                                             )}
@@ -575,7 +616,8 @@ export default function Calendar() {
                                                                                 (
                                                                                     ts,
                                                                                 ) =>
-                                                                                    ts.is_available,
+                                                                                    ts.is_available &&
+                                                                                    !isPast(new Date(ts.start_time)),
                                                                             )
                                                                             .map(
                                                                                 (
@@ -633,6 +675,91 @@ export default function Calendar() {
                                                                                                 Available
                                                                                             </span>
                                                                                         </div>
+                                                                                        {timeslot.comment && (
+                                                                                            <div className="mt-1 flex items-start gap-1.5 text-xs italic text-muted-foreground">
+                                                                                                <StickyNote className="mt-px h-3 w-3 flex-shrink-0" />
+                                                                                                <span className="whitespace-pre-wrap">{timeslot.comment}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </button>
+                                                                                ),
+                                                                            )}
+                                                                        {/* Client's completed timeslots */}
+                                                                        {dayTimeslots
+                                                                            .filter(
+                                                                                (
+                                                                                    ts,
+                                                                                ) =>
+                                                                                    ts.is_completed &&
+                                                                                    ts
+                                                                                        .client
+                                                                                        ?.id ===
+                                                                                        auth
+                                                                                            .user
+                                                                                            ?.id,
+                                                                            )
+                                                                            .map(
+                                                                                (
+                                                                                    timeslot,
+                                                                                ) => (
+                                                                                    <button
+                                                                                        key={
+                                                                                            timeslot.id
+                                                                                        }
+                                                                                        onClick={() => {
+                                                                                            handleTimeslotClick(
+                                                                                                timeslot,
+                                                                                                day,
+                                                                                            );
+                                                                                        }}
+                                                                                        className="w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-left transition-colors hover:bg-gray-100"
+                                                                                    >
+                                                                                        <div className="flex items-start justify-between gap-2">
+                                                                                            <div className="min-w-0 flex-1">
+                                                                                                <div className="mb-1 flex items-center gap-2">
+                                                                                                    <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                                                                                                    <span className="text-sm font-medium">
+                                                                                                        {format(
+                                                                                                            new Date(
+                                                                                                                timeslot.start_time,
+                                                                                                            ),
+                                                                                                            'HH:mm',
+                                                                                                        )}
+                                                                                                        {' – '}
+                                                                                                        {format(
+                                                                                                            new Date(
+                                                                                                                timeslot.end_time,
+                                                                                                            ),
+                                                                                                            'HH:mm',
+                                                                                                        )}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                                                    <Clock className="h-3 w-3 flex-shrink-0" />
+                                                                                                    <span>
+                                                                                                        {timeslot.duration_minutes}{' '}min
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                {timeslot.provider && (
+                                                                                                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                                                                                                        {
+                                                                                                            timeslot
+                                                                                                                .provider
+                                                                                                                .name
+                                                                                                        }
+                                                                                                    </div>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                                                                                                Completed
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        {timeslot.comment && (
+                                                                                            <div className="mt-1 flex items-start gap-1.5 text-xs italic text-muted-foreground">
+                                                                                                <StickyNote className="mt-px h-3 w-3 flex-shrink-0" />
+                                                                                                <span className="whitespace-pre-wrap">{timeslot.comment}</span>
+                                                                                            </div>
+                                                                                        )}
                                                                                     </button>
                                                                                 ),
                                                                             )}
@@ -727,6 +854,12 @@ export default function Calendar() {
                                                                                               : 'Booked'}
                                                                                     </span>
                                                                                 </div>
+                                                                                {timeslot.comment && (
+                                                                                    <div className="mt-1 flex items-start gap-1.5 text-xs italic text-muted-foreground">
+                                                                                        <StickyNote className="mt-px h-3 w-3 flex-shrink-0" />
+                                                                                        <span className="whitespace-pre-wrap">{timeslot.comment}</span>
+                                                                                    </div>
+                                                                                )}
                                                                             </button>
                                                                         ),
                                                                     )
@@ -788,12 +921,10 @@ export default function Calendar() {
                             <span>Booked</span>
                         </div>
                     )}
-                    {!isClient && (
-                        <div className="flex items-center gap-2">
-                            <div className="h-4 w-4 rounded border border-gray-200 bg-gray-100" />
-                            <span>Completed</span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 rounded border border-gray-200 bg-gray-100" />
+                        <span>Completed</span>
+                    </div>
                 </div>
             </div>
 
@@ -894,6 +1025,17 @@ export default function Calendar() {
                                                                     </SelectContent>
                                                                 </Select>
                                                             </div>
+                                                            <div className="space-y-1">
+                                                                <Label htmlFor="edit_comment">Comment</Label>
+                                                                <Textarea
+                                                                    id="edit_comment"
+                                                                    value={editComment}
+                                                                    onChange={(e) => setEditComment(e.target.value)}
+                                                                    placeholder="Add a comment..."
+                                                                    rows={3}
+                                                                    maxLength={1000}
+                                                                />
+                                                            </div>
                                                             {updateError && (
                                                                 <p className="text-sm text-destructive">
                                                                     {updateError}
@@ -916,6 +1058,7 @@ export default function Calendar() {
                                                                         setEditDuration(selectedTimeslot.duration_minutes);
                                                                         setEditStartDate(format(new Date(selectedTimeslot.start_time), 'yyyy-MM-dd'));
                                                                         setEditStartTime(format(new Date(selectedTimeslot.start_time), 'HH:mm'));
+                                                                        setEditComment(selectedTimeslot.comment ?? '');
                                                                     }}
                                                                 >
                                                                     Cancel
@@ -953,6 +1096,46 @@ export default function Calendar() {
                                                 )}
                                             </div>
                                         </div>
+
+                                        {/* Comment section (editable for providers/admins and assigned clients) */}
+                                        {!isEditingTimeslot && (
+                                            (() => {
+                                                const canEditComment = canSeeClientNames ||
+                                                    selectedTimeslot.client?.id === auth.user?.id;
+
+                                                if (!canEditComment && !selectedTimeslot.comment) return null;
+
+                                                return (
+                                                    <div className="space-y-2 border-t pt-3">
+                                                        <label className="text-sm font-medium">Comment</label>
+                                                        {canEditComment ? (
+                                                            <>
+                                                                <Textarea
+                                                                    value={editComment}
+                                                                    onChange={(e) => setEditComment(e.target.value)}
+                                                                    placeholder="Add a comment..."
+                                                                    rows={3}
+                                                                    maxLength={1000}
+                                                                />
+                                                                {editComment !== (selectedTimeslot.comment ?? '') && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={handleSaveComment}
+                                                                        disabled={isSavingComment}
+                                                                    >
+                                                                        {isSavingComment ? 'Saving...' : 'Save comment'}
+                                                                    </Button>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                                                                {selectedTimeslot.comment}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()
+                                        )}
 
                                         {/* Client selector for service providers and admins */}
                                         {canSeeClientNames &&
@@ -1090,9 +1273,14 @@ export default function Calendar() {
                                                 </div>
                                             )}
 
-                                        {/* Book button for clients - available timeslots */}
+                                        {/* Book button for clients - available timeslots (future only) */}
                                         {!canSeeClientNames &&
-                                            selectedTimeslot.is_available && (
+                                            selectedTimeslot.is_available &&
+                                            !isPast(
+                                                new Date(
+                                                    selectedTimeslot.start_time,
+                                                ),
+                                            ) && (
                                                 <Button
                                                     onClick={() =>
                                                         handleBookTimeslot(
@@ -1105,9 +1293,15 @@ export default function Calendar() {
                                                 </Button>
                                             )}
 
-                                        {/* Cancel button for clients - their own bookings */}
+                                        {/* Cancel button for clients - their own future bookings */}
                                         {!canSeeClientNames &&
                                             !selectedTimeslot.is_available &&
+                                            !selectedTimeslot.is_completed &&
+                                            !isPast(
+                                                new Date(
+                                                    selectedTimeslot.start_time,
+                                                ),
+                                            ) &&
                                             selectedTimeslot.client?.id ===
                                                 auth.user?.id && (
                                                 <Button
@@ -1393,6 +1587,25 @@ export default function Calendar() {
                             {createForm.errors.duration_minutes && (
                                 <p className="text-sm text-destructive">
                                     {createForm.errors.duration_minutes}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="create_comment">Comment</Label>
+                            <Textarea
+                                id="create_comment"
+                                value={createForm.data.comment}
+                                onChange={(e) =>
+                                    createForm.setData('comment', e.target.value)
+                                }
+                                placeholder="Add a comment..."
+                                rows={3}
+                                maxLength={1000}
+                            />
+                            {createForm.errors.comment && (
+                                <p className="text-sm text-destructive">
+                                    {createForm.errors.comment}
                                 </p>
                             )}
                         </div>

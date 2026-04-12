@@ -149,6 +149,7 @@ class TimeslotController extends Controller
         // Unassign client and make available
         $timeslot->status = TimeslotStatus::Available;
         $timeslot->client_id = null;
+        $timeslot->comment = null;
         $timeslot->save();
 
         if ($client) {
@@ -196,5 +197,22 @@ class TimeslotController extends Controller
 
         return redirect()->back()
             ->with('success', 'Timeslot reverted to booked status.');
+    }
+
+    /**
+     * Update the comment on the specified timeslot.
+     */
+    public function updateComment(Request $request, Timeslot $timeslot): RedirectResponse
+    {
+        $this->authorize('updateComment', $timeslot);
+
+        $validated = $request->validate([
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $timeslot->update(['comment' => $validated['comment']]);
+
+        return redirect()->back()
+            ->with('success', 'Comment updated successfully.');
     }
 }

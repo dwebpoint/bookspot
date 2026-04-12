@@ -21,6 +21,7 @@ export function route(
         'timeslots.complete': '/timeslots/:id/complete',
         'timeslots.revert': '/timeslots/:id/revert',
         'timeslots.forceDelete': '/timeslots/:id/force-delete',
+        'timeslots.updateComment': '/timeslots/:id/comment',
 
         // Provider routes
 

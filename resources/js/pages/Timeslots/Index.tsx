@@ -342,6 +342,7 @@ export default function Index() {
                                             <TableHead>Provider</TableHead>
                                         )}
                                         <TableHead>Status</TableHead>
+                                        <TableHead>Comment</TableHead>
                                         <TableHead className="text-right">
                                             Actions
                                         </TableHead>
@@ -431,6 +432,15 @@ export default function Index() {
                                                 <StatusBadge
                                                     status={timeslot.status}
                                                 />
+                                            </TableCell>
+                                            <TableCell>
+                                                {timeslot.comment ? (
+                                                    <span className="max-w-[200px] truncate block text-sm text-muted-foreground" title={timeslot.comment}>
+                                                        {timeslot.comment}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">—</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">

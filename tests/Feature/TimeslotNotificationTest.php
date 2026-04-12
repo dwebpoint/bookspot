@@ -4,14 +4,14 @@ namespace Tests\Feature;
 
 use App\Events\TimeslotBooked as TimeslotBookedEvent;
 use App\Events\TimeslotCancelled as TimeslotCancelledEvent;
-use App\Mail\TimeslotBooked as TimeslotBookedMail;
-use App\Mail\TimeslotCancelled as TimeslotCancelledMail;
 use App\Models\Timeslot;
 use App\Models\User;
+use App\Notifications\TimeslotBookedNotification;
+use App\Notifications\TimeslotCancelledNotification;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class TimeslotNotificationTest extends TestCase
@@ -80,7 +80,7 @@ class TimeslotNotificationTest extends TestCase
 
     public function test_subscriber_sends_booking_email_when_provider_has_notifications_enabled(): void
     {
-        Mail::fake();
+        Notification::fake();
 
         $this->provider->update(['email_notifications_enabled' => true]);
 
@@ -92,16 +92,20 @@ class TimeslotNotificationTest extends TestCase
 
         TimeslotBookedEvent::dispatch($timeslot, $this->client);
 
-        Mail::assertSent(TimeslotBookedMail::class, function (TimeslotBookedMail $mail) use ($timeslot) {
-            return $mail->hasTo($this->provider->email)
-                && $mail->timeslot->id === $timeslot->id
-                && $mail->client->id === $this->client->id;
-        });
+        Notification::assertSentTo(
+            $this->provider,
+            TimeslotBookedNotification::class,
+            function (TimeslotBookedNotification $notification) {
+                $channels = $notification->via($this->provider);
+
+                return in_array('database', $channels) && in_array('mail', $channels);
+            }
+        );
     }
 
     public function test_subscriber_sends_cancellation_email_when_provider_has_notifications_enabled(): void
     {
-        Mail::fake();
+        Notification::fake();
 
         $this->provider->update(['email_notifications_enabled' => true]);
 
@@ -114,16 +118,20 @@ class TimeslotNotificationTest extends TestCase
 
         TimeslotCancelledEvent::dispatch($timeslot, $this->client);
 
-        Mail::assertSent(TimeslotCancelledMail::class, function (TimeslotCancelledMail $mail) use ($timeslot) {
-            return $mail->hasTo($this->provider->email)
-                && $mail->timeslot->id === $timeslot->id
-                && $mail->client->id === $this->client->id;
-        });
+        Notification::assertSentTo(
+            $this->provider,
+            TimeslotCancelledNotification::class,
+            function (TimeslotCancelledNotification $notification) {
+                $channels = $notification->via($this->provider);
+
+                return in_array('database', $channels) && in_array('mail', $channels);
+            }
+        );
     }
 
     public function test_subscriber_skips_email_when_provider_has_notifications_disabled(): void
     {
-        Mail::fake();
+        Notification::fake();
 
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -133,7 +141,13 @@ class TimeslotNotificationTest extends TestCase
 
         TimeslotBookedEvent::dispatch($timeslot, $this->client);
 
-        Mail::assertNotSent(TimeslotBookedMail::class);
+        Notification::assertSentTo(
+            $this->provider,
+            TimeslotBookedNotification::class,
+            function (TimeslotBookedNotification $notification) {
+                return ! in_array('mail', $notification->via($this->provider));
+            }
+        );
     }
 
     public function test_no_event_dispatched_when_booking_fails_due_to_unavailable_timeslot(): void
@@ -174,7 +188,7 @@ class TimeslotNotificationTest extends TestCase
 
     public function test_provider_receives_booking_email_when_client_books_timeslot(): void
     {
-        Mail::fake();
+        Notification::fake();
 
         $this->provider->update(['email_notifications_enabled' => true]);
 
@@ -188,16 +202,22 @@ class TimeslotNotificationTest extends TestCase
             ->post(route('timeslots.store'), ['timeslot_id' => $timeslot->id])
             ->assertRedirect();
 
-        Mail::assertSent(TimeslotBookedMail::class, function (TimeslotBookedMail $mail) use ($timeslot) {
-            return $mail->hasTo($this->provider->email)
-                && $mail->timeslot->id === $timeslot->id
-                && $mail->client->id === $this->client->id;
-        });
+        Notification::assertSentTo(
+            $this->provider,
+            TimeslotBookedNotification::class,
+            function (TimeslotBookedNotification $notification) use ($timeslot) {
+                $channels = $notification->via($this->provider);
+
+                return in_array('mail', $channels)
+                    && $notification->timeslot->id === $timeslot->id
+                    && $notification->client->id === $this->client->id;
+            }
+        );
     }
 
     public function test_provider_does_not_receive_booking_email_when_notifications_disabled(): void
     {
-        Mail::fake();
+        Notification::fake();
 
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
@@ -209,6 +229,12 @@ class TimeslotNotificationTest extends TestCase
             ->post(route('timeslots.store'), ['timeslot_id' => $timeslot->id])
             ->assertRedirect();
 
-        Mail::assertNotSent(TimeslotBookedMail::class);
+        Notification::assertSentTo(
+            $this->provider,
+            TimeslotBookedNotification::class,
+            function (TimeslotBookedNotification $notification) {
+                return ! in_array('mail', $notification->via($this->provider));
+            }
+        );
     }
 }

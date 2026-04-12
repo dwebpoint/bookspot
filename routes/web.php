@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvitationRegistrationController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Provider\ClientController;
 use App\Http\Controllers\Provider\InvitationController;
 use App\Http\Controllers\Provider\TimeslotController as ProviderTimeslotController;
@@ -37,6 +38,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Booking cancellation - Client, Provider, or Admin
     Route::delete('timeslots/{timeslot}', [TimeslotController::class, 'destroy'])->name('timeslots.destroy');
+
+    // Comment update - Client, Provider, or Admin
+    Route::patch('timeslots/{timeslot}/comment', [TimeslotController::class, 'updateComment'])->name('timeslots.updateComment');
 
     // Timeslot deletion - Service Provider or Admin only
     Route::delete('timeslots/{timeslot}/force-delete', [TimeslotController::class, 'forceDelete'])
@@ -81,6 +85,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('users', AdminUserController::class);
         Route::patch('users/{user}/role', [AdminUserController::class, 'updateRole'])->name('users.updateRole');
         Route::post('users/{user}/attach-provider', [AdminUserController::class, 'attachProvider'])->name('users.attachProvider');
+    });
+
+    // Notification routes - Service Provider and Admin only
+    Route::middleware('role:service_provider,admin')->group(function () {
+        Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     });
 });
 

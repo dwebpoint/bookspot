@@ -81,6 +81,11 @@ class StoreTimeslotRequest extends FormRequest
                     }
                 },
             ],
+            'comment' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
         ];
     }
 

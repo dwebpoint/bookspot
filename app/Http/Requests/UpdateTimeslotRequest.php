@@ -48,6 +48,11 @@ class UpdateTimeslotRequest extends FormRequest
                 'min:15',
                 'max:480',
             ],
+            'comment' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
         ];
     }
 
