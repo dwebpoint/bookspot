@@ -2,6 +2,7 @@ import { AmbientBackground } from '@/components/ambient-background';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
+import { Toaster } from 'sonner';
 
 interface AppShellProps {
     children: React.ReactNode;
@@ -16,6 +17,7 @@ export function AppShell({ children, variant = 'header' }: AppShellProps) {
             <div className="flex min-h-screen w-full flex-col">
                 <AmbientBackground />
                 {children}
+                <Toaster richColors position="top-right" />
             </div>
         );
     }
@@ -24,6 +26,7 @@ export function AppShell({ children, variant = 'header' }: AppShellProps) {
         <SidebarProvider defaultOpen={isOpen}>
             <AmbientBackground />
             {children}
+            <Toaster richColors position="top-right" />
         </SidebarProvider>
     );
 }

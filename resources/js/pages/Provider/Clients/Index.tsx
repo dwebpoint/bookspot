@@ -235,7 +235,7 @@ export default function Index() {
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {clients.data.map((client) => (
                                 <Card key={client.id}>
-                                    <CardContent className="p-6">
+                                    <CardContent className="p-2">
                                         <div className="mb-4 flex items-start justify-between">
                                             <div className="min-w-0 flex-1">
                                                 <div className="mb-1 flex items-center gap-2">

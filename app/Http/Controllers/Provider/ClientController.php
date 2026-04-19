@@ -6,6 +6,7 @@ use App\Enums\ProviderClientStatus;
 use App\Enums\TimeslotStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClientRequest;
+use App\Models\ClientNote;
 use App\Models\Invitation;
 use App\Models\ProviderClient;
 use App\Models\Timeslot;
@@ -148,12 +149,23 @@ class ClientController extends Controller
             ->orderBy('start_time', 'desc')
             ->get(['id', 'start_time', 'duration_minutes', 'status']);
 
+        $notes = ClientNote::forProvider(auth()->id())
+            ->forClient($client->id)
+            ->orderByDesc('note_date')
+            ->orderByDesc('id')
+            ->get(['id', 'note_date', 'body']);
+
         return Inertia::render('Provider/Clients/Show', [
             'client' => [
                 ...$client->only(['id', 'name', 'email', 'created_at']),
                 'added_at' => $pivot?->created_at,
             ],
             'timeslots' => $timeslots,
+            'notes' => $notes->map(fn (ClientNote $note) => [
+                'id' => $note->id,
+                'note_date' => $note->note_date->format('Y-m-d'),
+                'body' => $note->body,
+            ]),
         ]);
     }
 

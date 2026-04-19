@@ -1,4 +1,3 @@
-import FlashMessages from '@/components/FlashMessages';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -393,7 +392,6 @@ export default function Calendar() {
     return (
         <AppLayout>
             <Head title="Calendar" />
-            <FlashMessages />
 
             <div className="space-y-6 p-4">
                 <div className="flex items-center justify-between">

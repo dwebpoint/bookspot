@@ -1,2 +1,7 @@
 User-agent: *
-Disallow:
+Disallow: /dashboard
+Disallow: /calendar
+Disallow: /timeslots
+Disallow: /provider/
+Disallow: /admin/
+Disallow: /settings/

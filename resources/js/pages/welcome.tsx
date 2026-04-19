@@ -4,12 +4,29 @@ import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { CalendarCheck, Clock, Users, CheckCircle, ArrowRight, CalendarDays, Zap, Shield } from 'lucide-react';
 
-export default function Welcome({ canRegister = true }: { canRegister?: boolean }) {
+export default function Welcome({ canRegister = true, appUrl }: { canRegister?: boolean; appUrl: string }) {
     const { auth } = usePage<SharedData>().props;
+
+    const description =
+        'BookSpot connects service providers with their clients through a clean calendar interface. Create timeslots, manage bookings, and stay on top of your schedule.';
+    const title = 'BookSpot — Simple appointment scheduling';
 
     return (
         <>
-            <Head title="BookSpot — Simple Appointment Scheduling" />
+            <Head>
+                <title>{title}</title>
+                <meta name="description" content={description} />
+                <meta name="robots" content="index, follow" />
+                <link rel="canonical" href={appUrl} />
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content={appUrl} />
+                <meta property="og:title" content={title} />
+                <meta property="og:description" content={description} />
+                <meta property="og:site_name" content="BookSpot" />
+                <meta name="twitter:card" content="summary" />
+                <meta name="twitter:title" content={title} />
+                <meta name="twitter:description" content={description} />
+            </Head>
             <div className="relative min-h-screen bg-background text-foreground">
                 <AmbientBackground />
 

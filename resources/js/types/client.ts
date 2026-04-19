@@ -27,3 +27,9 @@ export interface Invitation {
     created_at: string;
     expires_at: string;
 }
+
+export interface ClientNote {
+    id: number;
+    note_date: string;
+    body: string;
+}

@@ -1,7 +1,7 @@
 import { destroy as notificationDestroy } from '@/actions/App/Http/Controllers/NotificationController';
 import type { AppNotification, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
-import { X } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { useState } from 'react';
 
 function formatRelativeTime(isoString: string): string {
@@ -64,13 +64,20 @@ export function NotificationBanner() {
             {visible.map((notification) => (
                 <div
                     key={notification.id}
-                    className={`flex items-start justify-between gap-4 rounded-lg border px-4 py-3 text-sm ${
+                    className={`flex items-center justify-between gap-4 rounded-lg border-l-4 px-4 py-3.5 text-sm font-medium shadow-sm ${
                         notification.data.action === 'booked'
-                            ? 'border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-100'
-                            : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100'
+                            ? 'border-l-blue-500 bg-blue-100 text-blue-900 ring-1 ring-blue-200 dark:bg-blue-900/40 dark:text-blue-100 dark:ring-blue-700'
+                            : 'border-l-amber-500 bg-amber-100 text-amber-900 ring-1 ring-amber-200 dark:bg-amber-900/40 dark:text-amber-100 dark:ring-amber-700'
                     }`}
                 >
-                    <span>{formatMessage(notification)}</span>
+                    <div className="flex items-center gap-3">
+                        <Bell
+                            className={`h-4 w-4 shrink-0 ${
+                                notification.data.action === 'booked' ? 'text-blue-500' : 'text-amber-500'
+                            }`}
+                        />
+                        <span>{formatMessage(notification)}</span>
+                    </div>
                     <div className="flex shrink-0 items-center gap-3">
                         <span className="text-xs opacity-60">{formatRelativeTime(notification.created_at)}</span>
                         <button

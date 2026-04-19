@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvitationRegistrationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Provider\ClientController;
+use App\Http\Controllers\Provider\ClientNoteController;
 use App\Http\Controllers\Provider\InvitationController;
 use App\Http\Controllers\Provider\TimeslotController as ProviderTimeslotController;
 use App\Http\Controllers\TimeslotController;
@@ -19,8 +21,13 @@ Route::get('/', function () {
 
     return Inertia::render('welcome', [
         'canRegister' => true,
+        'appUrl' => config('app.url'),
     ]);
 })->name('home');
+
+// Contact routes
+Route::get('contact', [ContactController::class, 'show'])->name('contact.show');
+Route::post('contact', [ContactController::class, 'store'])->name('contact.store');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -74,6 +81,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
         Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
         Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
+
+        // Client notes
+        Route::post('clients/{client}/notes', [ClientNoteController::class, 'store'])->name('clients.notes.store');
+        Route::put('clients/{client}/notes/{note}', [ClientNoteController::class, 'update'])->name('clients.notes.update');
+        Route::delete('clients/{client}/notes/{note}', [ClientNoteController::class, 'destroy'])->name('clients.notes.destroy');
 
         // Client invitations
         Route::post('invitations', [InvitationController::class, 'store'])->name('invitations.store');

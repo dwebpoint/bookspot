@@ -1,11 +1,12 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "dwebpoint/bookspot",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "The BookSpot application for booking timeslots.",
     "keywords": [
         "laravel",
-        "framework"
+        "booking",
+        "bookspot"
     ],
     "license": "MIT",
     "require": {
@@ -18,6 +19,7 @@
         "spatie/laravel-permission": "^7.2"
     },
     "require-dev": {
+        "barryvdh/laravel-debugbar": "^4.2",
         "fakerphp/faker": "^1.23",
         "larastan/larastan": "^3.8",
         "laravel/boost": "^2.0",
@@ -74,7 +76,8 @@
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@php artisan boost:update --ansi"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
