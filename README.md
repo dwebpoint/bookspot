@@ -2,6 +2,12 @@
 
 > Simple scheduling for service professionals.
 
+![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)
+![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 A scheduling platform that connects service providers with clients. BookSpot streamlines appointment management for service-based businesses — providers set their availability through an intuitive weekly calendar, and clients book directly from available timeslots.
 
 ### Who it's for
@@ -57,9 +63,28 @@ Built with Laravel 13, React 19, TypeScript, Tailwind CSS, and [Inertia](https:/
 
 ## Quick Start
 
-### Installation
+### Prerequisites
+
+- PHP 8.4+, Composer 2
+- Node.js 20+
+- [DDEV](https://ddev.readthedocs.io/) (recommended) **or** a local MySQL/MariaDB instance
+
+### With DDEV (recommended)
 
 ```bash
+git clone https://github.com/your-org/bookspot.git && cd bookspot
+ddev start
+ddev composer setup   # installs deps, copies .env, migrates, seeds, builds assets
+ddev composer dev     # starts queue worker + Vite HMR
+```
+
+App is available at **https://bookspot.ddev.site**.
+
+### Without DDEV
+
+```bash
+git clone https://github.com/your-org/bookspot.git && cd bookspot
+
 # Install dependencies
 composer install
 npm install
@@ -67,6 +92,7 @@ npm install
 # Configure environment
 cp .env.example .env
 php artisan key:generate
+# Edit .env: set DB_* variables to your local database
 
 # Set up database
 php artisan migrate
@@ -75,7 +101,7 @@ php artisan migrate
 php artisan db:seed --class=RolesAndPermissionsSeeder
 php artisan db:seed --class=AssignRolesToExistingUsersSeeder
 
-# Optional: Seed test data
+# Optional: Seed demo data
 php artisan db:seed --class=ClientSeeder
 
 # Build assets
@@ -196,7 +222,11 @@ Documentation for all Laravel starter kits can be found on the [Laravel website]
 
 ## Contributing
 
-Thank you for considering contributing to our starter kit! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request.
+
+## License
+
+BookSpot is open-sourced software licensed under the [MIT license](LICENSE).
 
 ## Code of Conduct
 

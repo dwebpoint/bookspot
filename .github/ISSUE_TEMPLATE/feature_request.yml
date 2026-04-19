@@ -1,0 +1,60 @@
+name: Feature request
+description: Suggest an idea or improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement! Please describe your idea clearly so we can discuss it.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the current limitation or pain point. e.g. "As a service provider, I can't..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to see added or changed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you've thought about?
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: Primarily affects which role?
+      options:
+        - Service provider
+        - Client
+        - Admin
+        - All users
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature area
+      options:
+        - Calendar / timeslots
+        - Booking flow
+        - Client management
+        - Notifications
+        - Settings
+        - Authentication
+        - API / integrations
+        - Other
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Mockups, related issues, or any other context.
