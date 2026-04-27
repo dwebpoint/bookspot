@@ -44,9 +44,7 @@ cp .env.example .env
 php artisan key:generate
 # Edit .env: set DB_* variables to your local MariaDB/MySQL instance
 php artisan migrate
-php artisan db:seed --class=RolesAndPermissionsSeeder
-php artisan db:seed --class=AssignRolesToExistingUsersSeeder
-php artisan db:seed --class=ClientSeeder   # demo data (optional)
+php artisan db:seed
 npm run build
 php artisan serve
 ```
@@ -55,10 +53,11 @@ php artisan serve
 
 | Role | Email | Password |
 |------|-------|----------|
-| Service provider | provider1@example.com | password |
-| Service provider | provider2@example.com | password |
-| Client | client1@example.com | password |
-| Client | client2@example.com | password |
+| Admin | admin@example.com | password |
+| Service provider | provider1@bookspot.test | password |
+| Service provider | provider2@bookspot.test | password |
+| Client | client1@bookspot.test | password |
+| Client | client2@bookspot.test | password |
 
 ---
 

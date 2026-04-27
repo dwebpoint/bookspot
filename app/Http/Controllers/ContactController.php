@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreContactRequest;
 use App\Mail\ContactForm;
+use App\Models\SiteSettings;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
@@ -11,19 +12,23 @@ class ContactController extends Controller
 {
     public function show()
     {
-        return Inertia::render('contact');
+        return Inertia::render('contact', [
+            'contactEmail' => SiteSettings::get(SiteSettings::CONTACT_EMAIL),
+        ]);
     }
 
     public function store(StoreContactRequest $request)
     {
         $validated = $request->validated();
 
-        Mail::to(config('mail.from.address'))
+        $contactEmail = SiteSettings::get(SiteSettings::CONTACT_EMAIL) ?: config('mail.from.address');
+
+        Mail::to($contactEmail)
             ->send(new ContactForm(
                 visitorName: $validated['name'],
                 visitorEmail: $validated['email'],
-                subject: $validated['subject'],
-                message: $validated['message'],
+                contactSubject: $validated['subject'],
+                contactMessage: $validated['message'],
             ));
 
         return redirect()->route('contact.show')->with('flash', [

@@ -1,4 +1,3 @@
-import FlashMessages from '@/components/FlashMessages';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -60,7 +59,6 @@ export default function Edit() {
     return (
         <AppLayout>
             <Head title={`Edit ${user.name}`} />
-            <FlashMessages />
 
             <div className="mx-auto max-w-2xl space-y-6">
                 <div>

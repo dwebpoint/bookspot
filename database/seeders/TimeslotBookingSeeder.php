@@ -14,7 +14,7 @@ class TimeslotBookingSeeder extends Seeder
     public function run(): void
     {
         // Get all service providers
-        $providers = User::where('role', 'service_provider')->get();
+        $providers = User::role('service_provider')->get();
 
         if ($providers->isEmpty()) {
             $this->command->warn('No service providers found. Run RoleSeeder first.');
@@ -23,7 +23,7 @@ class TimeslotBookingSeeder extends Seeder
         }
 
         // Get all clients
-        $clients = User::where('role', 'client')->get();
+        $clients = User::role('client')->get();
 
         if ($clients->isEmpty()) {
             $this->command->warn('No clients found. Run RoleSeeder first.');

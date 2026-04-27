@@ -18,47 +18,47 @@ class ClientSeeder extends Seeder
             ['email' => 'provider1@example.com'],
             [
                 'name' => 'John Provider',
-                'role' => 'service_provider',
                 'password' => Hash::make('password'),
             ]
         );
+        $provider1->syncRoles(['service_provider']);
 
         $provider2 = User::firstOrCreate(
             ['email' => 'provider2@example.com'],
             [
                 'name' => 'Jane Provider',
-                'role' => 'service_provider',
                 'password' => Hash::make('password'),
             ]
         );
+        $provider2->syncRoles(['service_provider']);
 
         // Create clients
         $client1 = User::firstOrCreate(
             ['email' => 'client1@example.com'],
             [
                 'name' => 'Alice Client',
-                'role' => 'client',
                 'password' => Hash::make('password'),
             ]
         );
+        $client1->syncRoles(['client']);
 
         $client2 = User::firstOrCreate(
             ['email' => 'client2@example.com'],
             [
                 'name' => 'Bob Client',
-                'role' => 'client',
                 'password' => Hash::make('password'),
             ]
         );
+        $client2->syncRoles(['client']);
 
         $client3 = User::firstOrCreate(
             ['email' => 'client3@example.com'],
             [
                 'name' => 'Charlie Client',
-                'role' => 'client',
                 'password' => Hash::make('password'),
             ]
         );
+        $client3->syncRoles(['client']);
 
         // Link clients to providers
         // Client 1 linked to Provider 1 only

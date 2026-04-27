@@ -146,13 +146,9 @@ class TimeslotController extends Controller
 
         $client = $timeslot->client;
 
-        // Unassign client and make available
-        $timeslot->status = TimeslotStatus::Available;
-        $timeslot->client_id = null;
-        $timeslot->comment = null;
-        $timeslot->save();
+        $timeslot->cancel();
 
-        if ($client) {
+        if ($client && auth()->user()->isClient()) {
             TimeslotCancelledEvent::dispatch($timeslot, $client);
         }
 

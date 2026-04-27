@@ -1,4 +1,3 @@
-import FlashMessages from '@/components/FlashMessages';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -89,7 +88,6 @@ export default function Index() {
     return (
         <AppLayout>
             <Head title="My Clients" />
-            <FlashMessages />
 
             <div className="space-y-6 p-4">
                 <div className="flex items-center justify-between">

@@ -3,6 +3,7 @@ import { send } from '@/routes/verification';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
@@ -29,6 +30,14 @@ export default function Profile({
     status?: string;
 }) {
     const { auth } = usePage<SharedData>().props;
+    const [emailValue, setEmailValue] = useState(auth.user.email);
+
+    // Sync after a successful save (Inertia re-shares auth with the new email)
+    useEffect(() => {
+        setEmailValue(auth.user.email);
+    }, [auth.user.email]);
+
+    const emailChanged = emailValue !== auth.user.email;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -76,7 +85,10 @@ export default function Profile({
                                         id="email"
                                         type="email"
                                         className="mt-1 block w-full"
-                                        defaultValue={auth.user.email}
+                                        value={emailValue}
+                                        onChange={(e) =>
+                                            setEmailValue(e.target.value)
+                                        }
                                         name="email"
                                         required
                                         autoComplete="username"
@@ -88,6 +100,32 @@ export default function Profile({
                                         message={errors.email}
                                     />
                                 </div>
+
+                                {emailChanged && (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="current_password">
+                                            Current password
+                                        </Label>
+
+                                        <Input
+                                            id="current_password"
+                                            type="password"
+                                            name="current_password"
+                                            required
+                                            autoComplete="current-password"
+                                            placeholder="Enter your current password to confirm"
+                                        />
+
+                                        <p className="text-sm text-muted-foreground">
+                                            Required to confirm your email
+                                            change.
+                                        </p>
+
+                                        <InputError
+                                            message={errors.current_password}
+                                        />
+                                    </div>
+                                )}
 
                                 {mustVerifyEmail &&
                                     auth.user.email_verified_at === null && (

@@ -41,6 +41,11 @@ const errorContent: Record<number, ErrorInfo> = {
         description: "The page you're looking for doesn't exist or has been moved.",
         hint: 'Double-check the URL, or navigate to one of the pages below.',
     },
+    405: {
+        title: 'Method not allowed',
+        description: "This action can't be performed that way.",
+        hint: 'The page exists but does not support the request method you used. Go back and try again.',
+    },
     419: {
         title: 'Page expired',
         description: 'Your session has expired.',
@@ -228,7 +233,7 @@ function AuthError({
 
 export default function Error({ status }: Props) {
     const { auth } = usePage<SharedData>().props;
-    const user = auth.user;
+    const user = auth?.user;
 
     const { title, description, hint, showRefresh } = errorContent[status] ?? {
         title: 'Something went wrong',

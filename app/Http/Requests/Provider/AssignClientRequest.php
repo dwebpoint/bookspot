@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Provider;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class AssignClientRequest extends FormRequest
 {
@@ -24,6 +26,35 @@ class AssignClientRequest extends FormRequest
                 'required',
                 'exists:users,id',
             ],
+        ];
+    }
+
+    /**
+     * Additional validation run after all rules pass.
+     *
+     * @return array<int, callable>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                if ($validator->errors()->has('client_id')) {
+                    return;
+                }
+
+                $clientId = $this->integer('client_id');
+                $user = User::find($clientId);
+
+                if ($user && ! $user->hasRole('client')) {
+                    $validator->errors()->add('client_id', 'The selected user is not a client.');
+
+                    return;
+                }
+
+                if (! $this->user()->hasClient($clientId)) {
+                    $validator->errors()->add('client_id', 'You can only assign clients you are linked to.');
+                }
+            },
         ];
     }
 

@@ -1,12 +1,13 @@
 <?php
 
+use App\Http\Controllers\Settings\InfoController;
 use App\Http\Controllers\Settings\NotificationsController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -24,9 +25,8 @@ Route::middleware('auth')->group(function () {
     })->name('appearance.edit');
 
     Route::middleware('role:admin')->group(function () {
-        Route::get('settings/info', function () {
-            return Inertia::render('settings/info');
-        })->name('info.edit');
+        Route::get('settings/info', [InfoController::class, 'edit'])->name('info.edit');
+        Route::patch('settings/info', [InfoController::class, 'update'])->name('info.update');
     });
 
     Route::middleware('role:service_provider,client')->group(function () {

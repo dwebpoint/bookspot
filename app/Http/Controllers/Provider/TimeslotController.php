@@ -22,24 +22,14 @@ class TimeslotController extends Controller
     {
         $this->authorize('create', Timeslot::class);
 
-        $data = [
+        $validated = $request->validated();
+
+        Timeslot::create(array_merge($validated, [
             'provider_id' => auth()->id(),
-            'start_time' => $request->start_time,
-            'duration_minutes' => $request->duration_minutes,
-            'comment' => $request->comment,
-        ];
+            'status' => isset($validated['client_id']) ? TimeslotStatus::Booked : TimeslotStatus::Available,
+        ]));
 
-        // If client_id is provided, assign immediately
-        if ($request->filled('client_id')) {
-            $data['client_id'] = $request->client_id;
-            $data['status'] = TimeslotStatus::Booked;
-        } else {
-            $data['status'] = TimeslotStatus::Available;
-        }
-
-        Timeslot::create($data);
-
-        $message = $request->filled('client_id')
+        $message = isset($validated['client_id'])
             ? 'Timeslot created and assigned to client successfully.'
             : 'Timeslot created successfully.';
 
@@ -53,22 +43,11 @@ class TimeslotController extends Controller
     {
         $this->authorize('update', $timeslot);
 
-        // Only allow update if timeslot is available or booked
         if ($timeslot->is_completed) {
             return back()->with('error', 'Completed timeslots cannot be updated.');
         }
 
-        $data = ['duration_minutes' => $request->duration_minutes];
-
-        if ($request->has('start_time')) {
-            $data['start_time'] = $request->start_time;
-        }
-
-        if ($request->has('comment')) {
-            $data['comment'] = $request->comment;
-        }
-
-        $timeslot->update($data);
+        $timeslot->update($request->validated());
 
         return back()->with('success', 'Timeslot updated successfully.');
     }
@@ -94,21 +73,15 @@ class TimeslotController extends Controller
     {
         $this->authorize('assignClient', $timeslot);
 
-        // Check if timeslot is available or booked (for reassignment)
         if (! $timeslot->is_available && ! $timeslot->is_booked) {
             return back()->with('error', 'This timeslot cannot be assigned.');
         }
 
-        // Validate provider-client relationship
-        $provider = auth()->user();
-        if (! $provider->hasClient($request->client_id)) {
-            return back()->with('error', 'You can only assign clients you are linked to.');
-        }
+        $wasAlreadyBooked = $timeslot->is_booked;
 
-        // Book the timeslot (this will reassign if already booked)
-        $timeslot->book($request->client_id);
+        $timeslot->book($request->validated()['client_id']);
 
-        $message = $timeslot->wasRecentlyCreated ? 'Client assigned to timeslot successfully.' : 'Client reassigned to timeslot successfully.';
+        $message = $wasAlreadyBooked ? 'Client reassigned to timeslot successfully.' : 'Client assigned to timeslot successfully.';
 
         return back()->with('success', $message);
     }

@@ -1,4 +1,3 @@
-import FlashMessages from '@/components/FlashMessages';
 import StatusBadge from '@/components/StatusBadge';
 import {
     AlertDialog,
@@ -181,7 +180,6 @@ export default function Index() {
     return (
         <AppLayout>
             <Head title="Timeslots" />
-            <FlashMessages />
 
             <div className="space-y-6 p-4">
                 <div>

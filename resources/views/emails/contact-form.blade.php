@@ -36,13 +36,13 @@
                     </tr>
                     <tr>
                         <td>Subject</td>
-                        <td>{{ $subject }}</td>
+                        <td>{{ $contactSubject }}</td>
                     </tr>
                 </table>
             </div>
 
             <p style="font-weight: 500; margin-bottom: 8px;">Message:</p>
-            <div class="message-box">{{ $message }}</div>
+            <div class="message-box">{{ $contactMessage }}</div>
 
             <p style="font-size: 13px; color: #6b7280; margin-top: 32px;">
                 To reply to this message, send an email to <strong>{{ $visitorEmail }}</strong>

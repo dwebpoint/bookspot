@@ -14,15 +14,15 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         // Create admin user
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => 'admin@example.com'],
             [
                 'name' => 'Admin User',
                 'password' => Hash::make('password'),
-                'role' => 'admin',
                 'timezone' => 'UTC',
             ]
         );
+        $admin->syncRoles(['admin']);
 
         // Create service provider users
         $providerEmails = [
@@ -32,15 +32,15 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($providerEmails as $index => $email) {
-            User::firstOrCreate(
+            $provider = User::firstOrCreate(
                 ['email' => $email],
                 [
                     'name' => 'Service Provider '.($index + 1),
                     'password' => Hash::make('password'),
-                    'role' => 'service_provider',
                     'timezone' => 'UTC',
                 ]
             );
+            $provider->syncRoles(['service_provider']);
         }
 
         // Create client users
@@ -53,15 +53,15 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($clientEmails as $index => $email) {
-            User::firstOrCreate(
+            $client = User::firstOrCreate(
                 ['email' => $email],
                 [
                     'name' => 'Client '.($index + 1),
                     'password' => Hash::make('password'),
-                    'role' => 'client',
                     'timezone' => 'UTC',
                 ]
             );
+            $client->syncRoles(['client']);
         }
     }
 }

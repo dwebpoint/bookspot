@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ProviderClientStatus;
+use App\Http\Requests\RegisterViaInvitationRequest;
 use App\Models\Invitation;
 use App\Models\ProviderClient;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,8 +35,12 @@ class InvitationRegistrationController extends Controller
         ]);
     }
 
-    public function register(Request $request, string $token): RedirectResponse
+    public function register(RegisterViaInvitationRequest $request, string $token): RedirectResponse
     {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
         $invitation = Invitation::where('token', $token)->first();
 
         if (! $invitation) {
@@ -46,27 +51,28 @@ class InvitationRegistrationController extends Controller
             return redirect()->route('invitation.show', $token);
         }
 
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+        $validated = $request->validated();
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $invitation->email,
-            'password' => Hash::make($request->password),
-        ]);
+        $user = DB::transaction(function () use ($validated, $invitation): User {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $invitation->email,
+                'password' => Hash::make($validated['password']),
+            ]);
 
-        $user->assignRole('client');
+            $user->assignRole('client');
 
-        ProviderClient::create([
-            'provider_id' => $invitation->provider_id,
-            'client_id' => $user->id,
-            'created_by_provider' => false,
-            'status' => ProviderClientStatus::Active,
-        ]);
+            ProviderClient::create([
+                'provider_id' => $invitation->provider_id,
+                'client_id' => $user->id,
+                'created_by_provider' => false,
+                'status' => ProviderClientStatus::Active,
+            ]);
 
-        $invitation->delete();
+            $invitation->delete();
+
+            return $user;
+        });
 
         Auth::login($user);
 

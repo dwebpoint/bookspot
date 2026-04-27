@@ -1,4 +1,3 @@
-import FlashMessages from '@/components/FlashMessages';
 import StatusBadge from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import {
@@ -130,7 +129,6 @@ export default function Index() {
     return (
         <AppLayout>
             <Head title="User Management" />
-            <FlashMessages />
 
             <div className="space-y-6 p-4">
                 <div className="flex items-center justify-between">

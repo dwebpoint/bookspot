@@ -162,6 +162,30 @@ class InvitationRegistrationControllerTest extends TestCase
         $this->assertDatabaseMissing('invitations', ['id' => $invitationId]);
     }
 
+    public function test_authenticated_user_is_redirected_to_dashboard_on_register(): void
+    {
+        $provider = User::factory()->create();
+        $provider->assignRole('service_provider');
+
+        $invitation = Invitation::factory()->create([
+            'provider_id' => $provider->id,
+            'email' => 'invite@example.com',
+        ]);
+
+        $loggedIn = User::factory()->create();
+
+        $response = $this->actingAs($loggedIn)
+            ->post(route('invitation.register', $invitation->token), [
+                'name' => 'Test',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+            ]);
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($loggedIn);
+        $this->assertDatabaseMissing('users', ['email' => 'invite@example.com']);
+    }
+
     public function test_registration_fails_with_expired_invitation(): void
     {
         $provider = User::factory()->create();

@@ -12,7 +12,7 @@ class UpdateClientNoteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->isServiceProvider() || $this->user()->isAdmin();
+        return true; // Route middleware restricts access by role
     }
 
     /**

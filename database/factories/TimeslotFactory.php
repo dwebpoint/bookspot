@@ -28,7 +28,7 @@ class TimeslotFactory extends Factory
     public function definition(): array
     {
         return [
-            'provider_id' => User::factory()->state(['role' => 'service_provider']),
+            'provider_id' => User::factory()->serviceProvider(),
             'client_id' => null,
             'start_time' => fake()->dateTimeBetween('+1 day', '+30 days'),
             'duration_minutes' => fake()->randomElement([30, 45, 60, 90, 120]),
@@ -42,7 +42,7 @@ class TimeslotFactory extends Factory
     public function booked(?int $clientId = null): static
     {
         return $this->state(fn (array $attributes) => [
-            'client_id' => $clientId ?? User::factory()->state(['role' => 'client']),
+            'client_id' => $clientId ?? User::factory()->client(),
             'status' => TimeslotStatus::Booked,
         ]);
     }
@@ -53,7 +53,7 @@ class TimeslotFactory extends Factory
     public function completed(?int $clientId = null): static
     {
         return $this->state(fn (array $attributes) => [
-            'client_id' => $clientId ?? User::factory()->state(['role' => 'client']),
+            'client_id' => $clientId ?? User::factory()->client(),
             'status' => TimeslotStatus::Completed,
             'start_time' => fake()->dateTimeBetween('-30 days', '-1 day'),
         ]);

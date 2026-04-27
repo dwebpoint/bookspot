@@ -7,9 +7,11 @@ use App\Events\TimeslotCancelled as TimeslotCancelledEvent;
 use App\Mail\TimeslotBooked as TimeslotBookedMail;
 use App\Models\Timeslot;
 use App\Models\User;
+use App\Notifications\TimeslotBookedNotification;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class NotificationTest extends TestCase
@@ -90,7 +92,7 @@ class NotificationTest extends TestCase
 
     public function test_database_notification_and_email_both_sent_when_email_notifications_enabled(): void
     {
-        \Illuminate\Support\Facades\Notification::fake();
+        Notification::fake();
 
         $this->provider->update(['email_notifications_enabled' => true]);
 
@@ -102,10 +104,10 @@ class NotificationTest extends TestCase
 
         TimeslotBookedEvent::dispatch($timeslot, $this->client);
 
-        \Illuminate\Support\Facades\Notification::assertSentTo(
+        Notification::assertSentTo(
             $this->provider,
-            \App\Notifications\TimeslotBookedNotification::class,
-            function (\App\Notifications\TimeslotBookedNotification $notification) {
+            TimeslotBookedNotification::class,
+            function (TimeslotBookedNotification $notification) {
                 $channels = $notification->via($this->provider);
 
                 return in_array('database', $channels) && in_array('mail', $channels);
@@ -129,8 +131,7 @@ class NotificationTest extends TestCase
             ->delete(route('notifications.destroy', $notification->id))
             ->assertRedirect();
 
-        $this->assertCount(0, $this->provider->fresh()->unreadNotifications);
-        $this->assertNotNull($this->provider->fresh()->readNotifications->first());
+        $this->assertDatabaseMissing('notifications', ['id' => $notification->id]);
     }
 
     public function test_provider_cannot_dismiss_another_users_notification(): void
@@ -170,10 +171,9 @@ class NotificationTest extends TestCase
 
         $response = $this->actingAs($this->provider)->get(route('dashboard'));
 
-        $response->assertInertia(fn ($page) =>
-            $page->has('notifications', 1)
-                 ->where('notifications.0.data.action', 'booked')
-                 ->where('notifications.0.data.client_name', $this->client->name)
+        $response->assertInertia(fn ($page) => $page->has('notifications', 1)
+            ->where('notifications.0.data.action', 'booked')
+            ->where('notifications.0.data.client_name', $this->client->name)
         );
     }
 
@@ -181,9 +181,7 @@ class NotificationTest extends TestCase
     {
         $response = $this->actingAs($this->client)->get(route('timeslots.index'));
 
-        $response->assertInertia(fn ($page) =>
-            $page->has('notifications', 0)
+        $response->assertInertia(fn ($page) => $page->has('notifications', 0)
         );
     }
 }
-

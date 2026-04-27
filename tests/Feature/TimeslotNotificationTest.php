@@ -9,14 +9,14 @@ use App\Models\User;
 use App\Notifications\TimeslotBookedNotification;
 use App\Notifications\TimeslotCancelledNotification;
 use Database\Seeders\RolesAndPermissionsSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class TimeslotNotificationTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected User $provider;
 
@@ -28,24 +28,20 @@ class TimeslotNotificationTest extends TestCase
 
         $this->seed(RolesAndPermissionsSeeder::class);
 
-        $this->provider = User::factory()->create(['email_notifications_enabled' => false]);
-        $this->provider->assignRole('service_provider');
-
-        $this->client = User::factory()->create();
-        $this->client->assignRole('client');
+        $this->provider = User::factory()->serviceProvider()->create(['email_notifications_enabled' => false]);
+        $this->client = User::factory()->client()->create();
 
         $this->provider->clients()->attach($this->client->id);
     }
 
     public function test_timeslot_booked_event_is_dispatched_when_client_books(): void
     {
-        Event::fake();
-
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
             'start_time' => now()->addDays(3),
-            'status' => 'available',
         ]);
+
+        Event::fake();
 
         $this->actingAs($this->client)
             ->post(route('timeslots.store'), ['timeslot_id' => $timeslot->id])
@@ -59,14 +55,12 @@ class TimeslotNotificationTest extends TestCase
 
     public function test_timeslot_cancelled_event_is_dispatched_when_client_cancels(): void
     {
-        Event::fake();
-
-        $timeslot = Timeslot::factory()->create([
+        $timeslot = Timeslot::factory()->booked($this->client->id)->create([
             'provider_id' => $this->provider->id,
-            'client_id' => $this->client->id,
             'start_time' => now()->addDays(3),
-            'status' => 'booked',
         ]);
+
+        Event::fake();
 
         $this->actingAs($this->client)
             ->delete(route('timeslots.destroy', $timeslot))
@@ -87,7 +81,6 @@ class TimeslotNotificationTest extends TestCase
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
             'start_time' => now()->addDays(3),
-            'status' => 'available',
         ]);
 
         TimeslotBookedEvent::dispatch($timeslot, $this->client);
@@ -109,11 +102,9 @@ class TimeslotNotificationTest extends TestCase
 
         $this->provider->update(['email_notifications_enabled' => true]);
 
-        $timeslot = Timeslot::factory()->create([
+        $timeslot = Timeslot::factory()->booked($this->client->id)->create([
             'provider_id' => $this->provider->id,
-            'client_id' => $this->client->id,
             'start_time' => now()->addDays(3),
-            'status' => 'booked',
         ]);
 
         TimeslotCancelledEvent::dispatch($timeslot, $this->client);
@@ -136,7 +127,6 @@ class TimeslotNotificationTest extends TestCase
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
             'start_time' => now()->addDays(3),
-            'status' => 'available',
         ]);
 
         TimeslotBookedEvent::dispatch($timeslot, $this->client);
@@ -152,14 +142,12 @@ class TimeslotNotificationTest extends TestCase
 
     public function test_no_event_dispatched_when_booking_fails_due_to_unavailable_timeslot(): void
     {
-        Event::fake();
-
-        $timeslot = Timeslot::factory()->create([
+        $timeslot = Timeslot::factory()->booked($this->client->id)->create([
             'provider_id' => $this->provider->id,
-            'client_id' => $this->client->id,
             'start_time' => now()->addDays(3),
-            'status' => 'booked',
         ]);
+
+        Event::fake();
 
         $this->actingAs($this->client)
             ->post(route('timeslots.store'), ['timeslot_id' => $timeslot->id])
@@ -168,16 +156,76 @@ class TimeslotNotificationTest extends TestCase
         Event::assertNotDispatched(TimeslotBookedEvent::class);
     }
 
-    public function test_no_event_dispatched_when_cancellation_is_unauthorised(): void
+    public function test_cancelled_event_is_not_dispatched_when_provider_cancels_booking(): void
     {
+        $timeslot = Timeslot::factory()->booked($this->client->id)->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => now()->addDays(3),
+        ]);
+
         Event::fake();
 
-        $timeslot = Timeslot::factory()->create([
+        $this->actingAs($this->provider)
+            ->delete(route('timeslots.destroy', $timeslot))
+            ->assertRedirect();
+
+        Event::assertNotDispatched(TimeslotCancelledEvent::class);
+    }
+
+    public function test_provider_does_not_receive_notification_when_provider_cancels_booking(): void
+    {
+        Notification::fake();
+
+        $this->provider->update(['email_notifications_enabled' => true]);
+
+        $timeslot = Timeslot::factory()->booked($this->client->id)->create([
             'provider_id' => $this->provider->id,
-            'client_id' => $this->client->id,
-            'start_time' => now()->subDays(2),
-            'status' => 'booked',
+            'start_time' => now()->addDays(3),
         ]);
+
+        $this->actingAs($this->provider)
+            ->delete(route('timeslots.destroy', $timeslot))
+            ->assertRedirect();
+
+        Notification::assertNotSentTo($this->provider, TimeslotCancelledNotification::class);
+    }
+
+    public function test_provider_receives_cancellation_notification_when_client_cancels(): void
+    {
+        Notification::fake();
+
+        $this->provider->update(['email_notifications_enabled' => true]);
+
+        $timeslot = Timeslot::factory()->booked($this->client->id)->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => now()->addDays(3),
+        ]);
+
+        $this->actingAs($this->client)
+            ->delete(route('timeslots.destroy', $timeslot))
+            ->assertRedirect();
+
+        Notification::assertSentTo(
+            $this->provider,
+            TimeslotCancelledNotification::class,
+            function (TimeslotCancelledNotification $notification) use ($timeslot) {
+                $channels = $notification->via($this->provider);
+
+                return in_array('mail', $channels)
+                    && $notification->timeslot->id === $timeslot->id
+                    && $notification->client->id === $this->client->id;
+            }
+        );
+    }
+
+    public function test_no_event_dispatched_when_cancellation_is_unauthorised(): void
+    {
+        $timeslot = Timeslot::factory()->booked($this->client->id)->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => now()->subDays(2),
+        ]);
+
+        Event::fake();
 
         $this->actingAs($this->client)
             ->delete(route('timeslots.destroy', $timeslot))
@@ -195,7 +243,6 @@ class TimeslotNotificationTest extends TestCase
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
             'start_time' => now()->addDays(3),
-            'status' => 'available',
         ]);
 
         $this->actingAs($this->client)
@@ -222,7 +269,6 @@ class TimeslotNotificationTest extends TestCase
         $timeslot = Timeslot::factory()->create([
             'provider_id' => $this->provider->id,
             'start_time' => now()->addDays(3),
-            'status' => 'available',
         ]);
 
         $this->actingAs($this->client)

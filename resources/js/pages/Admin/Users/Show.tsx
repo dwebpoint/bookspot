@@ -1,4 +1,3 @@
-import FlashMessages from '@/components/FlashMessages';
 import StatusBadge from '@/components/StatusBadge';
 import {
     AlertDialog,
@@ -71,7 +70,6 @@ export default function Show() {
     return (
         <AppLayout>
             <Head title={user.name} />
-            <FlashMessages />
 
             <div className="space-y-6 p-4">
                 <div className="flex items-center justify-between">

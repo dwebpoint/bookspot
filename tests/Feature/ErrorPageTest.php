@@ -42,6 +42,21 @@ class ErrorPageTest extends TestCase
         );
     }
 
+    public function test_405_renders_error_page_for_wrong_method(): void
+    {
+        // PATCH-only route accessed via GET should return 405, not crash
+        $user = User::factory()->create();
+        $user->assignRole('service_provider');
+
+        $response = $this->actingAs($user)->get('/timeslots/999/complete');
+
+        $response->assertStatus(405);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Error')
+            ->where('status', 405),
+        );
+    }
+
     public function test_inertia_request_gets_error_page_even_with_debug_enabled(): void
     {
         config(['app.debug' => true]);

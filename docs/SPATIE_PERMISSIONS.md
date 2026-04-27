@@ -93,8 +93,10 @@ Has all permissions (superuser)
 - Works seamlessly with existing route middleware: `middleware('role:client,admin')`
 
 ### 3. Policies
-- **TimeslotPolicy**: Added permission checks alongside role checks (covers all timeslot and booking operations — the Booking model was consolidated into Timeslot)
-- Provides granular control: role + permission + ownership checks
+- **TimeslotPolicy**: Authorization for all timeslot and booking operations (covers viewing, creating, updating, deleting, assigning, completing, and reverting timeslots)
+- **UserPolicy**: Authorization for admin user management
+- **ClientNotePolicy**: Authorization for provider-scoped client notes (CRUD)
+- **ProviderClientPolicy**: Authorization for provider–client relationship management
 
 ### 4. New Migrations
 - `2025_11_22_150000_add_role_to_users_table.php` - Ensures role column exists

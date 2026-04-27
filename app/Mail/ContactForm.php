@@ -11,16 +11,15 @@ class ContactForm extends Mailable
     public function __construct(
         public string $visitorName,
         public string $visitorEmail,
-        public string $subject,
-        public string $message,
+        public string $contactSubject,
+        public string $contactMessage,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New contact form submission: '.$this->subject,
-            from: $this->visitorEmail,
-            replyTo: $this->visitorEmail,
+            subject: 'New contact form submission: '.$this->contactSubject,
+            replyTo: [$this->visitorEmail],
         );
     }
 

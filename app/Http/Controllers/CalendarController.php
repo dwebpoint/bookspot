@@ -89,23 +89,22 @@ class CalendarController extends Controller
                 ->get();
         }
 
-        // For clients: show flash messages for upcoming bookings (within 3 days)
+        // For clients: flash the nearest upcoming booking (within 3 days)
         if ($user->isClient()) {
-            $upcomingBookings = Timeslot::with('provider')
+            $upcomingBooking = Timeslot::with('provider')
                 ->where('client_id', $user->id)
                 ->where('status', TimeslotStatus::Booked)
                 ->whereBetween('start_time', [now(), now()->addDays(3)])
                 ->orderBy('start_time')
-                ->get();
+                ->first();
 
-            foreach ($upcomingBookings as $timeslot) {
-                $message = sprintf(
+            if ($upcomingBooking) {
+                session()->flash('info', sprintf(
                     'Upcoming appointment with %s on %s at %s',
-                    $timeslot->provider->name,
-                    $timeslot->start_time->format('d M Y'),
-                    $timeslot->start_time->format('g:i A')
-                );
-                session()->flash('info', $message);
+                    $upcomingBooking->provider->name,
+                    $upcomingBooking->start_time->format('d M Y'),
+                    $upcomingBooking->start_time->format('g:i A')
+                ));
             }
         }
 

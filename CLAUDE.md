@@ -9,7 +9,7 @@ BookSpot is a Laravel 13 + React 19 timeslot booking application using Inertia.j
 **Tech Stack:**
 - Backend: Laravel 13, PHP 8.4+, Spatie Laravel Permission, Laravel Fortify
 - Frontend: React 19, TypeScript 5.9+, Tailwind CSS 4.x, shadcn/ui, Radix UI
-- Bridge: Inertia.js 2.x (SSR-capable)
+- Bridge: Inertia.js 3.x (SSR-capable)
 - Build: Vite 8.x with Laravel Wayfinder for type-safe routing
 - Database: MariaDB 10.11 (via DDEV), SQLite (testing only)
 - Local Dev: DDEV (site URL: https://bookspot.ddev.site)
@@ -21,7 +21,7 @@ BookSpot is a Laravel 13 + React 19 timeslot booking application using Inertia.j
 - Use Inertia.js for all page rendering (no separate API/SPA)
 - Use Laravel Wayfinder for type-safe routing
 - Use Eloquent ORM for database operations (no `DB::` facade)
-- Use PHPUnit 12 with `RefreshDatabase` trait; test methods use `test_` prefix (no `@test` annotations)
+- Use PHPUnit 12 with `LazilyRefreshDatabase` trait (prefer over `RefreshDatabase`); test methods use `test_` prefix (no `@test` annotations)
 - Use shadcn/ui patterns for React components; functional components with hooks only
 - Declare PHP types for all method signatures; TypeScript strict mode (no `any` without justification)
 - Use migrations for all schema changes
@@ -92,7 +92,7 @@ See `docs/SPATIE_PERMISSIONS.md` for complete permission structure.
 **Events & Notifications:**
 - `TimeslotBooked` / `TimeslotCancelled` events fired only for client-initiated actions (not provider-initiated)
 - `SendTimeslotNotifications` subscriber checks `email_notifications_enabled` before sending
-- Mailables implement `ShouldQueue`; requires queue worker or `QUEUE_CONNECTION=sync`
+- Notifications send synchronously (no `ShouldQueue`); emails delivered inline during the HTTP request
 
 **Routes:**
 - `routes/web.php` — Main routes with role-based middleware groups
@@ -147,8 +147,9 @@ Feature specs in `specs/###-feature-name/` with `spec.md`, `plan.md`, `tasks.md`
 
 ## Default Credentials (Development)
 
-- `provider1@example.com` / `provider2@example.com` — password: `password`
-- `client1@example.com` / `client2@example.com` / `client3@example.com` — password: `password`
+- `provider1@bookspot.test` / `provider2@bookspot.test` / `provider3@bookspot.test` — password: `password`
+- `client1@bookspot.test` … `client5@bookspot.test` — password: `password`
+- `admin@example.com` — password: `password`
 
 ## Troubleshooting
 

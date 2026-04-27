@@ -46,10 +46,19 @@ class UserController extends Controller
         }
 
         $users = $query->withCount(['timeslots'])
-            ->orderBy('created_at', 'desc')
+            ->latest()
             ->paginate(20);
 
         $serviceProviders = User::role('service_provider')->orderBy('name')->get(['id', 'name', 'email']);
+
+        $roleTable = config('permission.table_names.roles', 'roles');
+        $modelHasRoles = config('permission.table_names.model_has_roles', 'model_has_roles');
+
+        $roleCounts = User::join($modelHasRoles, 'users.id', '=', "{$modelHasRoles}.model_id")
+            ->join($roleTable, "{$modelHasRoles}.role_id", '=', "{$roleTable}.id")
+            ->where("{$modelHasRoles}.model_type", User::class)
+            ->selectRaw("SUM({$roleTable}.name = 'admin') as admins, SUM({$roleTable}.name = 'service_provider') as service_providers, SUM({$roleTable}.name = 'client') as clients")
+            ->first();
 
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
@@ -57,9 +66,9 @@ class UserController extends Controller
             'serviceProviders' => $serviceProviders,
             'stats' => [
                 'total_users' => User::count(),
-                'admins' => User::role('admin')->count(),
-                'service_providers' => User::role('service_provider')->count(),
-                'clients' => User::role('client')->count(),
+                'admins' => (int) $roleCounts?->admins,
+                'service_providers' => (int) $roleCounts?->service_providers,
+                'clients' => (int) $roleCounts?->clients,
                 'no_role' => User::whereDoesntHave('roles')->count(),
             ],
         ]);
@@ -89,14 +98,16 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
+        $validated = $request->validated();
+
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'timezone' => $request->timezone ?? 'UTC',
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'timezone' => $validated['timezone'] ?? 'UTC',
         ]);
 
-        $user->syncRoles([$request->role]);
+        $user->syncRoles([$validated['role']]);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User created successfully!');
@@ -166,18 +177,20 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
 
+        $validated = $request->validated();
+
         $data = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'timezone' => $request->timezone ?? $user->timezone,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'timezone' => $validated['timezone'] ?? $user->timezone,
         ];
 
         if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
+            $data['password'] = Hash::make($validated['password']);
         }
 
         $user->update($data);
-        $user->syncRoles([$request->role]);
+        $user->syncRoles([$validated['role']]);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User updated successfully!');

@@ -3,11 +3,14 @@
 namespace Tests\Feature;
 
 use App\Mail\ContactForm;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class ContactTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_contact_page_is_accessible()
     {
         $response = $this->get('/contact');
@@ -27,7 +30,12 @@ class ContactTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        Mail::assertSent(ContactForm::class);
+        Mail::assertSent(ContactForm::class, function (ContactForm $mail) {
+            $envelope = $mail->envelope();
+
+            return collect($envelope->replyTo)->contains(fn ($address) => $address->address === 'john@example.com')
+                && $envelope->from === null;
+        });
     }
 
     public function test_contact_form_requires_all_fields()

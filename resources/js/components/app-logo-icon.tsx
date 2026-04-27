@@ -12,15 +12,13 @@ export default function AppLogoIcon(props: SVGAttributes<SVGElement>) {
             strokeLinejoin="round"
             xmlns="http://www.w3.org/2000/svg"
         >
-            {/* Calendar base */}
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            {/* Calendar header line */}
+            {/* Calendar body — rounder corners for a friendlier feel */}
+            <rect x="3" y="4" width="18" height="18" rx="4" ry="4" />
             <line x1="3" y1="9" x2="21" y2="9" />
-            {/* Top pegs */}
             <line x1="8" y1="2" x2="8" y2="6" />
             <line x1="16" y1="2" x2="16" y2="6" />
-            {/* Checkmark to indicate booking */}
-            <polyline points="9,14 11,16 15,12" />
+            {/* Heart: two semicircle arcs meeting at the V notch, tapering to a point */}
+            <path d="M12 19 C12 19 7 16 7 13.5 A2.5 2.5 0 0 1 12 13.5 A2.5 2.5 0 0 1 17 13.5 C17 16 12 19 12 19 Z" />
         </svg>
     );
 }

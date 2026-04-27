@@ -13,7 +13,7 @@ class NotificationController extends Controller
             ->notifications()
             ->findOrFail($id);
 
-        $notification->markAsRead();
+        $notification->delete();
 
         return back();
     }

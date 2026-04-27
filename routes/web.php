@@ -11,23 +11,75 @@ use App\Http\Controllers\Provider\ClientNoteController;
 use App\Http\Controllers\Provider\InvitationController;
 use App\Http\Controllers\Provider\TimeslotController as ProviderTimeslotController;
 use App\Http\Controllers\TimeslotController;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    if (auth()->check()) {
+    if (Auth::check()) {
         return redirect()->route('calendar');
     }
 
+    $appUrl = rtrim(config('app.url'), '/');
+
     return Inertia::render('welcome', [
         'canRegister' => true,
-        'appUrl' => config('app.url'),
+        'appUrl' => $appUrl,
+        'seoImageUrl' => $appUrl.config('seo.default_image_path'),
     ]);
 })->name('home');
 
+Route::get('sitemap.xml', function () {
+    $urls = [
+        [
+            'loc' => route('home'),
+            'lastmod' => Carbon::now()->toDateString(),
+            'changefreq' => 'weekly',
+            'priority' => '1.0',
+        ],
+        [
+            'loc' => route('contact.show'),
+            'lastmod' => Carbon::now()->toDateString(),
+            'changefreq' => 'monthly',
+            'priority' => '0.7',
+        ],
+    ];
+
+    $xmlUrls = collect($urls)
+        ->map(function (array $url): string {
+            return "<url><loc>{$url['loc']}</loc><lastmod>{$url['lastmod']}</lastmod><changefreq>{$url['changefreq']}</changefreq><priority>{$url['priority']}</priority></url>";
+        })
+        ->implode('');
+
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>'
+        .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        .$xmlUrls
+        .'</urlset>';
+
+    return response($xml, 200)->header('Content-Type', 'application/xml');
+})->name('sitemap');
+
+Route::get('robots.txt', function () {
+    $appUrl = rtrim(config('app.url'), '/');
+
+    $content = implode("\n", [
+        'User-agent: *',
+        "Sitemap: {$appUrl}/sitemap.xml",
+        'Disallow: /dashboard',
+        'Disallow: /calendar',
+        'Disallow: /timeslots',
+        'Disallow: /provider/',
+        'Disallow: /admin/',
+        'Disallow: /settings/',
+    ]);
+
+    return response($content, 200)->header('Content-Type', 'text/plain; charset=UTF-8');
+})->name('robots');
+
 // Contact routes
 Route::get('contact', [ContactController::class, 'show'])->name('contact.show');
-Route::post('contact', [ContactController::class, 'store'])->name('contact.store');
+Route::post('contact', [ContactController::class, 'store'])->name('contact.store')->middleware('throttle:5,1');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -39,7 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('timeslots', [TimeslotController::class, 'index'])->name('timeslots.index');
 
     // Timeslot booking - Client and Admin only
-    Route::middleware('role:client,admin')->group(function () {
+    Route::middleware(['role:client,admin', 'throttle:20,1'])->group(function () {
         Route::post('timeslots', [TimeslotController::class, 'store'])->name('timeslots.store');
     });
 
@@ -65,7 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('role:service_provider,admin');
 
     // Provider routes
-    Route::prefix('provider')->name('provider.')->middleware('role:service_provider,admin')->group(function () {
+    Route::prefix('provider')->name('provider.')->middleware(['role:service_provider,admin', 'throttle:60,1'])->group(function () {
         // Timeslots
         Route::post('timeslots', [ProviderTimeslotController::class, 'store'])->name('timeslots.store');
         Route::patch('timeslots/{timeslot}', [ProviderTimeslotController::class, 'update'])->name('timeslots.update');
@@ -93,7 +145,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Admin routes
-    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(['role:admin', 'throttle:30,1'])->group(function () {
         Route::resource('users', AdminUserController::class);
         Route::patch('users/{user}/role', [AdminUserController::class, 'updateRole'])->name('users.updateRole');
         Route::post('users/{user}/attach-provider', [AdminUserController::class, 'attachProvider'])->name('users.attachProvider');

@@ -30,6 +30,7 @@ class ProfileUpdateTest extends TestCase
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
+                'current_password' => 'password',
             ]);
 
         $response
@@ -41,6 +42,55 @@ class ProfileUpdateTest extends TestCase
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
+    }
+
+    public function test_name_can_be_updated_without_password()
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'name' => 'New Name',
+                'email' => $user->email,
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('profile.edit'));
+
+        $this->assertSame('New Name', $user->refresh()->name);
+    }
+
+    public function test_email_change_requires_current_password()
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'name' => $user->name,
+                'email' => 'changed@example.com',
+            ]);
+
+        $response->assertSessionHasErrors('current_password');
+        $this->assertNotSame('changed@example.com', $user->refresh()->email);
+    }
+
+    public function test_email_change_rejects_wrong_current_password()
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'name' => $user->name,
+                'email' => 'changed@example.com',
+                'current_password' => 'wrong-password',
+            ]);
+
+        $response->assertSessionHasErrors('current_password');
+        $this->assertNotSame('changed@example.com', $user->refresh()->email);
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()

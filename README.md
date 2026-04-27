@@ -24,50 +24,65 @@ A scheduling platform that connects service providers with clients. BookSpot str
 
 ## Tech stack
 
-Built with Laravel 13, React 19, TypeScript, Tailwind CSS, and [Inertia](https://inertiajs.com). Uses [shadcn/ui](https://ui.shadcn.com) and [Radix UI](https://www.radix-ui.com) component libraries.
+| Layer | Technology |
+|-------|-----------|
+| Backend | Laravel 13, PHP 8.4, [Spatie Laravel Permission](https://spatie.be/docs/laravel-permission) |
+| Frontend | React 19, TypeScript 5.9, Tailwind CSS 4, [shadcn/ui](https://ui.shadcn.com), [Radix UI](https://www.radix-ui.com) |
+| Bridge | [Inertia.js v3](https://inertiajs.com) with SSR enabled |
+| Build | Vite 8, [Laravel Wayfinder](https://github.com/laravel/wayfinder) for type-safe routing |
+| Auth | Laravel Fortify |
+| Database | MariaDB 10.11 (production), SQLite (tests) |
+| Local dev | [DDEV](https://ddev.readthedocs.io/) |
 
 ## Features
 
-### 📅 Timeslot Management System
-- Weekly calendar view with available timeslots
-- Service providers can create and manage timeslots via modal interface
-- Clients can book available timeslots
-- Consolidated status tracking directly on timeslots (available, booked, completed, cancelled)
+### 📅 Timeslot management
+- Weekly calendar view — the primary interface for all timeslot operations
+- Service providers create, edit, and delete timeslots via modals (no separate pages)
+- Three statuses: `available`, `booked`, `completed`
+- Providers can assign a specific client when creating or editing a timeslot
+- Providers can add and update a comment on any timeslot
+- Completed timeslots can be reverted to `booked`
 
-### 👥 Client-Provider Relationship Management
-- Service providers can create and manage clients
-- Many-to-many relationships (clients can have multiple providers)
-- Automatic relationship linking when creating clients
-- Shared client indicators and provider filtering
-- Client count badges in navigation
+### 👥 Client-provider relationships
+- Providers invite clients by email; existing users are linked automatically, new users receive a registration link
+- Many-to-many relationships — clients can have multiple providers and vice versa
+- Provider-specific client list with CRUD, notes, and activity history
+- Per-client notes with full create / edit / delete support
+- Shared client indicators and provider filtering on the calendar
 
-### 🔐 Advanced RBAC with Spatie Permissions
-- Role-based access control using [Spatie Laravel Permission](https://spatie.be/docs/laravel-permission)
-- Three roles: Admin, Service Provider, Client
-- 19 granular permissions for fine-grained access control
-- Policy-based authorization for resources
-- Backward compatible with existing role checks
+### 🔐 Role-based access control
+- Three roles via [Spatie Laravel Permission](https://spatie.be/docs/laravel-permission): **Admin**, **Service Provider**, **Client**
+- Policy-based authorization on every resource
+- Admin panel for user management and role assignment
 
-### 🎨 Modern UI/UX
-- Responsive design with Tailwind CSS
-- shadcn/ui component library
+### 🔔 Notifications
+- **Email notifications** — opt-in per user (Settings → Notifications, off by default)
+  - Providers are notified when a client books or cancels; provider-initiated changes do not trigger emails
+  - Event-driven: `TimeslotBooked` / `TimeslotCancelled` → `SendTimeslotNotifications` → synchronous Mailables (sent inline, no queue worker required)
+- **In-app notifications** — stored in the database and surfaced in the UI
+
+### 🎨 UI/UX
+- Responsive design with Tailwind CSS 4
 - Dark mode support
-- Calendar-first interface for timeslot browsing
-- Search and filter capabilities
+- shadcn/ui + Radix UI component library
+- SEO-optimised public pages (meta description, Open Graph, Twitter Card, canonical URL, SSR)
 
-### 📧 Email Notifications
-- Providers and clients can opt in to email notifications via Settings → Notifications
-- Providers receive an email when a **client** books or cancels a timeslot (provider-initiated assign/remove does not trigger notifications)
-- Event-driven architecture: `TimeslotBooked` / `TimeslotCancelled` events → `SendTimeslotNotifications` subscriber → queued Mailables
-- Setting is disabled by default; each user controls their own preference
+### ✉️ Contact page
+- Public `/contact` form for general enquiries, delivered by email
 
-## Quick Start
+---
+
+## Quick start
 
 ### Prerequisites
 
-- PHP 8.4+, Composer 2
-- Node.js 20+
-- [DDEV](https://ddev.readthedocs.io/) (recommended) **or** a local MySQL/MariaDB instance
+| Tool | Version |
+|------|---------|
+| PHP | 8.4+ |
+| Composer | 2.x |
+| Node.js | 20+ |
+| DDEV | latest (recommended) |
 
 ### With DDEV (recommended)
 
@@ -85,140 +100,170 @@ App is available at **https://bookspot.ddev.site**.
 ```bash
 git clone https://github.com/your-org/bookspot.git && cd bookspot
 
-# Install dependencies
-composer install
-npm install
+composer install && npm install
 
-# Configure environment
 cp .env.example .env
 php artisan key:generate
-# Edit .env: set DB_* variables to your local database
+# Edit .env — set DB_* to your local MariaDB/MySQL instance
 
-# Set up database
 php artisan migrate
 
-# Seed roles and permissions (Spatie)
-php artisan db:seed --class=RolesAndPermissionsSeeder
-php artisan db:seed --class=AssignRolesToExistingUsersSeeder
+# Seed roles, permissions, and demo data
+php artisan db:seed
 
-# Optional: Seed demo data
-php artisan db:seed --class=ClientSeeder
-
-# Build assets
 npm run build
 
-# Start development server
 php artisan serve
 npm run dev
 ```
 
-### Default Users (after seeding)
+### Demo credentials
 
-- **Provider 1**: provider1@example.com / password
-- **Provider 2**: provider2@example.com / password
-- **Client 1**: client1@example.com / password
-- **Client 2**: client2@example.com / password
-- **Client 3**: client3@example.com / password (shared between providers)
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@example.com | password |
+| Service provider | provider1@bookspot.test | password |
+| Service provider | provider2@bookspot.test | password |
+| Service provider | provider3@bookspot.test | password |
+| Client | client1@bookspot.test | password |
+| Client | client2@bookspot.test | password |
+| Client | client3@bookspot.test | password |
 
-## RBAC System
+---
 
-The application uses Spatie Laravel Permission for role and permission management.
+## RBAC system
 
 ### Roles
 
-1. **Admin** - Full system access
-2. **Service Provider** - Manage timeslots and clients
-3. **Client** - Book timeslots and view bookings
+| Role | Access |
+|------|--------|
+| **Admin** | Full system access, user management, role assignment |
+| **Service Provider** | Manage own timeslots and clients |
+| **Client** | Browse availability, book and cancel timeslots |
 
-### Key Permissions
+### Key permissions
 
-- Timeslot management: `view`, `create`, `update`, `delete`, `assign timeslots`
-- Client management: `view`, `create`, `update`, `delete clients`
-- User management: `view`, `create`, `update`, `delete users` (admin only)
+- Timeslot: `view timeslots`, `create timeslots`, `update timeslots`, `delete timeslots`, `assign timeslots`
+- Client: `view clients`, `create clients`, `update clients`, `delete clients`
+- User: `view users`, `create users`, `update users`, `delete users` (admin only)
 
-### Migration Guide
+See [docs/SPATIE_PERMISSIONS.md](docs/SPATIE_PERMISSIONS.md) for the full permission matrix.
 
-See [docs/SPATIE_PERMISSIONS.md](docs/SPATIE_PERMISSIONS.md) for detailed RBAC documentation.
+---
 
-## Project Structure
+## Project structure
 
 ```
 app/
+├── Actions/Fortify/            # Fortify auth actions (register, update profile, etc.)
+├── Enums/
+│   ├── TimeslotStatus.php      # Available | Booked | Completed
+│   └── ProviderClientStatus.php
 ├── Events/
 │   ├── TimeslotBooked.php
 │   └── TimeslotCancelled.php
 ├── Http/
 │   ├── Controllers/
-│   │   ├── Admin/          # Admin controllers
-│   │   ├── Provider/       # Service provider controllers
-│   │   ├── Settings/       # Profile, password, appearance, notifications
+│   │   ├── Admin/              # User management
+│   │   ├── Provider/           # Timeslots, clients, client notes, invitations
+│   │   ├── Settings/           # Profile, password, appearance, notifications, info (admin-only)
 │   │   ├── CalendarController.php
+│   │   ├── ContactController.php
+│   │   ├── DashboardController.php
+│   │   ├── InvitationRegistrationController.php
+│   │   ├── NotificationController.php
 │   │   └── TimeslotController.php
-│   ├── Middleware/
-│   │   └── CheckRole.php   # Role verification middleware
-│   └── Requests/           # Form request validation
+│   └── Requests/               # Form request validation
 ├── Listeners/
 │   └── SendTimeslotNotifications.php
 ├── Mail/
+│   ├── ClientInvitation.php
+│   ├── ContactForm.php
 │   ├── TimeslotBooked.php
 │   └── TimeslotCancelled.php
 ├── Models/
-│   ├── User.php           # User model with HasRoles trait
-│   ├── Timeslot.php       # Timeslot with integrated booking status
-│   └── ProviderClient.php
-└── Policies/              # Authorization policies
+│   ├── ClientNote.php
+│   ├── Invitation.php
+│   ├── ProviderClient.php
+│   ├── SiteSettings.php
+│   ├── Timeslot.php
+│   └── User.php
+├── Notifications/
+│   ├── TimeslotBookedNotification.php
+│   └── TimeslotCancelledNotification.php
+└── Policies/                   # TimeslotPolicy, UserPolicy, ClientNotePolicy, InvitationPolicy, ProviderClientPolicy
 
-resources/
-└── js/
-    ├── components/        # Reusable React components
-    ├── layouts/          # Page layouts
-    ├── pages/            # Inertia page components
-    ├── types/            # TypeScript type definitions
-    └── lib/              # Utility functions
+resources/js/
+├── components/                 # Reusable shadcn/ui components
+├── layouts/                    # Authenticated and guest layouts
+├── pages/
+│   ├── Admin/Users/            # User management pages
+│   ├── auth/                   # Login, register, password reset, etc.
+│   ├── Calendar/               # Main calendar view
+│   ├── Invitation/             # Invitation registration flow
+│   ├── Provider/Clients/       # Client management pages
+│   ├── settings/               # Profile, password, appearance, notifications, info (admin-only)
+│   ├── Timeslots/              # Timeslot list for clients
+│   ├── contact.tsx
+│   ├── dashboard.tsx
+│   ├── Error.tsx
+│   └── welcome.tsx
+├── types/                      # TypeScript type definitions
+└── hooks/                      # Custom React hooks
 
 database/
+├── factories/
 ├── migrations/
-├── seeders/
-│   ├── RolesAndPermissionsSeeder.php
-│   ├── AssignRolesToExistingUsersSeeder.php
-│   └── ClientSeeder.php
-└── factories/
-
-specs/                     # Feature specifications
-├── UNIFIED-SPEC.md
-├── 001-timeslot-booking/
-├── 002-client-provider-link/
-├── 003-consolidate-booking-to-timeslot/
-└── 004-modal-based-timeslot-creation/
+└── seeders/
+    ├── DatabaseSeeder.php
+    ├── RolesAndPermissionsSeeder.php
+    ├── RoleSeeder.php
+    ├── TimeslotBookingSeeder.php
+    └── ClientSeeder.php
 ```
+
+---
 
 ## Development
 
-### Running Tests
+### Running tests
+
+Tests use an in-memory SQLite database — no external database required.
 
 ```bash
-php artisan test
+php artisan test                         # full suite
+php artisan test --compact               # compact output
+php artisan test --filter=TestName       # single test or class
 ```
 
-### Code Style
+### Code quality
 
 ```bash
-# PHP (Laravel Pint)
-./vendor/bin/pint
+# PHP static analysis (PHPStan / Larastan, level 6)
+vendor/bin/phpstan analyse --no-progress
 
-# TypeScript/React
+# PHP formatting
+vendor/bin/pint
+
+# TypeScript type check
+npm run types
+
+# ESLint
 npm run lint
+
+# Prettier
+npm run format
 ```
+
+---
 
 ## Documentation
 
-- [Spatie Permissions Setup](docs/SPATIE_PERMISSIONS.md)
-- [Calendar Client Display](docs/CALENDAR_CLIENT_DISPLAY.md)
-- [Unified Specification](specs/UNIFIED-SPEC.md)
+- [Spatie permissions setup](docs/SPATIE_PERMISSIONS.md)
+- [Calendar client display](docs/CALENDAR_CLIENT_DISPLAY.md)
+- [Contributing guide](CONTRIBUTING.md)
 
-## Official Documentation
-
-Documentation for all Laravel starter kits can be found on the [Laravel website](https://laravel.com/docs/starter-kits).
+---
 
 ## Contributing
 
@@ -227,11 +272,3 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 ## License
 
 BookSpot is open-sourced software licensed under the [MIT license](LICENSE).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## License
-
-The Laravel + React starter kit is open-sourced software licensed under the MIT license.

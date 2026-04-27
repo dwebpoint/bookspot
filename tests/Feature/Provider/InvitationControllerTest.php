@@ -182,4 +182,20 @@ class InvitationControllerTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_admin_can_send_invitation(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $response = $this->actingAs($admin)
+            ->post(route('provider.invitations.store'), [
+                'email' => 'newclient@example.com',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+    }
 }

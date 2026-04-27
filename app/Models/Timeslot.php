@@ -156,36 +156,32 @@ class Timeslot extends Model
         return $query->whereIn('provider_id', $providerIds);
     }
 
-    /**
-     * Get the end time of the timeslot.
-     */
-    public function getEndTimeAttribute(): string
+    protected function endTime(): Attribute
     {
-        return $this->start_time->copy()->addMinutes($this->duration_minutes)->toIso8601String();
+        return Attribute::make(
+            get: fn () => $this->start_time->copy()->addMinutes($this->duration_minutes)->toIso8601String(),
+        );
     }
 
-    /**
-     * Check if the timeslot is available for booking.
-     */
-    public function getIsAvailableAttribute(): bool
+    protected function isAvailable(): Attribute
     {
-        return $this->status === TimeslotStatus::Available;
+        return Attribute::make(
+            get: fn () => $this->status === TimeslotStatus::Available,
+        );
     }
 
-    /**
-     * Check if the timeslot is booked.
-     */
-    public function getIsBookedAttribute(): bool
+    protected function isBooked(): Attribute
     {
-        return $this->status === TimeslotStatus::Booked;
+        return Attribute::make(
+            get: fn () => $this->status === TimeslotStatus::Booked,
+        );
     }
 
-    /**
-     * Check if the timeslot is completed.
-     */
-    public function getIsCompletedAttribute(): bool
+    protected function isCompleted(): Attribute
     {
-        return $this->status === TimeslotStatus::Completed;
+        return Attribute::make(
+            get: fn () => $this->status === TimeslotStatus::Completed,
+        );
     }
 
     /**

@@ -4,12 +4,34 @@ import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { CalendarCheck, Clock, Users, CheckCircle, ArrowRight, CalendarDays, Zap, Shield } from 'lucide-react';
 
-export default function Welcome({ canRegister = true, appUrl }: { canRegister?: boolean; appUrl: string }) {
+export default function Welcome({
+    canRegister = true,
+    appUrl,
+    seoImageUrl,
+}: {
+    canRegister?: boolean;
+    appUrl: string;
+    seoImageUrl: string;
+}) {
     const { auth } = usePage<SharedData>().props;
 
     const description =
         'BookSpot connects service providers with their clients through a clean calendar interface. Create timeslots, manage bookings, and stay on top of your schedule.';
     const title = 'BookSpot — Simple appointment scheduling';
+    const jsonLd = JSON.stringify([
+        {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'BookSpot',
+            url: appUrl,
+        },
+        {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'BookSpot',
+            url: appUrl,
+        },
+    ]);
 
     return (
         <>
@@ -19,13 +41,19 @@ export default function Welcome({ canRegister = true, appUrl }: { canRegister?: 
                 <meta name="robots" content="index, follow" />
                 <link rel="canonical" href={appUrl} />
                 <meta property="og:type" content="website" />
+                <meta property="og:locale" content="en_US" />
                 <meta property="og:url" content={appUrl} />
                 <meta property="og:title" content={title} />
                 <meta property="og:description" content={description} />
                 <meta property="og:site_name" content="BookSpot" />
-                <meta name="twitter:card" content="summary" />
+                <meta property="og:image" content={seoImageUrl} />
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="630" />
+                <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={title} />
                 <meta name="twitter:description" content={description} />
+                <meta name="twitter:image" content={seoImageUrl} />
+                <script type="application/ld+json">{jsonLd}</script>
             </Head>
             <div className="relative min-h-screen bg-background text-foreground">
                 <AmbientBackground />
@@ -185,7 +213,6 @@ export default function Welcome({ canRegister = true, appUrl }: { canRegister?: 
                                     'See live availability from your providers',
                                     'Book and cancel with one click',
                                     'View all upcoming appointments in one list',
-                                    'Reminders for appointments in the next 3 days',
                                     'Connect with multiple service providers',
                                 ].map((item) => (
                                     <li key={item} className="flex items-start gap-2.5 text-sm">

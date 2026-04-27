@@ -5,13 +5,10 @@ namespace App\Notifications;
 use App\Mail\TimeslotCancelled as TimeslotCancelledMail;
 use App\Models\Timeslot;
 use App\Models\User;
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class TimeslotCancelledNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         public Timeslot $timeslot,
         public User $client,

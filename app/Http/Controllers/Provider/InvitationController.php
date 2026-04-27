@@ -9,17 +9,22 @@ use App\Mail\ClientInvitation;
 use App\Models\Invitation;
 use App\Models\ProviderClient;
 use App\Models\User;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class InvitationController extends Controller
 {
+    use AuthorizesRequests;
+
     public function store(StoreInvitationRequest $request): RedirectResponse
     {
+        $this->authorize('create', Invitation::class);
+
         /** @var User $provider */
         $provider = auth()->user();
-        $email = $request->email;
+        $email = $request->validated()['email'];
 
         // If the email belongs to an existing user, auto-link them
         $existingUser = User::where('email', $email)->first();
@@ -77,12 +82,7 @@ class InvitationController extends Controller
 
     public function destroy(Invitation $invitation): RedirectResponse
     {
-        /** @var User $provider */
-        $provider = auth()->user();
-
-        if ($invitation->provider_id !== $provider->id && ! $provider->isAdmin()) {
-            abort(403);
-        }
+        $this->authorize('delete', $invitation);
 
         $invitation->delete();
 

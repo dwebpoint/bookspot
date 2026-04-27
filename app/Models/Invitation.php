@@ -44,9 +44,9 @@ class Invitation extends Model
      *
      * @param  Builder<Invitation>  $query
      */
-    public function scopePending(Builder $query): void
+    public function scopePending(Builder $query): Builder
     {
-        $query->whereNull('accepted_at')
+        return $query->whereNull('accepted_at')
             ->where('expires_at', '>', now());
     }
 

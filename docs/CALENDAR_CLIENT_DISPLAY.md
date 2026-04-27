@@ -18,10 +18,10 @@ stateDiagram-v2
     available --> available: update(duration)
     booked --> available: cancel()
     booked --> completed: complete()
-    completed --> [*]
+    completed --> booked: revert()
 ```
 
-Timeslots follow a simple state machine where booking assigns a client, cancellation makes them available again, completion marks the appointment as fulfilled, and duration can be updated while in available state.
+Timeslots follow a simple state machine where booking assigns a client, cancellation makes them available again, completion marks the appointment as fulfilled, duration can be updated while in available state, and completed timeslots can be reverted back to booked.
 
 ## Changes Made
 

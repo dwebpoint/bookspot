@@ -34,12 +34,9 @@ return new class extends Migration
         }
 
         // Modify status column to add 'completed' value
-        // For SQLite compatibility, we need to check the driver
-        if (DB::connection()->getDriverName() === 'mysql') {
+        // MariaDB returns 'mariadb' as driver name (not 'mysql') since Laravel 10.38+
+        if (in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'])) {
             DB::statement("ALTER TABLE timeslots MODIFY COLUMN status ENUM('available', 'booked', 'completed') NOT NULL DEFAULT 'available'");
-        } else {
-            // For SQLite and other databases, the column should already support any string value
-            // No modification needed for SQLite as it doesn't have enum constraints
         }
 
         // Migrate data from bookings to timeslots
@@ -51,8 +48,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Restore status enum to original values (MySQL only)
-        if (DB::connection()->getDriverName() === 'mysql') {
+        // Restore status enum to original values (MySQL/MariaDB only)
+        if (in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'])) {
             DB::statement("ALTER TABLE timeslots MODIFY COLUMN status ENUM('available', 'booked') NOT NULL DEFAULT 'available'");
         }
 

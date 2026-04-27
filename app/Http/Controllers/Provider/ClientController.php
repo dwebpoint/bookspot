@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Provider;
 use App\Enums\ProviderClientStatus;
 use App\Enums\TimeslotStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Provider\UpdateClientRequest;
 use App\Http\Requests\StoreClientRequest;
 use App\Models\ClientNote;
 use App\Models\Invitation;
@@ -78,8 +79,10 @@ class ClientController extends Controller
 
         try {
             DB::transaction(function () use ($request) {
+                $validated = $request->validated();
+
                 // Check if user with this email already exists
-                $existingUser = User::where('email', $request->email)->first();
+                $existingUser = User::where('email', $validated['email'])->first();
 
                 if ($existingUser) {
                     // User exists - check if they're a client
@@ -102,9 +105,9 @@ class ClientController extends Controller
                 } else {
                     // Create new client user
                     $client = User::create([
-                        'name' => $request->name,
-                        'email' => $request->email,
-                        'password' => Hash::make($request->password),
+                        'name' => $validated['name'],
+                        'email' => $validated['email'],
+                        'password' => Hash::make($validated['password']),
                     ]);
 
                     $client->assignRole('client');
@@ -184,34 +187,14 @@ class ClientController extends Controller
     /**
      * Update the specified client in storage.
      */
-    public function update(StoreClientRequest $request, User $client): RedirectResponse
+    public function update(UpdateClientRequest $request, User $client): RedirectResponse
     {
         $this->authorize('updateClient', $client);
 
-        try {
-            // Check if email is being changed to an existing email
-            if ($request->email !== $client->email) {
-                $existingUser = User::where('email', $request->email)
-                    ->where('id', '!=', $client->id)
-                    ->first();
+        $client->update($request->validated());
 
-                if ($existingUser) {
-                    throw new \Exception('A user with this email already exists.');
-                }
-            }
-
-            $client->update([
-                'name' => $request->name,
-                'email' => $request->email,
-            ]);
-
-            return redirect()->route('provider.clients.index')
-                ->with('success', 'Client updated successfully!');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', $e->getMessage());
-        }
+        return redirect()->route('provider.clients.index')
+            ->with('success', 'Client updated successfully!');
     }
 
     /**
@@ -240,10 +223,7 @@ class ClientController extends Controller
                         ->update(['status' => TimeslotStatus::Available, 'client_id' => null]);
                 }
 
-                // Remove the relationship
-                ProviderClient::where('provider_id', auth()->id())
-                    ->where('client_id', $client->id)
-                    ->delete();
+                auth()->user()->clients()->detach($client->id);
             });
 
             return redirect()->route('provider.clients.index')

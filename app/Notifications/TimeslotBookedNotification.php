@@ -5,13 +5,10 @@ namespace App\Notifications;
 use App\Mail\TimeslotBooked as TimeslotBookedMail;
 use App\Models\Timeslot;
 use App\Models\User;
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class TimeslotBookedNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         public Timeslot $timeslot,
         public User $client,

@@ -4,7 +4,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { Form } from '@inertiajs/react';
 import { CalendarCheck, Mail } from 'lucide-react';
 
-export default function Contact() {
+export default function Contact({ contactEmail }: { contactEmail: string }) {
     const { auth } = usePage<SharedData>().props;
 
     return (
@@ -142,14 +142,16 @@ export default function Contact() {
                     </div>
 
                     {/* Contact Info */}
-                    <div className="mt-12 text-center">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            For urgent matters, please email us directly at{' '}
-                            <a href="mailto:dobrydotyk2@gmail.com" className="font-semibold text-primary hover:underline">
-                                dobrydotyk2@gmail.com
-                            </a>
-                        </p>
-                    </div>
+                    {contactEmail && (
+                        <div className="mt-12 text-center">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                For urgent matters, please email us directly at{' '}
+                                <a href={`mailto:${contactEmail}`} className="font-semibold text-primary hover:underline">
+                                    {contactEmail}
+                                </a>
+                            </p>
+                        </div>
+                    )}
                 </section>
 
                 {/* Footer */}

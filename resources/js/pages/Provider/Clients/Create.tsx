@@ -1,4 +1,3 @@
-import FlashMessages from '@/components/FlashMessages';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -31,7 +30,6 @@ export default function Create() {
     return (
         <AppLayout>
             <Head title="Add New Client" />
-            <FlashMessages />
 
             <div className="space-y-6 p-2">
                 <div className="flex items-center justify-between">

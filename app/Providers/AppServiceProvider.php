@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Listeners\SendTimeslotNotifications;
 use App\Models\ClientNote;
+use App\Models\Invitation;
 use App\Models\Timeslot;
 use App\Models\User;
 use App\Policies\ClientNotePolicy;
+use App\Policies\InvitationPolicy;
 use App\Policies\ProviderClientPolicy;
 use App\Policies\TimeslotPolicy;
 use App\Policies\UserPolicy;
@@ -32,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Timeslot::class, TimeslotPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(ClientNote::class, ClientNotePolicy::class);
+        Gate::policy(Invitation::class, InvitationPolicy::class);
 
         // Register policy for provider-client relationships
         Gate::define('viewAnyClients', [ProviderClientPolicy::class, 'viewAny']);
@@ -43,6 +46,8 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('manageClientNotes', [ClientNotePolicy::class, 'manage']);
         Gate::define('modifyClientNote', [ClientNotePolicy::class, 'modify']);
+
+        Gate::define('manageSiteSettings', fn (User $user) => $user->isAdmin());
 
         Event::subscribe(SendTimeslotNotifications::class);
     }
