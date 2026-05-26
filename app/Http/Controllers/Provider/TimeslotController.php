@@ -73,15 +73,21 @@ class TimeslotController extends Controller
     {
         $this->authorize('assignClient', $timeslot);
 
-        if (! $timeslot->is_available && ! $timeslot->is_booked) {
+        if (! $timeslot->is_available && ! $timeslot->is_booked && ! $timeslot->is_completed) {
             return back()->with('error', 'This timeslot cannot be assigned.');
         }
 
-        $wasAlreadyBooked = $timeslot->is_booked;
+        $wasAlreadyAssigned = $timeslot->is_booked || ($timeslot->is_completed && $timeslot->client_id !== null);
+        $clientId = $request->validated()['client_id'];
 
-        $timeslot->book($request->validated()['client_id']);
+        if ($timeslot->is_completed) {
+            // Preserve completed status — only update the assigned client.
+            $timeslot->update(['client_id' => $clientId]);
+        } else {
+            $timeslot->book($clientId);
+        }
 
-        $message = $wasAlreadyBooked ? 'Client reassigned to timeslot successfully.' : 'Client assigned to timeslot successfully.';
+        $message = $wasAlreadyAssigned ? 'Client reassigned to timeslot successfully.' : 'Client assigned to timeslot successfully.';
 
         return back()->with('success', $message);
     }

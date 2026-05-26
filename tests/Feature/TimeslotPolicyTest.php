@@ -252,4 +252,78 @@ class TimeslotPolicyTest extends TestCase
 
         $this->assertFalse($this->client->can('delete', $timeslot));
     }
+
+    // assignClient policy tests
+
+    public function test_provider_can_assign_client_to_available_timeslot(): void
+    {
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => now()->addDays(2),
+            'status' => 'available',
+        ]);
+
+        $this->assertTrue($this->provider->can('assignClient', $timeslot));
+    }
+
+    public function test_provider_can_reassign_client_to_booked_timeslot(): void
+    {
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'client_id' => $this->client->id,
+            'start_time' => now()->subDays(1),
+            'status' => 'booked',
+        ]);
+
+        $this->assertTrue($this->provider->can('assignClient', $timeslot));
+    }
+
+    public function test_provider_can_reassign_client_to_completed_past_timeslot(): void
+    {
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'client_id' => $this->client->id,
+            'start_time' => now()->subDays(2),
+            'status' => 'completed',
+        ]);
+
+        $this->assertTrue($this->provider->can('assignClient', $timeslot));
+    }
+
+    public function test_provider_cannot_assign_client_to_another_providers_timeslot(): void
+    {
+        $anotherProvider = User::factory()->create();
+        $anotherProvider->assignRole('service_provider');
+
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $anotherProvider->id,
+            'start_time' => now()->subDays(2),
+            'status' => 'completed',
+        ]);
+
+        $this->assertFalse($this->provider->can('assignClient', $timeslot));
+    }
+
+    public function test_admin_can_assign_client_to_completed_timeslot(): void
+    {
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'client_id' => $this->client->id,
+            'start_time' => now()->subDays(2),
+            'status' => 'completed',
+        ]);
+
+        $this->assertTrue($this->admin->can('assignClient', $timeslot));
+    }
+
+    public function test_client_cannot_assign_client_to_timeslot(): void
+    {
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => now()->addDays(2),
+            'status' => 'available',
+        ]);
+
+        $this->assertFalse($this->client->can('assignClient', $timeslot));
+    }
 }

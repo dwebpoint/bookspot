@@ -100,6 +100,11 @@ return new class extends Migration
      */
     private function migrateBookingData(): void
     {
+        // Skip if bookings table doesn't exist (fresh install or test environment)
+        if (! Schema::hasTable('bookings')) {
+            return;
+        }
+
         // Get all bookings with their status
         $bookings = DB::table('bookings')->get();
 

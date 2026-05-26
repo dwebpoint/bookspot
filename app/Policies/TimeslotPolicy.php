@@ -118,11 +118,9 @@ class TimeslotPolicy
             return false;
         }
 
-        // Timeslot must be available or booked (for reassignment)
-        // POLICY CHANGE: Allow assignment to already booked timeslots to enable reassignment.
-        // This permits providers or admins to overwrite an existing booking with a new client assignment.
-        // Use with caution, as this will replace the current client on the timeslot.
-        return $timeslot->is_available || $timeslot->is_booked;
+        // Timeslot must be available, booked, or completed (for reassignment of past timeslots).
+        // Completed timeslots in the past may need client correction; status is preserved on reassignment.
+        return $timeslot->is_available || $timeslot->is_booked || $timeslot->is_completed;
     }
 
     /**
