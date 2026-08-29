@@ -1,12 +1,9 @@
 import { AmbientBackground } from '@/components/ambient-background';
-import { type SharedData } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Form } from '@inertiajs/react';
 import { CalendarCheck, Mail } from 'lucide-react';
 
 export default function Contact({ contactEmail }: { contactEmail: string }) {
-    const { auth } = usePage<SharedData>().props;
-
     return (
         <>
             <Head title="Contact Us — BookSpot" />

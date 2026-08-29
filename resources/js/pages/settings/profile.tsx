@@ -3,7 +3,7 @@ import { send } from '@/routes/verification';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
@@ -32,10 +32,14 @@ export default function Profile({
     const { auth } = usePage<SharedData>().props;
     const [emailValue, setEmailValue] = useState(auth.user.email);
 
-    // Sync after a successful save (Inertia re-shares auth with the new email)
-    useEffect(() => {
+    // Sync after a successful save (Inertia re-shares auth with the new email).
+    // Adjusted during render rather than in an effect, per
+    // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+    const [prevAuthEmail, setPrevAuthEmail] = useState(auth.user.email);
+    if (auth.user.email !== prevAuthEmail) {
+        setPrevAuthEmail(auth.user.email);
         setEmailValue(auth.user.email);
-    }, [auth.user.email]);
+    }
 
     const emailChanged = emailValue !== auth.user.email;
 

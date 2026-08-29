@@ -24,7 +24,7 @@
     "deny": [],
     "ask": []
   },
-  "model": "sonnet 4.5",
+  "model": "sonnet 5",
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "laravel-boost"
