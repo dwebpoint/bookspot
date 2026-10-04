@@ -45,7 +45,6 @@ import {
     Calendar as CalendarIcon,
     CheckCircle,
     Clock,
-    Edit2,
     Plus,
     StickyNote,
     Trash2,
@@ -86,12 +85,10 @@ export default function Calendar() {
     const [selectedClientId, setSelectedClientId] = useState<number | null>(
         null,
     );
-    const [isAssigning, setIsAssigning] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showCompleteDialog, setShowCompleteDialog] = useState(false);
     const [showRevertDialog, setShowRevertDialog] = useState(false);
-    const [isEditingTimeslot, setIsEditingTimeslot] = useState(false);
     const [editDuration, setEditDuration] = useState<number>(60);
     const [editStartDate, setEditStartDate] = useState('');
     const [editStartTime, setEditStartTime] = useState('');
@@ -195,26 +192,6 @@ export default function Calendar() {
         );
     };
 
-    const handleAssignClient = () => {
-        if (!selectedTimeslot || !selectedClientId) return;
-
-        setIsAssigning(true);
-        router.post(
-            route('provider.timeslots.assign', selectedTimeslot.id),
-            { client_id: selectedClientId },
-            {
-                onSuccess: () => {
-                    setShowDialog(false);
-                    setSelectedTimeslot(null);
-                    setSelectedClientId(null);
-                },
-                onFinish: () => {
-                    setIsAssigning(false);
-                },
-            },
-        );
-    };
-
     const handleCancelBooking = () => {
         if (!selectedTimeslot) return;
 
@@ -289,41 +266,87 @@ export default function Calendar() {
         );
     };
 
-    const handleUpdateTimeslot = () => {
+    const timeslotChanges = (() => {
+        const changes: {
+            start_time?: string;
+            duration_minutes?: number;
+            comment?: string | null;
+            client_id?: number;
+        } = {};
+
+        if (!selectedTimeslot) return changes;
+
+        if (!selectedTimeslot.is_completed) {
+            const original = new Date(selectedTimeslot.start_time);
+            if (
+                editStartDate &&
+                editStartTime &&
+                (editStartDate !== format(original, 'yyyy-MM-dd') ||
+                    editStartTime !== format(original, 'HH:mm'))
+            ) {
+                changes.start_time = `${editStartDate}T${editStartTime}`;
+            }
+            if (editDuration !== selectedTimeslot.duration_minutes) {
+                changes.duration_minutes = editDuration;
+            }
+        }
+
+        if (editComment !== (selectedTimeslot.comment ?? '')) {
+            changes.comment = editComment || null;
+        }
+
+        if (selectedClientId && selectedClientId !== (selectedTimeslot.client?.id ?? null)) {
+            changes.client_id = selectedClientId;
+        }
+
+        return changes;
+    })();
+
+    const hasTimeslotChanges = Object.keys(timeslotChanges).length > 0;
+
+    const syncEditFormWith = (timeslot: Timeslot) => {
+        setEditDuration(timeslot.duration_minutes);
+        setEditStartDate(format(new Date(timeslot.start_time), 'yyyy-MM-dd'));
+        setEditStartTime(format(new Date(timeslot.start_time), 'HH:mm'));
+        setEditComment(timeslot.comment ?? '');
+        setSelectedClientId(timeslot.client?.id ?? null);
+    };
+
+    const resetEditForm = () => {
         if (!selectedTimeslot) return;
+
+        setUpdateError(null);
+        syncEditFormWith(selectedTimeslot);
+    };
+
+    const handleUpdateTimeslot = () => {
+        if (!selectedTimeslot || !hasTimeslotChanges) return;
 
         setIsUpdating(true);
         setUpdateError(null);
-        const data: { duration_minutes: number; start_time?: string; comment?: string } = {
-            duration_minutes: editDuration,
-            comment: editComment,
-        };
-
-        if (editStartDate && editStartTime) {
-            data.start_time = `${editStartDate}T${editStartTime}`;
-        }
 
         router.patch(
             route('provider.timeslots.update', selectedTimeslot.id),
-            data,
+            timeslotChanges,
             {
                 preserveScroll: true,
                 onSuccess: (page) => {
-                    setIsEditingTimeslot(false);
                     setUpdateError(null);
-                    // Refresh selectedTimeslot from updated page props
                     const updatedTimeslots = (page.props as unknown as CalendarPageProps).timeslots;
                     const updated = updatedTimeslots.find((t) => t.id === selectedTimeslot.id);
                     if (updated) {
                         setSelectedTimeslot(updated);
-                        setEditDuration(updated.duration_minutes);
-                        setEditStartDate(format(new Date(updated.start_time), 'yyyy-MM-dd'));
-                        setEditStartTime(format(new Date(updated.start_time), 'HH:mm'));
-                        setEditComment(updated.comment ?? '');
+                        setSelectedDate(new Date(updated.start_time));
+                        syncEditFormWith(updated);
                     }
                 },
                 onError: (errors) => {
-                    const message = errors.start_time || errors.duration_minutes || 'Failed to update timeslot.';
+                    const message =
+                        errors.start_time ||
+                        errors.duration_minutes ||
+                        errors.client_id ||
+                        errors.comment ||
+                        'Failed to update timeslot.';
                     setUpdateError(message);
                 },
                 onFinish: () => {
@@ -341,7 +364,6 @@ export default function Calendar() {
         setEditStartDate(format(new Date(timeslot.start_time), 'yyyy-MM-dd'));
         setEditStartTime(format(new Date(timeslot.start_time), 'HH:mm'));
         setEditComment(timeslot.comment ?? '');
-        setIsEditingTimeslot(false);
         setShowDialog(true);
     };
 
@@ -352,8 +374,7 @@ export default function Calendar() {
             setSelectedTimeslot(null);
             setSelectedDate(null);
             setSelectedClientId(null);
-            setIsEditingTimeslot(false);
-            setUpdateError(null);
+                setUpdateError(null);
             setShowRevertDialog(false);
             setIsSavingComment(false);
         }
@@ -981,107 +1002,11 @@ export default function Calendar() {
                                                               : 'Booked'}
                                                     </span>
                                                 </div>
-                                                <div className="text-sm text-muted-foreground">
-                                                    {canSeeClientNames &&
-                                                    !selectedTimeslot.is_completed &&
-                                                    isEditingTimeslot ? (
-                                                        <div className="space-y-3">
-                                                            <div className="grid grid-cols-2 gap-3">
-                                                                <div className="space-y-1">
-                                                                    <Label htmlFor="edit_start_date">Date</Label>
-                                                                    <Input
-                                                                        id="edit_start_date"
-                                                                        type="date"
-                                                                        value={editStartDate}
-                                                                        onChange={(e) => setEditStartDate(e.target.value)}
-                                                                    />
-                                                                </div>
-                                                                <div className="space-y-1">
-                                                                    <Label htmlFor="edit_start_time">Time</Label>
-                                                                    <Input
-                                                                        id="edit_start_time"
-                                                                        type="time"
-                                                                        step="900"
-                                                                        value={editStartTime}
-                                                                        onChange={(e) => setEditStartTime(e.target.value)}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <Label htmlFor="edit_duration">Duration</Label>
-                                                                <Select
-                                                                    value={editDuration.toString()}
-                                                                    onValueChange={(value) => setEditDuration(parseInt(value))}
-                                                                >
-                                                                    <SelectTrigger id="edit_duration">
-                                                                        <SelectValue placeholder="Select duration" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="60">1 hour</SelectItem>
-                                                                        <SelectItem value="80">1 hour 20 minutes</SelectItem>
-                                                                        <SelectItem value="120">2 hours</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <Label htmlFor="edit_comment">Comment</Label>
-                                                                <Textarea
-                                                                    id="edit_comment"
-                                                                    value={editComment}
-                                                                    onChange={(e) => setEditComment(e.target.value)}
-                                                                    placeholder="Add a comment..."
-                                                                    rows={3}
-                                                                    maxLength={1000}
-                                                                />
-                                                            </div>
-                                                            {updateError && (
-                                                                <p className="text-sm text-destructive">
-                                                                    {updateError}
-                                                                </p>
-                                                            )}
-                                                            <div className="flex items-center gap-2">
-                                                                <Button
-                                                                    size="sm"
-                                                                    onClick={handleUpdateTimeslot}
-                                                                    disabled={isUpdating}
-                                                                >
-                                                                    {isUpdating ? 'Saving...' : 'Save'}
-                                                                </Button>
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="ghost"
-                                                                    onClick={() => {
-                                                                        setIsEditingTimeslot(false);
-                                                                        setUpdateError(null);
-                                                                        setEditDuration(selectedTimeslot.duration_minutes);
-                                                                        setEditStartDate(format(new Date(selectedTimeslot.start_time), 'yyyy-MM-dd'));
-                                                                        setEditStartTime(format(new Date(selectedTimeslot.start_time), 'HH:mm'));
-                                                                        setEditComment(selectedTimeslot.comment ?? '');
-                                                                    }}
-                                                                >
-                                                                    Cancel
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-2">
-                                                            <span>
-                                                                Duration: {selectedTimeslot.duration_minutes} minutes
-                                                            </span>
-                                                            {canSeeClientNames &&
-                                                                !selectedTimeslot.is_completed && (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 w-6 p-0"
-                                                                        onClick={() => setIsEditingTimeslot(true)}
-                                                                    >
-                                                                        <Edit2 className="h-3 w-3" />
-                                                                    </Button>
-                                                                )}
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                {!canSeeClientNames && (
+                                                    <div className="text-sm text-muted-foreground">
+                                                        Duration: {selectedTimeslot.duration_minutes} minutes
+                                                    </div>
+                                                )}
                                                 {selectedTimeslot.provider &&
                                                     !canSeeClientNames && (
                                                     <p className="text-sm text-muted-foreground">
@@ -1095,11 +1020,97 @@ export default function Calendar() {
                                             </div>
                                         </div>
 
-                                        {/* Comment section (editable for providers/admins and assigned clients) */}
-                                        {!isEditingTimeslot && (
+                                        {canSeeClientNames ? (
+                                            <div className="space-y-3 border-t pt-3">
+                                                {selectedTimeslot.is_completed ? (
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Duration: {selectedTimeslot.duration_minutes} minutes
+                                                    </p>
+                                                ) : (
+                                                    <>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div className="space-y-1">
+                                                                <Label htmlFor="edit_start_date">Date</Label>
+                                                                <Input
+                                                                    id="edit_start_date"
+                                                                    type="date"
+                                                                    value={editStartDate}
+                                                                    onChange={(e) => setEditStartDate(e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label htmlFor="edit_start_time">Time</Label>
+                                                                <Input
+                                                                    id="edit_start_time"
+                                                                    type="time"
+                                                                    step="900"
+                                                                    value={editStartTime}
+                                                                    onChange={(e) => setEditStartTime(e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label htmlFor="edit_duration">Duration</Label>
+                                                            <Select
+                                                                value={editDuration.toString()}
+                                                                onValueChange={(value) => setEditDuration(parseInt(value))}
+                                                            >
+                                                                <SelectTrigger id="edit_duration">
+                                                                    <SelectValue placeholder="Select duration" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="60">1 hour</SelectItem>
+                                                                    <SelectItem value="80">1 hour 20 minutes</SelectItem>
+                                                                    <SelectItem value="120">2 hours</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </>
+                                                )}
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="edit_comment">Comment</Label>
+                                                    <Textarea
+                                                        id="edit_comment"
+                                                        value={editComment}
+                                                        onChange={(e) => setEditComment(e.target.value)}
+                                                        placeholder="Add a comment..."
+                                                        rows={3}
+                                                        maxLength={1000}
+                                                    />
+                                                </div>
+                                                {clients && clients.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        <Label>{selectedTimeslot.is_available ? 'Assign Client' : 'Client'}</Label>
+                                                        <Combobox
+                                                            options={clients.map((client) => ({
+                                                                value: client.id,
+                                                                label: client.name,
+                                                            }))}
+                                                            value={selectedClientId || undefined}
+                                                            onValueChange={(value) => setSelectedClientId(value as number)}
+                                                            placeholder="Select a client..."
+                                                            searchPlaceholder="Search clients..."
+                                                            emptyText="No clients found."
+                                                        />
+                                                    </div>
+                                                )}
+                                                {updateError && <p className="text-sm text-destructive">{updateError}</p>}
+                                                <div className="flex items-center gap-2">
+                                                    <Button onClick={handleUpdateTimeslot} disabled={isUpdating || !hasTimeslotChanges}>
+                                                        {isUpdating ? 'Saving...' : 'Save'}
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        onClick={resetEditForm}
+                                                        disabled={isUpdating || !hasTimeslotChanges}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
                                             (() => {
-                                                const canEditComment = canSeeClientNames ||
-                                                    selectedTimeslot.client?.id === auth.user?.id;
+                                                const canEditComment = selectedTimeslot.client?.id === auth.user?.id;
 
                                                 if (!canEditComment && !selectedTimeslot.comment) return null;
 
@@ -1134,73 +1145,6 @@ export default function Calendar() {
                                                 );
                                             })()
                                         )}
-
-                                        {/* Client selector for service providers and admins */}
-                                        {canSeeClientNames &&
-                                            clients &&
-                                            clients.length > 0 && (
-                                                <div className="space-y-2 border-t pt-3">
-                                                    <label className="text-sm font-medium">
-                                                        {selectedTimeslot.is_available
-                                                            ? 'Assign Client'
-                                                            : 'Current Client'}
-                                                    </label>
-                                                    <Combobox
-                                                        options={clients.map(
-                                                            (client) => ({
-                                                                value: client.id,
-                                                                label: client.name,
-                                                            }),
-                                                        )}
-                                                        value={
-                                                            selectedClientId ||
-                                                            undefined
-                                                        }
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            setSelectedClientId(
-                                                                value as number,
-                                                            )
-                                                        }
-                                                        placeholder="Select a client..."
-                                                        searchPlaceholder="Search clients..."
-                                                        emptyText="No clients found."
-                                                    />
-                                                    {selectedTimeslot.is_available ? (
-                                                        selectedClientId && (
-                                                            <Button
-                                                                onClick={
-                                                                    handleAssignClient
-                                                                }
-                                                                disabled={
-                                                                    isAssigning
-                                                                }
-                                                                className="w-full"
-                                                            >
-                                                                {isAssigning
-                                                                    ? 'Assigning...'
-                                                                    : 'Assign Client'}
-                                                            </Button>
-                                                        )
-                                                    ) : (
-                                                        <Button
-                                                            onClick={
-                                                                handleAssignClient
-                                                            }
-                                                            disabled={
-                                                                isAssigning ||
-                                                                !selectedClientId
-                                                            }
-                                                            className="w-full"
-                                                        >
-                                                            {isAssigning
-                                                                ? 'Reassigning...'
-                                                                : 'Reassign to Different Client'}
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            )}
 
                                         {/* Action buttons for service providers/admins */}
                                         {canSeeClientNames &&

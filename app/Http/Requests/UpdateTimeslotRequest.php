@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Timeslot;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -43,6 +44,7 @@ class UpdateTimeslotRequest extends FormRequest
                 },
             ],
             'duration_minutes' => [
+                'sometimes',
                 'required',
                 'integer',
                 'min:15',
@@ -53,6 +55,11 @@ class UpdateTimeslotRequest extends FormRequest
                 'string',
                 'max:1000',
             ],
+            'client_id' => [
+                'sometimes',
+                'required',
+                'exists:users,id',
+            ],
         ];
     }
 
@@ -62,6 +69,8 @@ class UpdateTimeslotRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            $this->validateClient($validator);
+
             if ($validator->errors()->isNotEmpty()) {
                 return;
             }
@@ -70,7 +79,9 @@ class UpdateTimeslotRequest extends FormRequest
             $startTime = $this->has('start_time')
                 ? Carbon::parse($this->start_time, config('app.timezone'))
                 : Carbon::parse($timeslot->start_time);
-            $durationMinutes = $this->duration_minutes;
+            $durationMinutes = $this->has('duration_minutes')
+                ? $this->integer('duration_minutes')
+                : $timeslot->duration_minutes;
             $endTime = $startTime->copy()->addMinutes($durationMinutes);
 
             $startTimeUtc = $startTime->copy()->utc()->format('Y-m-d H:i:s');
@@ -95,6 +106,29 @@ class UpdateTimeslotRequest extends FormRequest
     }
 
     /**
+     * Ensure the selected client is a client linked to the current provider.
+     */
+    private function validateClient(Validator $validator): void
+    {
+        if (! $this->has('client_id') || $validator->errors()->has('client_id')) {
+            return;
+        }
+
+        $clientId = $this->integer('client_id');
+        $user = User::find($clientId);
+
+        if ($user && ! $user->hasRole('client')) {
+            $validator->errors()->add('client_id', 'The selected user is not a client.');
+
+            return;
+        }
+
+        if (! $this->user()->hasClient($clientId)) {
+            $validator->errors()->add('client_id', 'You can only assign clients you are linked to.');
+        }
+    }
+
+    /**
      * Get custom messages for validator errors.
      *
      * @return array<string, string>
@@ -104,6 +138,8 @@ class UpdateTimeslotRequest extends FormRequest
         return [
             'start_time.required' => 'The start time is required.',
             'start_time.date' => 'The start time must be a valid date.',
+            'client_id.required' => 'Please select a client.',
+            'client_id.exists' => 'The selected client does not exist.',
             'duration_minutes.required' => 'The duration is required.',
             'duration_minutes.integer' => 'The duration must be a number.',
             'duration_minutes.min' => 'The duration must be at least 15 minutes.',

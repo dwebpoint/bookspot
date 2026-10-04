@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateTimeslotRequest;
 use App\Models\Timeslot;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Arr;
 
 class TimeslotController extends Controller
 {
@@ -43,11 +44,31 @@ class TimeslotController extends Controller
     {
         $this->authorize('update', $timeslot);
 
-        if ($timeslot->is_completed) {
+        $validated = $request->validated();
+        $clientId = $validated['client_id'] ?? null;
+        $schedule = Arr::only($validated, ['start_time', 'duration_minutes']);
+
+        if ($timeslot->is_completed && $schedule !== []) {
             return back()->with('error', 'Completed timeslots cannot be updated.');
         }
 
-        $timeslot->update($request->validated());
+        $timeslot->getConnection()->transaction(function () use ($timeslot, $validated, $schedule, $clientId): void {
+            if ($schedule !== []) {
+                $timeslot->update($schedule);
+            }
+
+            if ($clientId !== null && $clientId !== $timeslot->client_id) {
+                if ($timeslot->is_completed) {
+                    $timeslot->update(['client_id' => $clientId, 'comment' => null]);
+                } else {
+                    $timeslot->book($clientId);
+                }
+            }
+
+            if (array_key_exists('comment', $validated)) {
+                $timeslot->update(['comment' => $validated['comment']]);
+            }
+        });
 
         return back()->with('success', 'Timeslot updated successfully.');
     }

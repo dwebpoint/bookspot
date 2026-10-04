@@ -385,4 +385,142 @@ class TimeslotControllerUpdateTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('success');
     }
+
+    public function test_provider_can_change_time_and_assign_client_in_one_request(): void
+    {
+        $this->provider->clients()->attach($this->client->id);
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => Carbon::now()->addDays(2)->setTime(10, 0),
+            'duration_minutes' => 60,
+            'status' => 'available',
+        ]);
+        $newStartTime = Carbon::now()->addDays(3)->setTime(14, 0);
+
+        $response = $this->actingAs($this->provider)
+            ->patch(route('provider.timeslots.update', $timeslot), [
+                'start_time' => $newStartTime->format('Y-m-d\TH:i'),
+                'client_id' => $this->client->id,
+                'comment' => 'Bring documents',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $timeslot->refresh();
+        $this->assertEquals($newStartTime->format('Y-m-d H:i'), $timeslot->start_time->format('Y-m-d H:i'));
+        $this->assertEquals($this->client->id, $timeslot->client_id);
+        $this->assertEquals(TimeslotStatus::Booked, $timeslot->status);
+        $this->assertEquals('Bring documents', $timeslot->comment);
+    }
+
+    public function test_provider_can_reassign_client_and_change_duration_in_one_request(): void
+    {
+        $otherClient = User::factory()->create();
+        $otherClient->assignRole('client');
+        $this->provider->clients()->attach([$this->client->id, $otherClient->id]);
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'client_id' => $this->client->id,
+            'start_time' => Carbon::now()->addDays(2)->setTime(10, 0),
+            'duration_minutes' => 60,
+            'status' => 'booked',
+        ]);
+
+        $this->actingAs($this->provider)
+            ->patch(route('provider.timeslots.update', $timeslot), [
+                'duration_minutes' => 80,
+                'client_id' => $otherClient->id,
+            ])
+            ->assertSessionHas('success');
+
+        $timeslot->refresh();
+        $this->assertEquals(80, $timeslot->duration_minutes);
+        $this->assertEquals($otherClient->id, $timeslot->client_id);
+        $this->assertEquals(TimeslotStatus::Booked, $timeslot->status);
+    }
+
+    public function test_client_is_not_assigned_when_overlap_validation_fails(): void
+    {
+        $this->provider->clients()->attach($this->client->id);
+        Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => Carbon::now()->addDays(3)->setTime(14, 0),
+            'duration_minutes' => 60,
+            'status' => 'available',
+        ]);
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => Carbon::now()->addDays(2)->setTime(10, 0),
+            'duration_minutes' => 60,
+            'status' => 'available',
+        ]);
+
+        $this->actingAs($this->provider)
+            ->patch(route('provider.timeslots.update', $timeslot), [
+                'start_time' => Carbon::now()->addDays(3)->setTime(14, 30)->format('Y-m-d\TH:i'),
+                'client_id' => $this->client->id,
+            ])
+            ->assertSessionHasErrors('start_time');
+
+        $this->assertDatabaseHas('timeslots', [
+            'id' => $timeslot->id,
+            'client_id' => null,
+            'status' => 'available',
+        ]);
+    }
+
+    public function test_provider_cannot_assign_client_not_linked_to_them(): void
+    {
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => Carbon::now()->addDays(2)->setTime(10, 0),
+            'status' => 'available',
+        ]);
+
+        $this->actingAs($this->provider)
+            ->patch(route('provider.timeslots.update', $timeslot), [
+                'client_id' => $this->client->id,
+            ])
+            ->assertSessionHasErrors('client_id');
+
+        $this->assertNull($timeslot->fresh()->client_id);
+    }
+
+    public function test_completed_timeslot_can_change_client_but_keeps_status(): void
+    {
+        $this->provider->clients()->attach($this->client->id);
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => Carbon::now()->subDays(2)->setTime(10, 0),
+            'status' => 'completed',
+        ]);
+
+        $this->actingAs($this->provider)
+            ->patch(route('provider.timeslots.update', $timeslot), [
+                'client_id' => $this->client->id,
+            ])
+            ->assertSessionHas('success');
+
+        $timeslot->refresh();
+        $this->assertEquals($this->client->id, $timeslot->client_id);
+        $this->assertEquals(TimeslotStatus::Completed, $timeslot->status);
+    }
+
+    public function test_completed_timeslot_schedule_cannot_be_changed(): void
+    {
+        $timeslot = Timeslot::factory()->create([
+            'provider_id' => $this->provider->id,
+            'start_time' => Carbon::now()->subDays(2)->setTime(10, 0),
+            'duration_minutes' => 60,
+            'status' => 'completed',
+        ]);
+
+        $this->actingAs($this->provider)
+            ->patch(route('provider.timeslots.update', $timeslot), [
+                'duration_minutes' => 120,
+            ])
+            ->assertSessionHas('error');
+
+        $this->assertEquals(60, $timeslot->fresh()->duration_minutes);
+    }
 }
